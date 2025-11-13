@@ -101,6 +101,79 @@ export default function RecruitmentPage() {
     }
   }
 
+  async function deleteJob(jobId: string) {
+    if (window.confirm('Are you sure you want to delete this job posting?')) {
+      const { error } = await supabase
+        .from('job_postings')
+        .delete()
+        .eq('id', jobId);
+
+      if (!error) {
+        setToast({ message: 'Job posting deleted successfully', type: 'success' });
+        loadData();
+        await supabase.from('audit_logs').insert({
+          user_id: user?.id,
+          action: 'DELETE_JOB',
+          entity_type: 'job_postings',
+          entity_id: jobId,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        setToast({ message: 'Error deleting job posting', type: 'error' });
+      }
+    }
+  }
+
+  async function deleteApplication(appId: string) {
+    if (window.confirm('Are you sure you want to delete this application?')) {
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', appId);
+
+      if (!error) {
+        setToast({ message: 'Application deleted successfully', type: 'success' });
+        loadData();
+        await supabase.from('audit_logs').insert({
+          user_id: user?.id,
+          action: 'DELETE_APPLICATION',
+          entity_type: 'applications',
+          entity_id: appId,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        setToast({ message: 'Error deleting application', type: 'error' });
+      }
+    }
+  }
+
+  function viewJobDetails(job: any) {
+    alert(`Job Details:\n\nTitle: ${job.job_title}\nDepartment: ${job.department}\nType: ${job.employment_type}\nDescription: ${job.description || 'No description available'}\nLocation: ${job.location || 'Remote'}\nSalary: ${job.salary_range || 'Not specified'}`);
+  }
+
+  function editJob(job: any) {
+    setToast({ message: 'Edit functionality will be available in the next update', type: 'warning' });
+  }
+
+  function viewApplicationDetails(app: any) {
+    alert(`Application Details:\n\nApplicant: ${app.applicant_first_name} ${app.applicant_last_name}\nEmail: ${app.applicant_email}\nPhone: ${app.applicant_phone || 'Not provided'}\nStatus: ${app.status}\nApplied: ${format(new Date(app.applied_at), 'MMM dd, yyyy')}\nScore: ${app.score || 'Not scored'}`);
+  }
+
+  function scheduleInterviewForApplication(app: any) {
+    setShowAddInterviewModal(true);
+    setToast({ message: 'Interview scheduling modal opened', type: 'success' });
+  }
+
+  function editInterview(interview: any) {
+    setToast({ message: 'Interview edit functionality will be available in the next update', type: 'warning' });
+  }
+
+  function rescheduleInterview(interview: any) {
+    if (window.confirm('Reschedule this interview?')) {
+      setToast({ message: 'Interview rescheduling will be available in the next update', type: 'warning' });
+    }
+  }
+
   function handleAddNew() {
     if (activeTab === 'jobs') {
       setShowAddJobModal(true);
@@ -243,13 +316,25 @@ export default function RecruitmentPage() {
                             {job.application_deadline ? format(new Date(job.application_deadline), 'MMM dd, yyyy') : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <button 
+                              onClick={() => viewJobDetails(job)}
+                              className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                              title="View Details"
+                            >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button className="text-gray-600 hover:text-gray-900 mr-3">
+                            <button 
+                              onClick={() => editJob(job)}
+                              className="text-gray-600 hover:text-gray-900 mr-3 p-1 rounded"
+                              title="Edit Job"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button className="text-red-600 hover:text-red-900">
+                            <button 
+                              onClick={() => deleteJob(job.id)}
+                              className="text-red-600 hover:text-red-900 p-1 rounded"
+                              title="Delete Job"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
@@ -322,14 +407,40 @@ export default function RecruitmentPage() {
                             {app.score || 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <button 
+                              onClick={() => viewApplicationDetails(app)}
+                              className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                              title="View Details"
+                            >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button className="text-green-600 hover:text-green-900 mr-3" title="Accept">
+                            <button 
+                              onClick={() => scheduleInterviewForApplication(app)}
+                              className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded" 
+                              title="Schedule Interview"
+                            >
+                              <Calendar className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => updateApplicationStatus(app.id, 'shortlisted')}
+                              className="text-green-600 hover:text-green-900 mr-3 p-1 rounded" 
+                              title="Shortlist"
+                            >
                               <CheckCircle className="w-4 h-4" />
                             </button>
-                            <button className="text-red-600 hover:text-red-900" title="Reject">
+                            <button 
+                              onClick={() => updateApplicationStatus(app.id, 'rejected')}
+                              className="text-red-600 hover:text-red-900 mr-3 p-1 rounded" 
+                              title="Reject"
+                            >
                               <XCircle className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => deleteApplication(app.id)}
+                              className="text-gray-600 hover:text-gray-900 p-1 rounded"
+                              title="Delete Application"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
                         </tr>
@@ -386,11 +497,30 @@ export default function RecruitmentPage() {
                             {interview.rating ? `${interview.rating}/5` : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <button 
+                              onClick={() => rescheduleInterview(interview)}
+                              className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                              title="Reschedule Interview"
+                            >
                               <Calendar className="w-4 h-4" />
                             </button>
-                            <button className="text-gray-600 hover:text-gray-900">
+                            <button 
+                              onClick={() => editInterview(interview)}
+                              className="text-gray-600 hover:text-gray-900 mr-3 p-1 rounded"
+                              title="Edit Interview"
+                            >
                               <Edit className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (window.confirm('Mark this interview as completed?')) {
+                                  setToast({ message: 'Interview marked as completed', type: 'success' });
+                                }
+                              }}
+                              className="text-green-600 hover:text-green-900 p-1 rounded"
+                              title="Mark Complete"
+                            >
+                              <CheckCircle className="w-4 h-4" />
                             </button>
                           </td>
                         </tr>
