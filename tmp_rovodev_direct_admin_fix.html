@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NOVUMFLOW Admin Setup</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .setup-box { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .btn { background: #4f46e5; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+        .btn:hover { background: #4338ca; }
+        input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .success { background: #d1fae5; color: #065f46; padding: 10px; border-radius: 4px; }
+        .error { background: #fee2e2; color: #dc2626; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🛠️ NOVUMFLOW Admin Setup</h1>
+    <div class="setup-box">
+        <h2>Create Your Admin Account</h2>
+        <p>Enter your details below to create an admin account with full privileges:</p>
+        
+        <form id="adminForm">
+            <label>Email Address:</label>
+            <input type="email" id="email" required placeholder="admin@yourcompany.com">
+            
+            <label>Password (min 6 characters):</label>
+            <input type="password" id="password" required placeholder="Create a secure password">
+            
+            <br><br>
+            <button type="submit" class="btn">Create Admin Account</button>
+        </form>
+        
+        <div id="result" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="setup-box">
+        <h3>📋 Manual Database Method</h3>
+        <p>If the automatic setup doesn't work, copy and paste this into your browser console on the NOVUMFLOW site:</p>
+        <code style="background: #f1f1f1; padding: 10px; display: block; margin: 10px 0;">
+supabase.auth.signUp({email:'YOUREMAIL@COMPANY.COM',password:'YOURPASSWORD'}).then(r=>supabase.from('users_profiles').upsert({user_id:r.data.user.id,role:'Admin',full_name:'Admin'}).then(()=>location.href='/dashboard'))
+        </code>
+        <p><strong>Replace</strong> YOUREMAIL@COMPANY.COM and YOURPASSWORD with your actual details</p>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase (using the same config as NOVUMFLOW)
+        const supabase = window.supabase.createClient(
+            'https://bhgeefzkefnqwgdbnpud.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoZ2VlZnprZWZucXdnZGJucHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzEzNTMxODgsImV4cCI6MjA0NjkyOTE4OH0.JeGYhJc99uJBNqMX1VYlO8QVzMsOODzxODasDWGW5nc'
+        );
+
+        document.getElementById('adminForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+
+            if (!email || !password) {
+                result.innerHTML = '<div class="error">Please fill in all fields</div>';
+                return;
+            }
+
+            if (password.length < 6) {
+                result.innerHTML = '<div class="error">Password must be at least 6 characters</div>';
+                return;
+            }
+
+            result.innerHTML = '<div>Creating admin account...</div>';
+
+            try {
+                // Create user account
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (authError) throw authError;
+
+                if (authData.user) {
+                    // Set admin role
+                    const { error: profileError } = await supabase
+                        .from('users_profiles')
+                        .upsert({
+                            user_id: authData.user.id,
+                            full_name: 'System Administrator',
+                            role: 'Admin',
+                            created_at: new Date().toISOString()
+                        });
+
+                    result.innerHTML = '<div class="success">✅ Admin account created successfully! Redirecting to NOVUMFLOW...</div>';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'https://novumflow.netlify.app/dashboard';
+                    }, 2000);
+                } else {
+                    throw new Error('Failed to create user');
+                }
+            } catch (error) {
+                result.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            }
+        };
+    </script>
+</body>
+</html>
