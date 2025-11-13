@@ -389,7 +389,10 @@ export default function RecruitmentPage() {
                               className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${
                                 app.status === 'hired' ? 'bg-green-100 text-green-800' :
                                 app.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                app.status === 'interview_scheduled' ? 'bg-blue-100 text-blue-800' :
+                                app.status === 'dbs_pending' || app.status === 'dbs_completed' ? 'bg-purple-100 text-purple-800' :
+                                app.status === 'ref_1_pending' || app.status === 'ref_1_completed' || app.status === 'ref_2_pending' || app.status === 'ref_2_completed' ? 'bg-orange-100 text-orange-800' :
+                                app.status === 'interview_scheduled' || app.status === 'interviewed' ? 'bg-blue-100 text-blue-800' :
+                                app.status === 'offer_extended' ? 'bg-emerald-100 text-emerald-800' :
                                 'bg-yellow-100 text-yellow-800'
                               }`}
                             >
@@ -399,6 +402,12 @@ export default function RecruitmentPage() {
                               <option value="interview_scheduled">Interview Scheduled</option>
                               <option value="interviewed">Interviewed</option>
                               <option value="offer_extended">Offer Extended</option>
+                              <option value="ref_1_pending">REF 1 - Pending</option>
+                              <option value="ref_1_completed">REF 1 - Completed</option>
+                              <option value="ref_2_pending">REF 2 - Pending</option>
+                              <option value="ref_2_completed">REF 2 - Completed</option>
+                              <option value="dbs_pending">DBS - Pending</option>
+                              <option value="dbs_completed">DBS - Completed</option>
                               <option value="hired">Hired</option>
                               <option value="rejected">Rejected</option>
                             </select>
