@@ -47,6 +47,15 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError 
     try {
       const scheduledDateTime = `${formData.scheduled_date}T${formData.scheduled_time}:00`;
       
+      // Ensure duration is a number
+      const interviewData = {
+        ...formData,
+        duration: Number(formData.duration) || 60, // Default to 60 minutes if not provided
+        scheduled_at: scheduledDateTime,
+        created_by: user?.id,
+        updated_by: user?.id
+      };
+      
       // Get the user's session token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {

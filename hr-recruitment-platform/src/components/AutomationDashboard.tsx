@@ -9,6 +9,26 @@ export default function AutomationDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingRule, setEditingRule] = useState<WorkflowRule | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Default new rule with proper typing
+  const defaultNewRule: Omit<WorkflowRule, 'id'> = {
+    name: '',
+    trigger: {
+      type: 'status_change',
+      entity: 'application',
+      value: 'submitted'
+    },
+    conditions: [{
+      field: 'status',
+      operator: 'equals',
+      value: 'submitted'
+    }],
+    actions: [{
+      type: 'send_notification',
+      parameters: {}
+    }],
+    isActive: true
+  };
 
   useEffect(() => {
     loadAutomationData();

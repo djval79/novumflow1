@@ -1,5 +1,67 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import * as Recharts from 'recharts';
+
+// Re-export the components we need with proper typing
+const {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} = Recharts;
+
+// Custom Tooltip component with proper typing
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: any;
+    name: string;
+    payload: any;
+    color: string;
+    dataKey: string;
+  }>;
+  label?: string;
+  formatter?: (value: any, name: string) => [string, string];
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({
+  active,
+  payload,
+  label,
+  formatter,
+}) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+        <p className="font-semibold">{label}</p>
+        {payload.map((entry, index) => {
+          if (formatter) {
+            const [value, name] = formatter(entry.value, entry.name);
+            return (
+              <p key={`tooltip-${index}`} style={{ color: entry.color }}>
+                {name}: {value}
+              </p>
+            );
+          }
+          return (
+            <p key={`tooltip-${index}`} style={{ color: entry.color }}>
+              {entry.name}: {entry.value}
+            </p>
+          );
+        })}
+      </div>
+    );
+  }
+  return null;
+};
 import { TrendingUp, TrendingDown, Users, Clock, DollarSign, Brain, AlertTriangle, CheckCircle, Target, Zap } from 'lucide-react';
 import { analyticsEngine } from '../lib/analyticsEngine';
 import { workflowEngine } from '../lib/workflowEngine';
@@ -225,7 +287,7 @@ export default function ExecutiveDashboard() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="department" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="days" fill="#4F46E5" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -243,12 +305,14 @@ export default function ExecutiveDashboard() {
                       outerRadius={80}
                       dataKey="hire_rate"
                       nameKey="source"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
                       {dashboardData.metrics.recruitmentEfficiency.source_effectiveness.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -488,11 +552,13 @@ export default function ExecutiveDashboard() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">📈 Retention by Department</h3>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={dashboardData.metrics.employeeRetention.by_department}>
+                  <BarChart data={dashboardData.metrics.retentionRates.by_department}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="department" />
                     <YAxis />
-                    <Tooltip formatter={(value) => [`${value}%`, 'Retention Rate']} />
+                    <Tooltip 
+                      content={<CustomTooltip formatter={(value: any) => [`${value}%`, 'Retention Rate']} />} 
+                    />
                     <Bar dataKey="rate" fill="#10B981" />
                   </BarChart>
                 </ResponsiveContainer>
