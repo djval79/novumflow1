@@ -318,21 +318,21 @@ export default function HRModulePage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <button 
-                              onClick={() => viewEmployeeDetails(employee)}
+                              onClick={() => viewEmployeeDetails(emp)}
                               className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded"
                               title="View Details"
                             >
                               <User className="w-4 h-4" />
                             </button>
                             <button 
-                              onClick={() => editEmployee(employee)}
+                              onClick={() => editEmployee(emp)}
                               className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
                               title="Edit Employee"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button 
-                              onClick={() => deleteEmployee(employee.id)}
+                              onClick={() => deleteEmployee(emp.id)}
                               className="text-red-600 hover:text-red-900 p-1 rounded"
                               title="Delete Employee"
                             >
