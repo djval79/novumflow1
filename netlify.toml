@@ -18,6 +18,9 @@
   # Node.js version for build
   NODE_VERSION = "18"
   
+  # Use npm instead of pnpm for Netlify
+  NPM_FLAGS = "--legacy-peer-deps"
+  
   # Enable public folder processing
   NODE_ENV = "production"
   
