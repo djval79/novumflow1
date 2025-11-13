@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Building2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import QuickAdminSetup from '../components/QuickAdminSetup';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
