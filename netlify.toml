@@ -2,14 +2,14 @@
 # Optimized for React + TypeScript + Vite deployment
 
 [build]
-  # Base directory for the build
-  base = "hr-recruitment-platform"
+  # Base directory for the build (use repo root instead)
+  # base = "hr-recruitment-platform"
   
-  # Build command for production - using pnpm
-  command = "pnpm install && pnpm run build"
+  # Build command for production - from repo root
+  command = "cd hr-recruitment-platform && pnpm install && pnpm run build"
   
-  # Directory containing the built static files
-  publish = "dist"
+  # Directory containing the built static files (from repo root)
+  publish = "hr-recruitment-platform/dist"
   
   # Directory containing Netlify functions
   functions = "netlify/functions"
