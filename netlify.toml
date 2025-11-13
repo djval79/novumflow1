@@ -6,7 +6,7 @@
   base = "hr-recruitment-platform"
   
   # Build command for production
-  command = "npm run build"
+  command = "npm install -g typescript && npm install && npm run build"
   
   # Directory containing the built static files
   publish = "dist"
