@@ -205,10 +205,13 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, onError }
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Annual Salary (£)</label>
             <input
               type="number"
-              step="0.01"
+              min="0"
+              max="999999"
+              step="1000"
+              placeholder="e.g. 45000"
               value={formData.salary}
               onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
