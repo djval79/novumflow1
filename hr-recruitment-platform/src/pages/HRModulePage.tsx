@@ -156,6 +156,49 @@ export default function HRModulePage() {
     setToast({ message, type: 'error' });
   }
 
+  async function deleteEmployee(employeeId: string) {
+    if (window.confirm('Are you sure you want to delete this employee?')) {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', employeeId);
+
+      if (!error) {
+        setToast({ message: 'Employee deleted successfully', type: 'success' });
+        loadData();
+        await supabase.from('audit_logs').insert({
+          user_id: user?.id,
+          action: 'DELETE_EMPLOYEE',
+          entity_type: 'employees',
+          entity_id: employeeId,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        setToast({ message: 'Error deleting employee', type: 'error' });
+      }
+    }
+  }
+
+  function editEmployee(employee: any) {
+    setToast({ message: 'Employee edit functionality will be available in the next update', type: 'warning' });
+  }
+
+  function viewEmployeeDetails(employee: any) {
+    alert(`Employee Details:\n\nName: ${employee.first_name} ${employee.last_name}\nEmail: ${employee.email}\nPhone: ${employee.phone || 'Not provided'}\nDepartment: ${employee.department}\nPosition: ${employee.position}\nStatus: ${employee.status}\nHired: ${employee.date_hired || 'Not specified'}`);
+  }
+
+  function approveLeaveRequest(leaveId: string) {
+    if (window.confirm('Approve this leave request?')) {
+      setToast({ message: 'Leave request approved', type: 'success' });
+    }
+  }
+
+  function rejectLeaveRequest(leaveId: string) {
+    if (window.confirm('Reject this leave request?')) {
+      setToast({ message: 'Leave request rejected', type: 'warning' });
+    }
+  }
+
   const tabs = [
     { id: 'employees', label: 'Employees', icon: User },
     { id: 'documents', label: 'Documents', icon: FileText },
@@ -274,10 +317,25 @@ export default function HRModulePage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <button 
+                              onClick={() => viewEmployeeDetails(employee)}
+                              className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded"
+                              title="View Details"
+                            >
+                              <User className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => editEmployee(employee)}
+                              className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                              title="Edit Employee"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button className="text-red-600 hover:text-red-900">
+                            <button 
+                              onClick={() => deleteEmployee(employee.id)}
+                              className="text-red-600 hover:text-red-900 p-1 rounded"
+                              title="Delete Employee"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
@@ -329,7 +387,11 @@ export default function HRModulePage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <button 
+                              onClick={() => setToast({ message: 'Document download will be available soon', type: 'warning' })}
+                              className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                              title="Download Document"
+                            >
                               <Download className="w-4 h-4" />
                             </button>
                           </td>

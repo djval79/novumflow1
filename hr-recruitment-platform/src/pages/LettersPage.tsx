@@ -68,6 +68,24 @@ export default function LettersPage() {
     setToast({ message, type: 'error' });
   }
 
+  function editTemplate(template: any) {
+    setToast({ message: 'Template edit functionality will be available in the next update', type: 'warning' });
+  }
+
+  async function deleteTemplate(templateId: string) {
+    if (window.confirm('Are you sure you want to delete this template?')) {
+      setToast({ message: 'Template deletion will be available in the next update', type: 'warning' });
+    }
+  }
+
+  function downloadLetter(letter: any) {
+    setToast({ message: 'Letter download functionality will be available in the next update', type: 'warning' });
+  }
+
+  function editLetter(letter: any) {
+    setToast({ message: 'Letter edit functionality will be available in the next update', type: 'warning' });
+  }
+
   const tabs = [
     { id: 'templates', label: 'Letter Templates' },
     { id: 'generated', label: 'Generated Letters' },
@@ -175,10 +193,18 @@ export default function LettersPage() {
                             >
                               <Send className="w-4 h-4" />
                             </button>
-                            <button className="text-gray-600 hover:text-gray-900 mr-3">
+                            <button 
+                              onClick={() => editTemplate(template)}
+                              className="text-gray-600 hover:text-gray-900 mr-3 p-1 rounded"
+                              title="Edit Template"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button className="text-red-600 hover:text-red-900">
+                            <button 
+                              onClick={() => deleteTemplate(template.id)}
+                              className="text-red-600 hover:text-red-900 p-1 rounded"
+                              title="Delete Template"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
@@ -234,11 +260,19 @@ export default function LettersPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             {letter.pdf_url && (
-                              <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                              <button 
+                                onClick={() => downloadLetter(letter)}
+                                className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                                title="Download Letter"
+                              >
                                 <Download className="w-4 h-4" />
                               </button>
                             )}
-                            <button className="text-gray-600 hover:text-gray-900">
+                            <button 
+                              onClick={() => editLetter(letter)}
+                              className="text-gray-600 hover:text-gray-900 p-1 rounded"
+                              title="Edit Letter"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
                           </td>
