@@ -1,0 +1,47 @@
+# Security.txt for NOVUMFLOW HR Platform
+# RFC 9116 compliant security contact information
+
+Contact: mailto:security@novumsolvo.com
+Contact: https://github.com/NOVUMSOLVO/NOVUMFLOW/security/advisories/new
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://novumflow.netlify.app/.well-known/pgp-key.txt
+Acknowledgments: https://novumflow.netlify.app/security/acknowledgments
+Policy: https://novumflow.netlify.app/security/policy
+Hiring: https://novumflow.netlify.app/careers
+
+# Vulnerability Disclosure Program
+# We welcome security researchers and encourage responsible disclosure
+# of security vulnerabilities in NOVUMFLOW.
+
+# Preferred Languages: en
+
+# Scope
+# This security.txt applies to:
+# - novumflow.netlify.app (primary domain)
+# - All subdomains of novumflow.netlify.app
+# - NOVUMFLOW mobile applications
+# - All APIs and backend services
+
+# Response Timeline
+# We aim to respond to security reports within 48 hours
+# and provide regular updates throughout the investigation process.
+
+# Safe Harbor
+# We support safe harbor for security researchers who:
+# - Act in good faith to avoid privacy violations and service disruption
+# - Report vulnerabilities promptly
+# - Give us reasonable time to address issues before public disclosure
+# - Do not access, modify, or delete user data without permission
+
+# Bug Bounty
+# We operate a private bug bounty program for qualified security researchers.
+# Contact security@novumsolvo.com for program details and eligibility.
+
+# Hall of Fame
+# Security researchers who help improve NOVUMFLOW security may be recognized
+# in our security acknowledgments page (with permission).
+
+# PGP Key
+# -----BEGIN PGP PUBLIC KEY BLOCK-----
+# (PGP key would be included here in production)
+# -----END PGP PUBLIC KEY BLOCK-----

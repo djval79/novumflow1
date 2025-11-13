@@ -1,0 +1,66 @@
+# Netlify Redirects for NOVUMFLOW HR Platform
+# Handle SPA routing and API proxying
+
+# API Redirects - Proxy to Supabase
+/api/auth/*          https://kvtdyttgthbeomyvtmbj.supabase.co/auth/v1/:splat          200
+/api/rest/*          https://kvtdyttgthbeomyvtmbj.supabase.co/rest/v1/:splat          200
+/api/functions/*     https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/:splat     200
+/api/storage/*       https://kvtdyttgthbeomyvtmbj.supabase.co/storage/v1/:splat       200
+/api/realtime/*      https://kvtdyttgthbeomyvtmbj.supabase.co/realtime/v1/:splat     200
+
+# Specific HR Platform API endpoints
+/api/employees/*     https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/employee-crud/:splat     200
+/api/jobs/*          https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/job-posting-crud/:splat  200
+/api/applications/*  https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/application-crud/:splat  200
+/api/interviews/*    https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/interview-crud/:splat    200
+/api/leave/*         https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/leave-request-crud/:splat 200
+/api/documents/*     https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/document-upload/:splat   200
+/api/automation/*    https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/automation-engine/:splat 200
+/api/analytics/*     https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/analytics/:splat         200
+
+# Documentation routes
+/docs                /docs/index.html                                                  200
+/docs/*              /docs/:splat                                                      200
+
+# Admin panel routes
+/admin               /admin/index.html                                                 200
+/admin/*             /admin/:splat                                                     200
+
+# Legacy route redirects
+/hr-module           /hr                                                               301
+/recruitment-module  /recruitment                                                      301
+/employee-management /hr                                                               301
+
+# SEO-friendly URLs
+/careers             /recruitment                                                      301
+/jobs                /recruitment                                                      301
+/apply               /recruitment                                                      301
+/dashboard           /                                                                 301
+
+# Mobile app deep linking
+/mobile/dashboard    /?mobile=true                                                     301
+/mobile/approvals    /approvals?mobile=true                                           301
+/mobile/notifications /notifications?mobile=true                                      301
+
+# File downloads with proper headers
+/downloads/*         /public/downloads/:splat                                         200
+
+# Health check endpoint
+/health              /.netlify/functions/health                                       200
+/status              /.netlify/functions/health                                       200
+
+# Webhook endpoints
+/webhooks/*          /.netlify/functions/:splat                                       200
+
+# Sitemap and robots
+/sitemap.xml         /public/sitemap.xml                                              200
+/robots.txt          /public/robots.txt                                               200
+
+# Security.txt for vulnerability disclosure
+/.well-known/security.txt /public/security.txt                                        200
+
+# Trailing slash redirect
+/*/                  /:splat                                                          301!
+
+# SPA fallback - must be last rule
+/*                   /index.html                                                      200

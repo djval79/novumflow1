@@ -1,0 +1,57 @@
+# Robots.txt for NOVUMFLOW HR Platform
+# SEO-optimized for better search engine indexing
+
+User-agent: *
+Allow: /
+
+# Allow access to main application routes
+Allow: /
+Allow: /dashboard
+Allow: /recruitment
+Allow: /hr
+Allow: /docs
+Allow: /about
+Allow: /contact
+Allow: /features
+Allow: /pricing
+
+# Disallow sensitive admin and API routes
+Disallow: /admin/
+Disallow: /api/
+Disallow: /.netlify/
+Disallow: /private/
+Disallow: /internal/
+
+# Disallow common files that shouldn't be indexed
+Disallow: *.json$
+Disallow: *.xml$
+Disallow: *.yml$
+Disallow: *.yaml$
+Disallow: *.toml$
+Disallow: *.env$
+Disallow: *.log$
+
+# Allow search engines to access CSS and JS for better rendering
+Allow: /assets/*.css
+Allow: /assets/*.js
+Allow: /static/*.css
+Allow: /static/*.js
+
+# Allow sitemap discovery
+Sitemap: https://novumflow.netlify.app/sitemap.xml
+
+# Crawl delay for polite crawling
+Crawl-delay: 1
+
+# Specific directives for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 2

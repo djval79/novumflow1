@@ -1,26 +1,74 @@
-[build]
-  command = "npm run build"
-  publish = "dist"
-  functions = "netlify/functions"
+# Netlify Configuration for NOVUMFLOW HR Platform
+# Optimized for React + TypeScript + Vite deployment
 
+[build]
+  # Build command for production
+  command = "npm run build"
+  
+  # Directory containing the built static files
+  publish = "dist"
+  
+  # Base directory for the build
+  base = "."
+
+[build.environment]
+  # Node.js version for build
+  NODE_VERSION = "18"
+  
+  # Enable public folder processing
+  NODE_ENV = "production"
+  
+  # Optimize build performance
+  CI = "true"
+
+# Redirect rules for Single Page Application
 [[redirects]]
+  # Handle SPA routing - redirect all routes to index.html
   from = "/*"
   to = "/index.html"
   status = 200
+  
+  # Exclude API routes and static assets from SPA redirect
+  conditions = {Role = ["!api"]}
 
-[dev]
-  framework = "vite"
-  targetPort = 5173
-  command = "npm run dev"
+# API Routes for Supabase Edge Functions (if using Netlify Functions)
+[[redirects]]
+  from = "/api/*"
+  to = "https://kvtdyttgthbeomyvtmbj.supabase.co/functions/v1/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}
 
+# Security Headers
 [[headers]]
   for = "/*"
   [headers.values]
+    # Security headers for production
     X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
-[dev]
-  framework = "vite"
-  targetPort = 5173
-  command = "npm run dev"
+# Cache control for static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache policy for HTML files
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    
+# CORS headers for fonts
+[[headers]]
+  for = "/*.{ttf,otf,woff,woff2}"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
