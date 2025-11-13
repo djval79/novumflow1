@@ -21,51 +21,42 @@ export default function LoginPage() {
     setAttemptsRemaining(null);
 
     try {
-      // Use secure login edge function for account lockout protection
-      const { data, error: invokeError } = await supabase.functions.invoke('secure-login', {
-        body: {
-          email,
-          password,
-          ipAddress: 'unknown',
-          userAgent: navigator.userAgent,
-        },
+      // Use direct Supabase authentication instead of broken Edge Function
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      // Handle network/invoke errors
-      if (invokeError) {
-        console.error('Invoke error:', invokeError);
-        setError('Unable to connect to authentication service. Please try again.');
+      if (authError) {
+        console.error('Auth error:', authError);
+        setError(authError.message || 'Invalid email or password');
         setLoading(false);
         return;
       }
 
-      // Handle application errors from edge function
-      if (data?.error) {
-        const errorData = data.error;
-        
-        if (errorData.code === 'ACCOUNT_LOCKED') {
-          setError(errorData.message);
-          setAttemptsRemaining(0);
-        } else if (errorData.code === 'INVALID_CREDENTIALS') {
-          setError(errorData.message);
-          setAttemptsRemaining(errorData.attemptsRemaining);
-        } else {
-          setError(errorData.message || 'Login failed. Please try again.');
-        }
-        setLoading(false);
-        return;
-      }
+      if (data.user) {
+        // Check if user has a profile, create admin profile if needed
+        const { data: profile, error: profileError } = await supabase
+          .from('users_profiles')
+          .select('role, full_name')
+          .eq('user_id', data.user.id)
+          .single();
 
-      // If secure login succeeded, also sign in with Supabase auth for session
-      if (data?.data) {
-        const { error: authError } = await signIn(email, password);
-        
-        if (authError) {
-          setError(authError.message);
-          setLoading(false);
-        } else {
-          navigate('/dashboard');
+        if (!profile && !profileError) {
+          // Create admin profile for existing user
+          await supabase
+            .from('users_profiles')
+            .upsert({
+              user_id: data.user.id,
+              full_name: 'System Administrator',
+              role: 'Admin',
+              created_at: new Date().toISOString(),
+            });
         }
+
+        // Use the AuthContext signIn method for consistency
+        await signIn(email, password);
+        navigate('/dashboard');
       }
     } catch (err: any) {
       console.error('Login error:', err);
