@@ -16,7 +16,8 @@ import {
   Zap,
   FolderOpen,
   MessageSquare,
-  Bell
+  Bell,
+  TrendingUp
 } from 'lucide-react';
 
 export default function AppLayout() {
@@ -34,6 +35,7 @@ export default function AppLayout() {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'HR Module', href: '/hr', icon: Users },
     { name: 'Recruitment', href: '/recruitment', icon: Briefcase },
+    { name: 'Performance', href: '/performance', icon: TrendingUp },
     { name: 'Documents', href: '/documents', icon: FolderOpen },
     { name: 'Messaging', href: '/messaging', icon: MessageSquare },
     { name: 'Notice Board', href: '/noticeboard', icon: Bell },

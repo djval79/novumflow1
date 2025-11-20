@@ -18,6 +18,7 @@ import AutomationPage from './pages/AutomationPage';
 import DocumentsPage from './pages/DocumentsPage';
 import MessagingPage from './pages/MessagingPage';
 import NoticeBoardPage from './pages/NoticeBoardPage';
+import PerformancePage from './pages/PerformancePage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -93,6 +94,7 @@ function App() {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="hr" element={<HRModulePage />} />
             <Route path="recruitment" element={<RecruitmentPage />} />
+            <Route path="performance" element={<PerformancePage />} />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="messaging" element={<MessagingPage />} />
             <Route path="noticeboard" element={<NoticeBoardPage />} />
