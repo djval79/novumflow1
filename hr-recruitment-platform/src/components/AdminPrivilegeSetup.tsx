@@ -101,6 +101,9 @@ export default function AdminPrivilegeSetup() {
   const isAdmin = userRole === 'Admin';
   const needsSetup = !isAdmin && userRole !== 'checking';
 
+  // Hide badge if user is already Admin
+  if (isAdmin) return null;
+
   if (success) {
     return (
       <div className="fixed top-4 right-4 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg z-50 max-w-md">
