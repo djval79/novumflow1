@@ -207,11 +207,10 @@ export default function BiometricPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 text-sm font-medium border-b-2 capitalize ${
-                  activeTab === tab
+                className={`px-6 py-3 text-sm font-medium border-b-2 capitalize ${activeTab === tab
                     ? 'border-indigo-600 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -241,9 +240,8 @@ export default function BiometricPage() {
                       <td className="px-6 py-4 text-sm text-gray-500">{new Date(enrollment.enrollment_date).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">{enrollment.quality_score}%</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          enrollment.enrollment_status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs rounded-full ${enrollment.enrollment_status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
                           {enrollment.enrollment_status}
                         </span>
                       </td>
@@ -271,13 +269,12 @@ export default function BiometricPage() {
                   {recentAttendance.map((log) => (
                     <tr key={log.id}>
                       <td className="px-6 py-4 text-sm text-gray-900">{log.employee_id}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500 capitalize">{log.log_type.replace('_', ' ')}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 capitalize">{log.log_type?.replace('_', ' ') || 'N/A'}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{new Date(log.log_timestamp).toLocaleString()}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">{log.confidence_score}%</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          log.verification_status === 'success' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs rounded-full ${log.verification_status === 'success' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
                           {log.verification_status}
                         </span>
                       </td>
@@ -297,15 +294,14 @@ export default function BiometricPage() {
                 securityEvents.map((event) => (
                   <div
                     key={event.id}
-                    className={`border-l-4 p-4 rounded-r-lg ${
-                      event.severity_level === 'critical' ? 'border-red-500 bg-red-50' :
-                      event.severity_level === 'high' ? 'border-orange-500 bg-orange-50' :
-                      'border-yellow-500 bg-yellow-50'
-                    }`}
+                    className={`border-l-4 p-4 rounded-r-lg ${event.severity_level === 'critical' ? 'border-red-500 bg-red-50' :
+                        event.severity_level === 'high' ? 'border-orange-500 bg-orange-50' :
+                          'border-yellow-500 bg-yellow-50'
+                      }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 capitalize">{event.event_type.replace('_', ' ')}</h4>
+                        <h4 className="font-semibold text-gray-900 capitalize">{event.event_type?.replace('_', ' ') || 'Unknown Event'}</h4>
                         <p className="text-sm text-gray-600 mt-1">{event.event_description}</p>
                         <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                           <span>{new Date(event.event_timestamp).toLocaleString()}</span>

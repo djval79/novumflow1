@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Plus, 
-  Search, 
-  Download, 
-  Edit, 
+import {
+  Plus,
+  Search,
+  Download,
+  Edit,
   Trash2,
   FileText,
   Calendar,
@@ -49,7 +49,7 @@ export default function HRModulePage() {
             .order('created_at', { ascending: false });
           setEmployees(empData || []);
           break;
-          
+
         case 'documents':
           const { data: docData } = await supabase
             .from('documents')
@@ -58,7 +58,7 @@ export default function HRModulePage() {
             .order('uploaded_at', { ascending: false });
           setDocuments(docData || []);
           break;
-          
+
         case 'attendance':
           const { data: attData } = await supabase
             .from('attendance_records')
@@ -67,7 +67,7 @@ export default function HRModulePage() {
             .limit(100);
           setAttendance(attData || []);
           break;
-          
+
         case 'leaves':
           const { data: leaveData } = await supabase
             .from('leave_requests')
@@ -75,7 +75,7 @@ export default function HRModulePage() {
             .order('requested_at', { ascending: false });
           setLeaves(leaveData || []);
           break;
-          
+
         case 'shifts':
           const { data: shiftData } = await supabase
             .from('shifts')
@@ -220,7 +220,7 @@ export default function HRModulePage() {
           <h1 className="text-3xl font-bold text-gray-900">HR Module</h1>
           <p className="mt-1 text-sm text-gray-600">Manage employees, documents, attendance, and more</p>
         </div>
-        
+
         <button
           onClick={handleAddNew}
           className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
@@ -237,11 +237,10 @@ export default function HRModulePage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`flex items-center whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition ${
-                activeTab === tab.id
+              className={`flex items-center whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab.id
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               <tab.icon className="w-4 h-4 mr-2" />
               {tab.label}
@@ -308,30 +307,29 @@ export default function HRModulePage() {
                             {emp.position || 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              emp.status === 'active' ? 'bg-green-100 text-green-800' :
-                              emp.status === 'on_leave' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${emp.status === 'active' ? 'bg-green-100 text-green-800' :
+                                emp.status === 'on_leave' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                              }`}>
                               {emp.status}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button 
+                            <button
                               onClick={() => viewEmployeeDetails(emp)}
                               className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded"
                               title="View Details"
                             >
                               <User className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => editEmployee(emp)}
                               className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
                               title="Edit Employee"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => deleteEmployee(emp.id)}
                               className="text-red-600 hover:text-red-900 p-1 rounded"
                               title="Delete Employee"
@@ -380,14 +378,13 @@ export default function HRModulePage() {
                             {doc.expiry_date ? format(new Date(doc.expiry_date), 'MMM dd, yyyy') : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              doc.is_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                            }`}>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${doc.is_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                              }`}>
                               {doc.is_verified ? 'Verified' : 'Pending'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button 
+                            <button
                               onClick={() => setToast({ message: 'Document download will be available soon', type: 'warning' })}
                               className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
                               title="Download Document"
@@ -430,18 +427,17 @@ export default function HRModulePage() {
                             {leave.employee_id.substring(0, 8)}...
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                            {leave.leave_type.replace('_', ' ')}
+                            {leave.leave_type?.replace('_', ' ') || 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {format(new Date(leave.start_date), 'MMM dd')} - {format(new Date(leave.end_date), 'MMM dd, yyyy')}
                             <span className="ml-2 text-gray-500">({leave.total_days} days)</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              leave.status === 'approved' ? 'bg-green-100 text-green-800' :
-                              leave.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${leave.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                leave.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                              }`}>
                               {leave.status}
                             </span>
                           </td>
