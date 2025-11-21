@@ -124,8 +124,8 @@ export default function AutomationDashboard() {
           <button
             onClick={() => toggleRule(rule.id, !rule.isActive)}
             className={`p-2 rounded-lg transition ${rule.isActive
-                ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+              ? 'bg-green-100 text-green-600 hover:bg-green-200'
+              : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
               }`}
             title={rule.isActive ? 'Disable automation' : 'Enable automation'}
           >
@@ -486,7 +486,10 @@ export default function AutomationDashboard() {
                 <p className="text-sm text-gray-600 mb-3">{template.description}</p>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-green-600 font-medium">💡 {template.impact}</span>
-                  <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
                     Use Template →
                   </button>
                 </div>
