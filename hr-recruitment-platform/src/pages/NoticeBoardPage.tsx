@@ -238,7 +238,7 @@ export default function NoticeBoardPage() {
     });
   };
 
-  const canCreateAnnouncement = ['Admin', 'HR Manager'].includes(currentUserRole);
+  const canCreateAnnouncement = ['admin', 'hr manager'].includes(currentUserRole?.toLowerCase() || '');
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -278,11 +278,10 @@ export default function NoticeBoardPage() {
               <button
                 key={category.value}
                 onClick={() => setSelectedCategory(category.value)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  selectedCategory === category.value
+                className={`px-4 py-2 rounded-lg transition-colors ${selectedCategory === category.value
                     ? 'bg-indigo-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {category.label}
               </button>
@@ -305,9 +304,8 @@ export default function NoticeBoardPage() {
             filteredAnnouncements.map((announcement) => (
               <div
                 key={announcement.id}
-                className={`bg-white rounded-lg shadow-sm p-6 border-l-4 ${
-                  announcement.is_pinned ? 'border-yellow-500' : 'border-transparent'
-                } ${!announcement.user_viewed ? 'bg-indigo-50' : ''}`}
+                className={`bg-white rounded-lg shadow-sm p-6 border-l-4 ${announcement.is_pinned ? 'border-yellow-500' : 'border-transparent'
+                  } ${!announcement.user_viewed ? 'bg-indigo-50' : ''}`}
                 onMouseEnter={() => !announcement.user_viewed && markAsViewed(announcement.id)}
               >
                 <div className="flex items-start justify-between">
@@ -329,7 +327,7 @@ export default function NoticeBoardPage() {
                           </span>
                         </div>
                         <p className="text-gray-700 mb-4">{announcement.content}</p>
-                        
+
                         <div className="flex items-center gap-6 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <User className="w-4 h-4" />

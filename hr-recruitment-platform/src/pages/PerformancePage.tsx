@@ -105,7 +105,7 @@ export default function PerformancePage() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
   const userRole = profile?.role;
-  const isAdmin = ['admin', 'hr_manager'].includes(userRole);
+  const isAdmin = ['admin', 'hr_manager', 'hr manager'].includes(userRole?.toLowerCase() || '');
 
   useEffect(() => {
     loadData();
