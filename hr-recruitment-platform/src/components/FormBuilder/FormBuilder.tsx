@@ -12,7 +12,7 @@ export interface FormField {
     options?: string[]; // For select inputs
     accept?: string; // For file inputs
     allowMultiple?: boolean; // For file inputs - allow multiple files
-    documentCategory?: 'identity' | 'right_to_work' | 'qualification' | 'reference' | 'other';
+    documentCategory?: 'cv_resume' | 'cover_letter' | 'identity' | 'right_to_work' | 'qualification' | 'reference' | 'dbs_certificate' | 'proof_of_address' | 'training_certificate' | 'professional_license' | 'medical_certificate' | 'ni_document' | 'other';
     complianceType?: 'home_office' | 'recruitment' | 'both' | 'none';
 }
 
@@ -186,10 +186,18 @@ export default function FormBuilder({ initialSchema = [], onSave }: FormBuilderP
                                             className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
                                         >
                                             <option value="other">Other</option>
+                                            <option value="cv_resume">CV/Resume</option>
+                                            <option value="cover_letter">Cover Letter</option>
                                             <option value="identity">Identity (Passport, ID)</option>
                                             <option value="right_to_work">Right to Work</option>
-                                            <option value="qualification">Qualification</option>
-                                            <option value="reference">Reference</option>
+                                            <option value="qualification">Qualification/Degree</option>
+                                            <option value="reference">Reference Letter</option>
+                                            <option value="dbs_certificate">DBS Certificate</option>
+                                            <option value="proof_of_address">Proof of Address</option>
+                                            <option value="training_certificate">Training Certificate</option>
+                                            <option value="professional_license">Professional License</option>
+                                            <option value="medical_certificate">Medical Certificate</option>
+                                            <option value="ni_document">NI Number Document</option>
                                         </select>
                                     </div>
                                     <div>

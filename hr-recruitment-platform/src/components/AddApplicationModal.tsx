@@ -45,10 +45,10 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
     }
   }
 
-  async function uploadFile(file: File, bucket: string, folder: string): Promise<string | null> {
+  async function uploadFile(file: File, bucket: string, category: string = 'other'): Promise<string | null> {
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const fileName = `uploads/${category}/${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
@@ -141,7 +141,8 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
 
       // 4. Upload Files and Save Metadata
       for (const { key, file, fieldSchema } of filesToUpload) {
-        const url = await uploadFile(file, 'applicant-cvs', 'uploads');
+        const category = fieldSchema?.documentCategory || 'other';
+        const url = await uploadFile(file, 'applicant-cvs', category);
         if (url) {
           // If it's the CV, update the application record
           if (key === 'resume_url' || key === 'cv_url') {
