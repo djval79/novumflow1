@@ -204,11 +204,14 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
           >
             <option value="">Select Position</option>
             <option value="Live in Carer">Live in Carer</option>
+            <option value="Carer">Carer</option>
+            <option value="Senior Carer">Senior Carer</option>
             <option value="Support Worker">Support Worker</option>
+            <option value="Care Coordinator">Care Coordinator</option>
             <option value="Manager">Manager</option>
+            <option value="Deputy Manager">Deputy Manager</option>
             <option value="Supervisor">Supervisor</option>
             <option value="Cleaner">Cleaner</option>
-            <option value="Driver">Driver</option>
             <option value="Other">Other</option>
           </select>
         </div>
