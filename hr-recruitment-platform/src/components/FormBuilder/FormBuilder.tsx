@@ -11,6 +11,7 @@ export interface FormField {
     placeholder?: string;
     options?: string[]; // For select inputs
     accept?: string; // For file inputs
+    allowMultiple?: boolean; // For file inputs - allow multiple files
     documentCategory?: 'identity' | 'right_to_work' | 'qualification' | 'reference' | 'other';
     complianceType?: 'home_office' | 'recruitment' | 'both' | 'none';
 }
@@ -203,6 +204,20 @@ export default function FormBuilder({ initialSchema = [], onSave }: FormBuilderP
                                             <option value="recruitment">Recruitment</option>
                                             <option value="both">Both</option>
                                         </select>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <div className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={`allowMultiple_${field.id}`}
+                                                checked={field.allowMultiple || false}
+                                                onChange={(e) => updateField(index, { allowMultiple: e.target.checked })}
+                                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                            />
+                                            <label htmlFor={`allowMultiple_${field.id}`} className="ml-2 block text-sm text-gray-900">
+                                                Allow multiple files (e.g., multiple certificates)
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             )}

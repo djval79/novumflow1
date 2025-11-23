@@ -96,8 +96,15 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
 
       for (const [key, value] of Object.entries(dynamicData)) {
         if (value instanceof File) {
+          // Single file
           const fieldSchema = formSchema.find(f => f.id === key);
           filesToUpload.push({ key, file: value, fieldSchema });
+        } else if (Array.isArray(value) && value.length > 0 && value[0] instanceof File) {
+          // Multiple files
+          const fieldSchema = formSchema.find(f => f.id === key);
+          value.forEach((file: File) => {
+            filesToUpload.push({ key, file, fieldSchema });
+          });
         } else if (standardColumns.includes(key)) {
           payload[key] = value;
         } else {

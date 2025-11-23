@@ -127,9 +127,17 @@ export default function FormRenderer({
                         <input
                             type="file"
                             accept={field.accept}
+                            multiple={field.allowMultiple}
                             onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                handleChange(field.id, file || null);
+                                if (field.allowMultiple) {
+                                    // Handle multiple files
+                                    const files = e.target.files ? Array.from(e.target.files) : [];
+                                    handleChange(field.id, files);
+                                } else {
+                                    // Handle single file
+                                    const file = e.target.files?.[0];
+                                    handleChange(field.id, file || null);
+                                }
                             }}
                             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none ${errors[field.id] ? 'border-red-300' : 'border-gray-300'
                                 }`}
