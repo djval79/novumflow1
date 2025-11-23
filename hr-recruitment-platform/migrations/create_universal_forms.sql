@@ -50,15 +50,10 @@ CREATE POLICY "Users can view own submissions" ON form_submissions
   FOR SELECT
   USING (auth.uid() = submitted_by);
 
--- Admins can view all submissions
-CREATE POLICY "Admins can view all submissions" ON form_submissions
+-- All authenticated users can view all submissions (adjust based on your needs)
+CREATE POLICY "Authenticated users can view submissions" ON form_submissions
   FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (auth.role() = 'authenticated');
 
 -- Users can create submissions
 CREATE POLICY "Users can create submissions" ON form_submissions
@@ -70,15 +65,10 @@ CREATE POLICY "Users can update own drafts" ON form_submissions
   FOR UPDATE
   USING (auth.uid() = submitted_by AND status = 'draft');
 
--- Admins can update any submission
-CREATE POLICY "Admins can update submissions" ON form_submissions
+-- All authenticated users can update submissions (adjust based on your needs)
+CREATE POLICY "Authenticated users can update submissions" ON form_submissions
   FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (auth.role() = 'authenticated');
 
 -- 6. Grant permissions
 GRANT ALL ON form_submissions TO authenticated;
