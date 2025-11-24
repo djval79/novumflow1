@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
-import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AddJobModalProps {
@@ -37,29 +37,24 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError }: Add
         throw new Error('No active session');
       }
 
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/job-posting-crud`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({
-            action: 'create',
-            data: {
-              ...formData,
-              salary_range_min: formData.salary_range_min ? parseFloat(formData.salary_range_min) : null,
-              salary_range_max: formData.salary_range_max ? parseFloat(formData.salary_range_max) : null,
-              posted_by: user?.id
-            }
-          })
-        }
-      );
+      const { data, error } = await supabase
+        .from('job_postings')
+        .insert({
+          ...formData,
+          salary_range_min: formData.salary_range_min ? parseFloat(formData.salary_range_min) : null,
+          salary_range_max: formData.salary_range_max ? parseFloat(formData.salary_range_max) : null,
+          posted_by: user?.id
+        })
+        .select()
+        .single();
 
-      const result = await response.json();
+      if (error) {
+        throw new Error(error.message || 'Failed to create job posting');
+      }
 
-      if (response.ok && result.data) {
+      const result = { data };
+
+      if (result.data) {
         onSuccess();
         onClose();
         setFormData({
