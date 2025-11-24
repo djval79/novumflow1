@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { automationService } from '@/lib/services/AutomationService';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { TenantProvider } from './contexts/TenantContext';
 import AppLayout from './components/AppLayout';
+import FeatureRoute from './components/FeatureRoute';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -22,6 +24,7 @@ import NoticeBoardPage from './pages/NoticeBoardPage';
 import PerformancePage from './pages/PerformancePage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import FormsPage from './pages/FormsPage';
+import TenantManagementPage from './pages/TenantManagementPage';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -70,59 +73,62 @@ function App() {
 
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <PublicRoute>
-                <SignUpPage />
-              </PublicRoute>
-            }
-          />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <TenantProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public Routes */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <PublicRoute>
+                  <SignUpPage />
+                </PublicRoute>
+              }
+            />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          {/* Protected Routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="hr" element={<HRModulePage />} />
-            <Route path="recruitment" element={<RecruitmentPage />} />
-            <Route path="performance" element={<PerformancePage />} />
-            <Route path="integrations" element={<IntegrationsPage />} />
-            <Route path="documents" element={<DocumentsPage />} />
-            <Route path="messaging" element={<MessagingPage />} />
-            <Route path="noticeboard" element={<NoticeBoardPage />} />
-            <Route path="compliance" element={<CompliancePage />} />
-            <Route path="biometric" element={<BiometricPage />} />
-            <Route path="automation" element={<AutomationPage />} />
-            <Route path="letters" element={<LettersPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="recruit-settings" element={<RecruitSettingsPage />} />
-            <Route path="forms" element={<FormsPage />} />
-          </Route>
+            {/* Protected Routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<FeatureRoute feature="dashboard"><DashboardPage /></FeatureRoute>} />
+              <Route path="hr" element={<FeatureRoute feature="hr_module"><HRModulePage /></FeatureRoute>} />
+              <Route path="recruitment" element={<FeatureRoute feature="recruitment"><RecruitmentPage /></FeatureRoute>} />
+              <Route path="performance" element={<FeatureRoute feature="performance"><PerformancePage /></FeatureRoute>} />
+              <Route path="integrations" element={<FeatureRoute feature="integrations"><IntegrationsPage /></FeatureRoute>} />
+              <Route path="documents" element={<FeatureRoute feature="documents"><DocumentsPage /></FeatureRoute>} />
+              <Route path="messaging" element={<FeatureRoute feature="messaging"><MessagingPage /></FeatureRoute>} />
+              <Route path="noticeboard" element={<FeatureRoute feature="noticeboard"><NoticeBoardPage /></FeatureRoute>} />
+              <Route path="compliance" element={<FeatureRoute feature="compliance"><CompliancePage /></FeatureRoute>} />
+              <Route path="biometric" element={<FeatureRoute feature="biometric"><BiometricPage /></FeatureRoute>} />
+              <Route path="automation" element={<FeatureRoute feature="automation"><AutomationPage /></FeatureRoute>} />
+              <Route path="letters" element={<FeatureRoute feature="letters"><LettersPage /></FeatureRoute>} />
+              <Route path="settings" element={<FeatureRoute feature="settings"><SettingsPage /></FeatureRoute>} />
+              <Route path="recruit-settings" element={<FeatureRoute feature="recruit_settings"><RecruitSettingsPage /></FeatureRoute>} />
+              <Route path="forms" element={<FeatureRoute feature="forms"><FormsPage /></FeatureRoute>} />
+              <Route path="tenant-management" element={<TenantManagementPage />} />
+            </Route>
 
-          {/* Catch all */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
+            {/* Catch all */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </TenantProvider>
     </AuthProvider>
   );
 }

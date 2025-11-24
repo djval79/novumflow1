@@ -63,36 +63,7 @@ export default function FormBuilder({ initialSchema = [], onSave }: FormBuilderP
     return (
         <div className="bg-white rounded-lg shadow p-6">
             <div className="space-y-6">
-                {/* Standard Fields Section */}
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-100">
-                    <h3 className="text-sm font-medium text-gray-900 mb-4">Standard Fields (Always Included)</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-75">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Position Applied For</label>
-                            <input type="text" disabled className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" value="Dropdown Selection" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                            <input type="text" disabled className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" value="Text Input" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                            <input type="text" disabled className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" value="Text Input" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input type="email" disabled className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" value="Email Input" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                            <input type="tel" disabled className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" value="Phone Input" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                    <h3 className="text-sm font-medium text-gray-900 mb-4">Custom Questions</h3>
-                </div>
+                <h3 className="text-sm font-medium text-gray-900 mb-4">Form Fields</h3>
                 {fields.map((field, index) => (
                     <div key={field.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                         <div className="flex items-start justify-between mb-4">

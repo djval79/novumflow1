@@ -259,7 +259,7 @@ if apps_response.status_code == 200 and len(apps_response.json()) > 0:
         interview_data = interview_response.json()["data"]
         print(f"✅ Interview scheduled successfully")
         print(f"   Type: {interview_data['interview_type']}")
-        print(f"   Interviewer: {interview_data['interviewer']}")
+        print(f"   Interviewer: {interview_data.get('interviewer', 'N/A')}")
         print(f"   Status: {interview_data['status']}")
     else:
         print(f"❌ Interview scheduling failed: {interview_response.status_code}")

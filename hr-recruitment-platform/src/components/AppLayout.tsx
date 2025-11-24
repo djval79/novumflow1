@@ -1,6 +1,8 @@
 import React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenant } from '@/contexts/TenantContext';
+import BrandedFooter from './BrandedFooter';
 import {
   LayoutDashboard,
   Users,
@@ -22,6 +24,7 @@ import {
 
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
+  const { hasFeature } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -31,23 +34,26 @@ export default function AppLayout() {
     navigate('/login');
   }
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'HR Module', href: '/hr', icon: Users },
-    { name: 'Recruitment', href: '/recruitment', icon: Briefcase },
-    { name: 'Performance', href: '/performance', icon: TrendingUp },
-    { name: 'Integrations', href: '/integrations', icon: Zap },
-    { name: 'Documents', href: '/documents', icon: FolderOpen },
-    { name: 'Messaging', href: '/messaging', icon: MessageSquare },
-    { name: 'Notice Board', href: '/noticeboard', icon: Bell },
-    { name: 'Home Office Compliance', href: '/compliance', icon: Shield },
-    { name: 'Biometric System', href: '/biometric', icon: Fingerprint },
-    { name: 'Automation', href: '/automation', icon: Zap },
-    { name: 'Letters', href: '/letters', icon: FileText },
-    { name: 'Forms', href: '/forms', icon: FileText },
-    { name: 'Settings', href: '/settings', icon: Settings },
-    { name: 'Recruit Settings', href: '/recruit-settings', icon: Sliders },
+  const allNavigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, feature: 'dashboard' },
+    { name: 'HR Module', href: '/hr', icon: Users, feature: 'hr_module' },
+    { name: 'Recruitment', href: '/recruitment', icon: Briefcase, feature: 'recruitment' },
+    { name: 'Performance', href: '/performance', icon: TrendingUp, feature: 'performance' },
+    { name: 'Integrations', href: '/integrations', icon: Zap, feature: 'integrations' },
+    { name: 'Documents', href: '/documents', icon: FolderOpen, feature: 'documents' },
+    { name: 'Messaging', href: '/messaging', icon: MessageSquare, feature: 'messaging' },
+    { name: 'Notice Board', href: '/noticeboard', icon: Bell, feature: 'noticeboard' },
+    { name: 'Home Office Compliance', href: '/compliance', icon: Shield, feature: 'compliance' },
+    { name: 'Biometric System', href: '/biometric', icon: Fingerprint, feature: 'biometric' },
+    { name: 'Automation', href: '/automation', icon: Zap, feature: 'automation' },
+    { name: 'Letters', href: '/letters', icon: FileText, feature: 'letters' },
+    { name: 'Forms', href: '/forms', icon: FileText, feature: 'forms' },
+    { name: 'Settings', href: '/settings', icon: Settings, feature: 'settings' },
+    { name: 'Recruit Settings', href: '/recruit-settings', icon: Sliders, feature: 'recruit_settings' },
   ];
+
+  // Filter navigation based on enabled features
+  const navigation = allNavigation.filter(item => hasFeature(item.feature));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,10 +70,12 @@ export default function AppLayout() {
               </button>
 
               <div className="flex items-center ml-2 lg:ml-0">
-                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">HR</span>
-                </div>
-                <span className="ml-3 text-xl font-bold text-gray-900">HRSuite</span>
+                <img
+                  src="/assets/branding/novumsolvo-logo.jpg"
+                  alt="NovumSolvo"
+                  className="h-10 w-auto object-contain"
+                />
+                <span className="ml-3 text-xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-500 bg-clip-text text-transparent">NovumFlow</span>
               </div>
             </div>
 
@@ -100,7 +108,7 @@ export default function AppLayout() {
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition ${isActive
-                      ? 'bg-indigo-50 text-indigo-600'
+                      ? 'bg-cyan-50 text-cyan-600'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                   >
@@ -125,11 +133,11 @@ export default function AppLayout() {
                   key={item.name}
                   to={item.href}
                   className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition ${isActive
-                    ? 'bg-indigo-50 text-indigo-600'
+                    ? 'bg-cyan-50 text-cyan-600'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
-                  <item.icon className={`mr-3 flex-shrink-0 h-5 w-5 ${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'
+                  <item.icon className={`mr-3 flex-shrink-0 h-5 w-5 ${isActive ? 'text-cyan-600' : 'text-gray-400 group-hover:text-gray-500'
                     }`} />
                   {item.name}
                 </Link>
@@ -140,7 +148,7 @@ export default function AppLayout() {
       </div>
 
       {/* Main Content */}
-      <div className="lg:pl-64 flex flex-col flex-1 pt-16">
+      <div className="lg:pl-64 flex flex-col min-h-screen pt-16">
         <main className="flex-1">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -148,6 +156,7 @@ export default function AppLayout() {
             </div>
           </div>
         </main>
+        <BrandedFooter />
       </div>
     </div>
   );

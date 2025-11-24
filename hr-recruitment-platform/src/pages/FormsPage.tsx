@@ -5,8 +5,25 @@ import FormBuilder, { FormField } from '@/components/FormBuilder/FormBuilder';
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
 
-type FormType = 'application' | 'evaluation' | 'incident' | 'training' | 'leave' | 'performance' | 'other';
-type FormCategory = 'recruitment' | 'hr' | 'compliance' | 'operations' | 'training';
+type FormType =
+    | 'job_application'
+    | 'employee_evaluation'
+    | 'incident_report'
+    | 'training_request'
+    | 'leave_request'
+    | 'performance_review'
+    | 'care_plan'
+    | 'medication_administration'
+    | 'risk_assessment'
+    | 'safeguarding_concern'
+    | 'supervision_record'
+    | 'competency_assessment'
+    | 'health_declaration'
+    | 'consent_form'
+    | 'complaint_form'
+    | 'other';
+
+type FormCategory = 'recruitment' | 'hr' | 'compliance' | 'operations' | 'training' | 'clinical' | 'general';
 
 interface FormTemplate {
     id: string;
@@ -14,28 +31,47 @@ interface FormTemplate {
     description: string;
     form_type: FormType;
     category: FormCategory;
+    folder?: string;
     schema: FormField[];
     is_active: boolean;
     created_at: string;
 }
 
 const formTypeLabels: Record<FormType, string> = {
-    application: 'Job Application',
-    evaluation: 'Employee Evaluation',
-    incident: 'Incident Report',
-    training: 'Training Request',
-    leave: 'Leave Request',
-    performance: 'Performance Review',
+    job_application: 'Job Application',
+    employee_evaluation: 'Employee Evaluation',
+    incident_report: 'Incident Report',
+    training_request: 'Training Request',
+    leave_request: 'Leave Request',
+    performance_review: 'Performance Review',
+    care_plan: 'Care Plan',
+    medication_administration: 'Medication Administration Record',
+    risk_assessment: 'Risk Assessment',
+    safeguarding_concern: 'Safeguarding Concern',
+    supervision_record: 'Supervision Record',
+    competency_assessment: 'Competency Assessment',
+    health_declaration: 'Health Declaration',
+    consent_form: 'Consent Form',
+    complaint_form: 'Complaint Form',
     other: 'Other'
 };
 
 const formTypeColors: Record<FormType, string> = {
-    application: 'bg-blue-100 text-blue-800',
-    evaluation: 'bg-green-100 text-green-800',
-    incident: 'bg-red-100 text-red-800',
-    training: 'bg-purple-100 text-purple-800',
-    leave: 'bg-yellow-100 text-yellow-800',
-    performance: 'bg-indigo-100 text-indigo-800',
+    job_application: 'bg-blue-100 text-blue-800',
+    employee_evaluation: 'bg-green-100 text-green-800',
+    incident_report: 'bg-red-100 text-red-800',
+    training_request: 'bg-purple-100 text-purple-800',
+    leave_request: 'bg-yellow-100 text-yellow-800',
+    performance_review: 'bg-indigo-100 text-indigo-800',
+    care_plan: 'bg-teal-100 text-teal-800',
+    medication_administration: 'bg-pink-100 text-pink-800',
+    risk_assessment: 'bg-orange-100 text-orange-800',
+    safeguarding_concern: 'bg-red-200 text-red-900',
+    supervision_record: 'bg-cyan-100 text-cyan-800',
+    competency_assessment: 'bg-lime-100 text-lime-800',
+    health_declaration: 'bg-emerald-100 text-emerald-800',
+    consent_form: 'bg-violet-100 text-violet-800',
+    complaint_form: 'bg-amber-100 text-amber-800',
     other: 'bg-gray-100 text-gray-800'
 };
 
@@ -51,7 +87,9 @@ export default function FormsPage() {
     const [newFormName, setNewFormName] = useState('');
     const [newFormDescription, setNewFormDescription] = useState('');
     const [newFormType, setNewFormType] = useState<FormType>('other');
-    const [newFormCategory, setNewFormCategory] = useState<FormCategory>('hr');
+    const [newFormCategory, setNewFormCategory] = useState<FormCategory>('general');
+    const [newFormFolder, setNewFormFolder] = useState('general');
+    const [uploadingTemplate, setUploadingTemplate] = useState(false);
 
     useEffect(() => {
         loadForms();
@@ -84,6 +122,7 @@ export default function FormsPage() {
                 description: newFormDescription,
                 form_type: newFormType,
                 category: newFormCategory,
+                folder: newFormFolder,
                 schema: [],
                 is_active: true
             });
@@ -96,7 +135,8 @@ export default function FormsPage() {
             setNewFormName('');
             setNewFormDescription('');
             setNewFormType('other');
-            setNewFormCategory('hr');
+            setNewFormCategory('general');
+            setNewFormFolder('general');
             loadForms();
         }
         setLoading(false);
@@ -135,6 +175,57 @@ export default function FormsPage() {
         }
     }
 
+    async function handleTemplateUpload(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        if (!['json', 'txt'].includes(fileExtension || '')) {
+            setToast({ message: 'Please upload a JSON or TXT file', type: 'error' });
+            return;
+        }
+
+        setUploadingTemplate(true);
+        try {
+            const fileContent = await file.text();
+            const templateData = JSON.parse(fileContent);
+
+            // Validate template structure
+            if (!templateData.name || !templateData.schema || !Array.isArray(templateData.schema)) {
+                throw new Error('Invalid template format. Template must include name and schema array.');
+            }
+
+            // Create form from template
+            const { error } = await supabase
+                .from('form_templates')
+                .insert({
+                    name: templateData.name,
+                    description: templateData.description || '',
+                    form_type: templateData.form_type || 'other',
+                    category: templateData.category || 'general',
+                    folder: templateData.folder || 'general',
+                    schema: templateData.schema,
+                    is_active: true
+                });
+
+            if (error) throw error;
+
+            setToast({ message: `Template "${templateData.name}" imported successfully`, type: 'success' });
+            loadForms();
+            setActiveTab('all');
+        } catch (error) {
+            console.error('Template upload error:', error);
+            setToast({
+                message: error instanceof Error ? error.message : 'Failed to import template',
+                type: 'error'
+            });
+        } finally {
+            setUploadingTemplate(false);
+            // Reset file input
+            event.target.value = '';
+        }
+    }
+
     return (
         <div>
             <div className="mb-8">
@@ -148,8 +239,8 @@ export default function FormsPage() {
                     <button
                         onClick={() => setActiveTab('all')}
                         className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'all'
-                                ? 'border-indigo-500 text-indigo-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                     >
                         All Forms
@@ -157,8 +248,8 @@ export default function FormsPage() {
                     <button
                         onClick={() => setActiveTab('create')}
                         className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'create'
-                                ? 'border-indigo-500 text-indigo-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-indigo-500 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                     >
                         Create New
@@ -197,13 +288,18 @@ export default function FormsPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2 mb-4">
+                                    <div className="flex gap-2 mb-4 flex-wrap">
                                         <span className={`px-2 py-1 text-xs font-medium rounded ${formTypeColors[form.form_type]}`}>
                                             {formTypeLabels[form.form_type]}
                                         </span>
                                         <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
                                             {form.category}
                                         </span>
+                                        {form.folder && (
+                                            <span className="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                                📁 {form.folder}
+                                            </span>
+                                        )}
                                     </div>
 
                                     <div className="flex gap-2">
@@ -296,7 +392,47 @@ export default function FormsPage() {
                                     <option value="compliance">Compliance</option>
                                     <option value="operations">Operations</option>
                                     <option value="training">Training</option>
+                                    <option value="clinical">Clinical</option>
+                                    <option value="general">General</option>
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Folder *</label>
+                                <select
+                                    value={newFormFolder}
+                                    onChange={(e) => setNewFormFolder(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                >
+                                    <option value="general">General</option>
+                                    <option value="recruitment">Recruitment</option>
+                                    <option value="hr">HR</option>
+                                    <option value="compliance">Compliance</option>
+                                    <option value="clinical">Clinical</option>
+                                    <option value="training">Training</option>
+                                    <option value="operations">Operations</option>
+                                </select>
+                            </div>
+
+                            <div className="border-t border-gray-200 pt-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Or Upload Template</label>
+                                <div className="flex items-center gap-2">
+                                    <label className="flex-1 cursor-pointer">
+                                        <input
+                                            type="file"
+                                            accept=".json,.txt"
+                                            onChange={handleTemplateUpload}
+                                            disabled={uploadingTemplate}
+                                            className="hidden"
+                                        />
+                                        <div className="w-full flex justify-center py-2 px-4 border-2 border-dashed border-gray-300 rounded-md hover:border-indigo-500 transition-colors">
+                                            <span className="text-sm text-gray-600">
+                                                {uploadingTemplate ? 'Uploading...' : 'Choose JSON/TXT file'}
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500">Upload a form template in JSON or TXT format</p>
                             </div>
 
                             <button

@@ -66,17 +66,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
+          {/* NovumSolvo Logo */}
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center">
-              <Building2 className="w-10 h-10 text-white" />
-            </div>
+            <img
+              src="/assets/branding/novumsolvo-logo.jpg"
+              alt="NovumSolvo"
+              className="h-24 w-auto object-contain"
+            />
           </div>
-          
+
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-center text-gray-600 mb-8">Sign in to your HR account</p>
+          <p className="text-center text-gray-600 mb-8">Sign in to NovumFlow</p>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
@@ -110,7 +113,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent outline-none transition"
                 placeholder="you@company.com"
               />
             </div>
@@ -120,7 +123,7 @@ export default function LoginPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <Link to="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-700">
+                <Link to="/forgot-password" className="text-sm text-cyan-600 hover:text-cyan-700">
                   Forgot password?
                 </Link>
               </div>
@@ -130,7 +133,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent outline-none transition"
                 placeholder="Enter your password"
               />
             </div>
@@ -138,7 +141,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-cyan-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/30"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -146,17 +149,19 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-indigo-600 hover:text-indigo-700 font-semibold">
+            <Link to="/signup" className="text-cyan-600 hover:text-cyan-700 font-semibold">
               Sign up
             </Link>
           </p>
         </div>
-        
-        <p className="mt-8 text-center text-xs text-gray-600">
-          HR & Recruitment Management Platform
-        </p>
+
+        <div className="mt-8 text-center">
+          <p className="text-sm font-semibold text-white mb-1">NovumFlow</p>
+          <p className="text-xs text-gray-300">HR & Recruitment Management Platform</p>
+          <p className="text-xs text-gray-400 mt-2">Powered by <span className="text-cyan-400 font-semibold">NovumSolvo Ltd</span></p>
+        </div>
       </div>
-      
+
       {/* Quick Admin Setup */}
       <QuickAdminSetup />
     </div>
