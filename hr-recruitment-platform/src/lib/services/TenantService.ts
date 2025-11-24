@@ -43,7 +43,7 @@ export const tenantService = {
     async getTenantFeatureStatus(tenantId: string): Promise<Map<string, boolean>> {
         const { data, error } = await supabase
             .from('tenant_features')
-            .select('feature_id, enabled')
+            .select('feature_id, is_enabled')
             .eq('tenant_id', tenantId);
         const statusMap = new Map<string, boolean>();
         if (error) {
@@ -51,7 +51,7 @@ export const tenantService = {
             return statusMap;
         }
         data?.forEach((row: any) => {
-            statusMap.set(row.feature_id, row.enabled);
+            statusMap.set(row.feature_id, row.is_enabled);
         });
         return statusMap;
     },
@@ -61,7 +61,7 @@ export const tenantService = {
         const { error } = await supabase.from('tenant_features').upsert({
             tenant_id: tenantId,
             feature_id: featureId,
-            enabled: true,
+            is_enabled: true,
             enabled_by: adminUserId,
             enabled_at: new Date().toISOString(),
         });
@@ -76,7 +76,7 @@ export const tenantService = {
     async disableFeature(tenantId: string, featureId: string): Promise<boolean> {
         const { error } = await supabase
             .from('tenant_features')
-            .update({ enabled: false })
+            .update({ is_enabled: false })
             .eq('tenant_id', tenantId)
             .eq('feature_id', featureId);
         if (error) {
