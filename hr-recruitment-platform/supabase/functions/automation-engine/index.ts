@@ -104,11 +104,97 @@ Deno.serve(async (req) => {
 
                 try {
                     console.log(`Executing rule: ${rule.rule_name}`);
-                    // Here we would parse the actions JSON and execute them
-                    // For now, we just log it
+
+                    // Parse actions if they are strings
+                    const actions = typeof rule.actions === 'string' ? JSON.parse(rule.actions) : rule.actions;
+
+                    if (Array.isArray(actions)) {
+                        for (const action of actions) {
+                            console.log(`Processing action:`, action);
+
+                            let integrationAction = '';
+                            let integrationData = {};
+
+                            // Map automation actions to integration actions
+                            switch (action.type) {
+                                case 'send_email':
+                                    integrationAction = 'email_send';
+                                    integrationData = {
+                                        to: action.config.to, // This needs to be dynamic based on trigger data
+                                        subject: action.config.subject,
+                                        html: action.config.body,
+                                        // If using template
+                                        template_id: action.config.template_id,
+                                        template_data: action.config.template_data
+                                    };
+
+                                    // Dynamic recipient handling
+                                    if (action.config.recipient_type === 'applicant') {
+                                        // We need to fetch the applicant email from trigger_data
+                                        // Assuming trigger_data contains application_id
+                                        const triggerDataObj = typeof data.trigger_data === 'string'
+                                            ? JSON.parse(data.trigger_data)
+                                            : data.trigger_data;
+
+                                        if (triggerDataObj.application_id) {
+                                            const { data: app } = await fetch(`${supabaseUrl}/rest/v1/applications?id=eq.${triggerDataObj.application_id}&select=applicant_email`, {
+                                                headers: {
+                                                    'Authorization': `Bearer ${serviceRoleKey}`,
+                                                    'apikey': serviceRoleKey
+                                                }
+                                            }).then(r => r.json());
+
+                                            if (app && app[0]) {
+                                                integrationData.to = app[0].applicant_email;
+                                            }
+                                        }
+                                    }
+                                    break;
+
+                                case 'schedule_interview':
+                                    // For now, we might just send an email with a link, or create a Zoom meeting
+                                    // Let's assume we create a Zoom meeting link and email it
+                                    integrationAction = 'zoom_create_meeting';
+                                    integrationData = {
+                                        topic: `Interview for ${rule.rule_name}`,
+                                        start_time: action.config.start_time, // Needs to be dynamic
+                                        duration: 60
+                                    };
+                                    break;
+
+                                default:
+                                    console.warn(`Unknown action type: ${action.type}`);
+                                    continue;
+                            }
+
+                            if (integrationAction) {
+                                console.log(`Calling integration-manager with action: ${integrationAction}`);
+                                const integrationResponse = await fetch(`${supabaseUrl}/functions/v1/integration-manager`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${serviceRoleKey}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        action: integrationAction,
+                                        ...integrationData
+                                    })
+                                });
+
+                                if (!integrationResponse.ok) {
+                                    const errorText = await integrationResponse.text();
+                                    throw new Error(`Integration failed: ${errorText}`);
+                                }
+
+                                const integrationResult = await integrationResponse.json();
+                                console.log('Integration result:', integrationResult);
+                            }
+                        }
+                    }
                 } catch (error) {
                     executionStatus = 'failed';
                     executionError = error.message;
+                    console.error('Execution failed:', error);
                 }
 
                 const executionDuration = Date.now() - executeStartTime;

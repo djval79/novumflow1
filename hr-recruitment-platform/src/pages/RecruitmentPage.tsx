@@ -1,31 +1,171 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Search, Edit, Trash2, Eye, CheckCircle, XCircle, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, CheckCircle, XCircle, Calendar, LayoutList, Kanban, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import AddJobModal from '@/components/AddJobModal';
 import AddApplicationModal from '@/components/AddApplicationModal';
 import AddInterviewModal from '@/components/AddInterviewModal';
 import Toast from '@/components/Toast';
+import { X, MessageSquare, Clock } from 'lucide-react';
 
 type TabType = 'jobs' | 'applications' | 'interviews';
+type ViewType = 'list' | 'board';
+
+interface ApplicationDetailsModalProps {
+  application: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: () => void;
+}
+
+function ApplicationDetailsModal({ application, isOpen, onClose, onUpdate }: ApplicationDetailsModalProps) {
+  const [notes, setNotes] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+  const { user } = useAuth();
+
+  if (!isOpen || !application) return null;
+
+  async function handleAddNote() {
+    if (!notes.trim()) return;
+    setAddingNote(true);
+
+    // In a real app, we'd have a separate notes table. For now, we'll append to the notes field
+    // or assume there's a notes table. Let's append with timestamp for this MVP.
+    const timestamp = new Date().toLocaleString();
+    const newNote = `[${timestamp} - ${user?.email}] ${notes}\n\n`;
+    const updatedNotes = (application.notes || '') + newNote;
+
+    const { error } = await supabase
+      .from('applications')
+      .update({ notes: updatedNotes })
+      .eq('id', application.id);
+
+    if (!error) {
+      setNotes('');
+      onUpdate();
+    }
+    setAddingNote(false);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Application Details</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Header Info */}
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">{application.applicant_first_name} {application.applicant_last_name}</h3>
+              <p className="text-gray-500">{application.applicant_email}</p>
+              <p className="text-gray-500">{application.applicant_phone || 'No phone provided'}</p>
+            </div>
+            <div className="text-right">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                {application.status}
+              </span>
+              <p className="text-sm text-gray-500 mt-1">Applied: {format(new Date(application.applied_at), 'MMM dd, yyyy')}</p>
+            </div>
+          </div>
+
+          {/* Job Info */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Applied For</h4>
+            <p className="text-gray-900 font-medium">{application.job_postings?.job_title}</p>
+            <p className="text-sm text-gray-500">{application.job_postings?.department} • {application.job_postings?.employment_type?.replace('_', ' ')}</p>
+          </div>
+
+          {/* Links */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {application.cv_url && (
+              <a href={application.cv_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700">
+                View CV
+              </a>
+            )}
+            {application.portfolio_url && (
+              <a href={application.portfolio_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700">
+                Portfolio
+              </a>
+            )}
+            {application.linkedin_url && (
+              <a href={application.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700">
+                LinkedIn
+              </a>
+            )}
+          </div>
+
+          {/* Notes Section */}
+          <div>
+            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <MessageSquare className="w-5 h-5 mr-2" />
+              Notes & Activity
+            </h4>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-48 overflow-y-auto whitespace-pre-wrap text-sm text-gray-700">
+              {application.notes || 'No notes yet.'}
+            </div>
+
+            <div className="flex gap-2">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add a note..."
+                className="flex-1 p-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                rows={2}
+              />
+              <button
+                onClick={handleAddNote}
+                disabled={addingNote || !notes.trim()}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function RecruitmentPage() {
   const [activeTab, setActiveTab] = useState<TabType>('jobs');
+  const [viewType, setViewType] = useState<ViewType>('list');
   const [jobs, setJobs] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
   const [interviews, setInterviews] = useState<any[]>([]);
+  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [workflowStages, setWorkflowStages] = useState<any[]>([]);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAddJobModal, setShowAddJobModal] = useState(false);
   const [showAddApplicationModal, setShowAddApplicationModal] = useState(false);
   const [showAddInterviewModal, setShowAddInterviewModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
+  const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
     loadData();
+    loadWorkflowsAndStages();
   }, [activeTab]);
+
+  async function loadWorkflowsAndStages() {
+    const { data: wfData } = await supabase.from('recruitment_workflows').select('*');
+    if (wfData) setWorkflows(wfData);
+
+    const { data: stageData } = await supabase.from('workflow_stages').select('*').order('position');
+    if (stageData) setWorkflowStages(stageData);
+  }
 
   async function loadData() {
     setLoading(true);
@@ -34,19 +174,26 @@ export default function RecruitmentPage() {
         case 'jobs':
           const { data: jobData } = await supabase
             .from('job_postings')
-            .select('*')
+            .select('*, recruitment_workflows(name)')
             .order('created_at', { ascending: false });
           setJobs(jobData || []);
           break;
-          
+
         case 'applications':
           const { data: appData } = await supabase
             .from('applications')
-            .select('*')
+            .select(`
+              *,
+              job_postings (
+                id,
+                job_title,
+                workflow_id
+              )
+            `)
             .order('applied_at', { ascending: false });
           setApplications(appData || []);
           break;
-          
+
         case 'interviews':
           const { data: intData } = await supabase
             .from('interviews')
@@ -80,24 +227,28 @@ export default function RecruitmentPage() {
     }
   }
 
-  async function updateApplicationStatus(appId: string, newStatus: string) {
+  async function updateApplicationStage(appId: string, stageId: string) {
+    // Optimistic update
+    setApplications(prev => prev.map(app =>
+      app.id === appId ? { ...app, current_stage_id: stageId } : app
+    ));
+
     const { error } = await supabase
       .from('applications')
-      .update({ 
-        status: newStatus,
+      .update({
+        current_stage_id: stageId,
         last_updated_by: user?.id
       })
       .eq('id', appId);
 
     if (!error) {
-      loadData();
-      await supabase.from('audit_logs').insert({
-        user_id: user?.id,
-        action: `UPDATE_APPLICATION_STATUS_${newStatus.toUpperCase()}`,
-        entity_type: 'applications',
-        entity_id: appId,
-        timestamp: new Date().toISOString()
-      });
+      // No need to reload data immediately if optimistic update worked, 
+      // but good to ensure consistency eventually.
+      // loadData(); 
+      setToast({ message: 'Application stage updated', type: 'success' });
+    } else {
+      setToast({ message: 'Failed to update stage', type: 'error' });
+      loadData(); // Revert on error
     }
   }
 
@@ -111,13 +262,6 @@ export default function RecruitmentPage() {
       if (!error) {
         setToast({ message: 'Job posting deleted successfully', type: 'success' });
         loadData();
-        await supabase.from('audit_logs').insert({
-          user_id: user?.id,
-          action: 'DELETE_JOB',
-          entity_type: 'job_postings',
-          entity_id: jobId,
-          timestamp: new Date().toISOString()
-        });
       } else {
         setToast({ message: 'Error deleting job posting', type: 'error' });
       }
@@ -134,13 +278,6 @@ export default function RecruitmentPage() {
       if (!error) {
         setToast({ message: 'Application deleted successfully', type: 'success' });
         loadData();
-        await supabase.from('audit_logs').insert({
-          user_id: user?.id,
-          action: 'DELETE_APPLICATION',
-          entity_type: 'applications',
-          entity_id: appId,
-          timestamp: new Date().toISOString()
-        });
       } else {
         setToast({ message: 'Error deleting application', type: 'error' });
       }
@@ -156,7 +293,7 @@ export default function RecruitmentPage() {
   }
 
   function viewApplicationDetails(app: any) {
-    alert(`Application Details:\n\nApplicant: ${app.applicant_first_name} ${app.applicant_last_name}\nEmail: ${app.applicant_email}\nPhone: ${app.applicant_phone || 'Not provided'}\nStatus: ${app.status}\nApplied: ${format(new Date(app.applied_at), 'MMM dd, yyyy')}\nScore: ${app.score || 'Not scored'}`);
+    setSelectedApplication(app);
   }
 
   function scheduleInterviewForApplication(app: any) {
@@ -193,6 +330,32 @@ export default function RecruitmentPage() {
     setToast({ message, type: 'error' });
   }
 
+  function getStagesForApp(app: any) {
+    const workflowId = app.job_postings?.workflow_id;
+    if (!workflowId) return [];
+    return workflowStages.filter(s => s.workflow_id === workflowId);
+  }
+
+  // Drag and Drop Handlers
+  const handleDragStart = (e: React.DragEvent, appId: string) => {
+    setDraggedAppId(appId);
+    e.dataTransfer.effectAllowed = 'move';
+    // Transparent drag image or default
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, stageId: string) => {
+    e.preventDefault();
+    if (draggedAppId) {
+      updateApplicationStage(draggedAppId, stageId);
+      setDraggedAppId(null);
+    }
+  };
+
   const tabs = [
     { id: 'jobs', label: 'Job Postings' },
     { id: 'applications', label: 'Applications' },
@@ -204,11 +367,20 @@ export default function RecruitmentPage() {
     job.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredApplications = applications.filter(app =>
-    `${app.applicant_first_name} ${app.applicant_last_name} ${app.applicant_email}`
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = `${app.applicant_first_name} ${app.applicant_last_name} ${app.applicant_email}`
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+      .includes(searchTerm.toLowerCase());
+
+    const matchesWorkflow = selectedWorkflowId === 'all' || app.job_postings?.workflow_id === selectedWorkflowId;
+
+    return matchesSearch && matchesWorkflow;
+  });
+
+  // Get stages for the selected workflow (for Board View)
+  const currentWorkflowStages = selectedWorkflowId !== 'all'
+    ? workflowStages.filter(s => s.workflow_id === selectedWorkflowId)
+    : [];
 
   return (
     <div>
@@ -217,8 +389,8 @@ export default function RecruitmentPage() {
           <h1 className="text-3xl font-bold text-gray-900">Recruitment Module</h1>
           <p className="mt-1 text-sm text-gray-600">Manage job postings, applications, and interviews</p>
         </div>
-        
-        <button 
+
+        <button
           onClick={handleAddNew}
           className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
         >
@@ -228,22 +400,58 @@ export default function RecruitmentPage() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 border-b border-gray-200">
+      <div className="mb-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <nav className="-mb-px flex space-x-8">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition ${
-                activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab.id
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
               {tab.label}
             </button>
           ))}
         </nav>
+
+        {activeTab === 'applications' && (
+          <div className="flex items-center space-x-4">
+            {/* Workflow Filter */}
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select
+                value={selectedWorkflowId}
+                onChange={(e) => setSelectedWorkflowId(e.target.value)}
+                className="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="all">All Workflows</option>
+                {workflows.map(wf => (
+                  <option key={wf.id} value={wf.id}>{wf.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewType('list')}
+                className={`p-2 rounded-md transition ${viewType === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                title="List View"
+              >
+                <LayoutList className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewType('board')}
+                className={`p-2 rounded-md transition ${viewType === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                title="Board View"
+              >
+                <Kanban className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Search Bar */}
@@ -261,9 +469,9 @@ export default function RecruitmentPage() {
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className={`bg-white rounded-xl shadow-sm border border-gray-200 ${viewType === 'board' && activeTab === 'applications' ? 'bg-transparent border-none shadow-none' : ''}`}>
         {loading ? (
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center h-64 bg-white rounded-xl border border-gray-200">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
         ) : (
@@ -278,7 +486,7 @@ export default function RecruitmentPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Workflow</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
@@ -300,11 +508,10 @@ export default function RecruitmentPage() {
                             <select
                               value={job.status}
                               onChange={(e) => updateJobStatus(job.id, e.target.value)}
-                              className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${
-                                job.status === 'published' ? 'bg-green-100 text-green-800' :
+                              className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${job.status === 'published' ? 'bg-green-100 text-green-800' :
                                 job.status === 'closed' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}
+                                  'bg-yellow-100 text-yellow-800'
+                                }`}
                             >
                               <option value="draft">Draft</option>
                               <option value="published">Published</option>
@@ -312,25 +519,25 @@ export default function RecruitmentPage() {
                               <option value="cancelled">Cancelled</option>
                             </select>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {job.application_deadline ? format(new Date(job.application_deadline), 'MMM dd, yyyy') : 'N/A'}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {job.recruitment_workflows?.name || 'Default'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button 
+                            <button
                               onClick={() => viewJobDetails(job)}
                               className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
                               title="View Details"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => editJob(job)}
                               className="text-gray-600 hover:text-gray-900 mr-3 p-1 rounded"
                               title="Edit Job"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => deleteJob(job.id)}
                               className="text-red-600 hover:text-red-900 p-1 rounded"
                               title="Delete Job"
@@ -352,8 +559,8 @@ export default function RecruitmentPage() {
               </div>
             )}
 
-            {/* Applications Table */}
-            {activeTab === 'applications' && (
+            {/* Applications List View */}
+            {activeTab === 'applications' && viewType === 'list' && (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -361,99 +568,76 @@ export default function RecruitmentPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stage</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredApplications.length > 0 ? (
-                      filteredApplications.map((app) => (
-                        <tr key={app.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {app.applicant_first_name} {app.applicant_last_name}
-                            </div>
-                            <div className="text-sm text-gray-500">{app.applicant_email}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {app.job_posting_id.substring(0, 8)}...
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {format(new Date(app.applied_at), 'MMM dd, yyyy')}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <select
-                              value={app.status}
-                              onChange={(e) => updateApplicationStatus(app.id, e.target.value)}
-                              className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${
-                                app.status === 'hired' ? 'bg-green-100 text-green-800' :
-                                app.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                app.status === 'dbs_pending' || app.status === 'dbs_completed' ? 'bg-purple-100 text-purple-800' :
-                                app.status === 'ref_1_pending' || app.status === 'ref_1_completed' || app.status === 'ref_2_pending' || app.status === 'ref_2_completed' ? 'bg-orange-100 text-orange-800' :
-                                app.status === 'interview_scheduled' || app.status === 'interviewed' ? 'bg-blue-100 text-blue-800' :
-                                app.status === 'offer_extended' ? 'bg-emerald-100 text-emerald-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}
-                            >
-                              <option value="applied">Applied</option>
-                              <option value="screening">Screening</option>
-                              <option value="shortlisted">Shortlisted</option>
-                              <option value="interview_scheduled">Interview Scheduled</option>
-                              <option value="interviewed">Interviewed</option>
-                              <option value="offer_extended">Offer Extended</option>
-                              <option value="ref_1_pending">REF 1 - Pending</option>
-                              <option value="ref_1_completed">REF 1 - Completed</option>
-                              <option value="ref_2_pending">REF 2 - Pending</option>
-                              <option value="ref_2_completed">REF 2 - Completed</option>
-                              <option value="dbs_pending">DBS - Pending</option>
-                              <option value="dbs_completed">DBS - Completed</option>
-                              <option value="hired">Hired</option>
-                              <option value="rejected">Rejected</option>
-                            </select>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {app.score || 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button 
-                              onClick={() => viewApplicationDetails(app)}
-                              className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
-                              title="View Details"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => scheduleInterviewForApplication(app)}
-                              className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded" 
-                              title="Schedule Interview"
-                            >
-                              <Calendar className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => updateApplicationStatus(app.id, 'shortlisted')}
-                              className="text-green-600 hover:text-green-900 mr-3 p-1 rounded" 
-                              title="Shortlist"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => updateApplicationStatus(app.id, 'rejected')}
-                              className="text-red-600 hover:text-red-900 mr-3 p-1 rounded" 
-                              title="Reject"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => deleteApplication(app.id)}
-                              className="text-gray-600 hover:text-gray-900 p-1 rounded"
-                              title="Delete Application"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      filteredApplications.map((app) => {
+                        const appStages = getStagesForApp(app);
+                        return (
+                          <tr key={app.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {app.applicant_first_name} {app.applicant_last_name}
+                              </div>
+                              <div className="text-sm text-gray-500">{app.applicant_email}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {app.job_postings?.job_title || 'Unknown Job'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {format(new Date(app.applied_at), 'MMM dd, yyyy')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {appStages.length > 0 ? (
+                                <select
+                                  value={app.current_stage_id || ''}
+                                  onChange={(e) => updateApplicationStage(app.id, e.target.value)}
+                                  className="text-xs font-semibold rounded-full px-3 py-1 border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                  <option value="">Select Stage</option>
+                                  {appStages.map((stage: any) => (
+                                    <option key={stage.id} value={stage.id}>
+                                      {stage.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-sm text-gray-500 italic">No workflow</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {app.score || 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <button
+                                onClick={() => viewApplicationDetails(app)}
+                                className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => scheduleInterviewForApplication(app)}
+                                className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded"
+                                title="Schedule Interview"
+                              >
+                                <Calendar className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteApplication(app.id)}
+                                className="text-gray-600 hover:text-gray-900 p-1 rounded"
+                                title="Delete Application"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
                         <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
@@ -463,6 +647,79 @@ export default function RecruitmentPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Applications Kanban Board View */}
+            {activeTab === 'applications' && viewType === 'board' && (
+              <div className="h-full overflow-x-auto pb-4">
+                {selectedWorkflowId === 'all' ? (
+                  <div className="flex flex-col items-center justify-center h-64 bg-white rounded-xl border border-gray-200">
+                    <Kanban className="w-12 h-12 text-gray-300 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900">Select a Workflow</h3>
+                    <p className="text-gray-500 mt-1">Please select a specific workflow to view the Kanban board.</p>
+                  </div>
+                ) : (
+                  <div className="flex space-x-4 min-w-max p-1">
+                    {currentWorkflowStages.map((stage) => (
+                      <div
+                        key={stage.id}
+                        className="w-80 bg-gray-50 rounded-lg flex flex-col max-h-[calc(100vh-250px)]"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, stage.id)}
+                      >
+                        {/* Column Header */}
+                        <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-white rounded-t-lg">
+                          <h3 className="font-medium text-gray-900">{stage.name}</h3>
+                          <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                            {filteredApplications.filter(app => app.current_stage_id === stage.id).length}
+                          </span>
+                        </div>
+
+                        {/* Cards Container */}
+                        <div className="p-3 flex-1 overflow-y-auto space-y-3">
+                          {filteredApplications
+                            .filter(app => app.current_stage_id === stage.id)
+                            .map((app) => (
+                              <div
+                                key={app.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, app.id)}
+                                className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 cursor-move hover:shadow-md transition"
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <h4 className="font-medium text-gray-900">{app.applicant_first_name} {app.applicant_last_name}</h4>
+                                  {app.score && (
+                                    <span className="text-xs font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded">
+                                      {app.score}%
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 mb-2">{app.job_postings?.job_title}</p>
+                                <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-50">
+                                  <span className="text-xs text-gray-400">{format(new Date(app.applied_at), 'MMM d')}</span>
+                                  <div className="flex space-x-1">
+                                    <button
+                                      onClick={() => viewApplicationDetails(app)}
+                                      className="p-1 text-gray-400 hover:text-indigo-600 rounded"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => scheduleInterviewForApplication(app)}
+                                      className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                    >
+                                      <Calendar className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -494,11 +751,10 @@ export default function RecruitmentPage() {
                             {format(new Date(interview.scheduled_date), 'MMM dd, yyyy HH:mm')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              interview.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${interview.status === 'completed' ? 'bg-green-100 text-green-800' :
                               interview.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
+                                'bg-blue-100 text-blue-800'
+                              }`}>
                               {interview.status}
                             </span>
                           </td>
@@ -506,21 +762,21 @@ export default function RecruitmentPage() {
                             {interview.rating ? `${interview.rating}/5` : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button 
+                            <button
                               onClick={() => rescheduleInterview(interview)}
                               className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
                               title="Reschedule Interview"
                             >
                               <Calendar className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => editInterview(interview)}
                               className="text-gray-600 hover:text-gray-900 mr-3 p-1 rounded"
                               title="Edit Interview"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => {
                                 if (window.confirm('Mark this interview as completed?')) {
                                   setToast({ message: 'Interview marked as completed', type: 'success' });
@@ -567,6 +823,15 @@ export default function RecruitmentPage() {
         onClose={() => setShowAddInterviewModal(false)}
         onSuccess={handleSuccess}
         onError={handleError}
+      />
+      <ApplicationDetailsModal
+        application={selectedApplication}
+        isOpen={!!selectedApplication}
+        onClose={() => setSelectedApplication(null)}
+        onUpdate={() => {
+          loadData();
+          // Keep modal open to show updated notes
+        }}
       />
 
       {/* Toast Notification */}

@@ -4,6 +4,7 @@ import { Settings, Sliders, CheckSquare, FileText, Users, Plus, Edit, Trash2, Sa
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
 import FormBuilder, { FormField } from '@/components/FormBuilder/FormBuilder';
+import WorkflowEditor from '@/components/WorkflowEditor';
 
 type TabType = 'general' | 'workflows' | 'forms' | 'criteria' | 'checklists';
 
@@ -19,12 +20,12 @@ export default function RecruitSettingsPage() {
 
   const selectedForm = formTemplates.find(f => f.id === selectedFormId);
 
-  // Mock Data for other tabs
-  const [workflows, setWorkflows] = useState([
-    { id: 1, name: 'Standard Hiring', stages: ['Application', 'Phone Screen', 'Interview', 'Offer'] },
-    { id: 2, name: 'Senior Position', stages: ['Application', 'HR Screen', 'Technical Interview', 'Panel Interview', 'Background Check', 'Offer'] }
-  ]);
+  // Workflow State
+  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
+  const [isEditingWorkflow, setIsEditingWorkflow] = useState(false);
 
+  // Mock Data for other tabs
   const [criteria, setCriteria] = useState([
     { id: 1, name: 'Technical Skills', weight: 30, maxScore: 10 },
     { id: 2, name: 'Communication', weight: 25, maxScore: 10 },
@@ -40,6 +41,8 @@ export default function RecruitSettingsPage() {
   useEffect(() => {
     if (activeTab === 'forms') {
       loadFormTemplates();
+    } else if (activeTab === 'workflows') {
+      loadWorkflows();
     }
   }, [activeTab]);
 
@@ -55,6 +58,19 @@ export default function RecruitSettingsPage() {
       if (data.length > 0 && !selectedFormId) {
         setSelectedFormId(data[0].id);
       }
+    }
+    setLoading(false);
+  }
+
+  async function loadWorkflows() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('recruitment_workflows')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setWorkflows(data);
     }
     setLoading(false);
   }
@@ -78,6 +94,22 @@ export default function RecruitSettingsPage() {
       loadFormTemplates();
     }
     setLoading(false);
+  }
+
+  async function deleteWorkflow(id: string) {
+    if (window.confirm('Are you sure you want to delete this workflow?')) {
+      const { error } = await supabase
+        .from('recruitment_workflows')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        setToast({ message: 'Failed to delete workflow', type: 'error' });
+      } else {
+        setToast({ message: 'Workflow deleted successfully', type: 'success' });
+        loadWorkflows();
+      }
+    }
   }
 
   const closeModal = () => setActiveModal(null);
@@ -148,31 +180,74 @@ export default function RecruitSettingsPage() {
 
         {activeTab === 'workflows' && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Recruitment Workflows</h2>
-              <button className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Workflow
-              </button>
-            </div>
-            {workflows.map((workflow) => (
-              <div key={workflow.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900">{workflow.name}</h3>
-                  <div className="flex space-x-2">
-                    <button className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"><Edit className="w-4 h-4" /></button>
-                    <button className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+            {isEditingWorkflow ? (
+              <WorkflowEditor
+                workflowId={editingWorkflowId || undefined}
+                onSave={() => {
+                  setIsEditingWorkflow(false);
+                  setEditingWorkflowId(null);
+                  loadWorkflows();
+                  setToast({ message: 'Workflow saved successfully', type: 'success' });
+                }}
+                onCancel={() => {
+                  setIsEditingWorkflow(false);
+                  setEditingWorkflowId(null);
+                }}
+              />
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-medium text-gray-900">Recruitment Workflows</h2>
+                  <button
+                    onClick={() => {
+                      setEditingWorkflowId(null);
+                      setIsEditingWorkflow(true);
+                    }}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Workflow
+                  </button>
+                </div>
+                {workflows.length === 0 && !loading && (
+                  <div className="text-center py-12 text-gray-500">
+                    No workflows found. Create one to get started.
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {workflow.stages.map((stage, index) => (
-                    <span key={index} className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
-                      {index + 1}. {stage}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
+                )}
+                {workflows.map((workflow) => (
+                  <div key={workflow.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h3 className="font-semibold text-gray-900 flex items-center">
+                          {workflow.name}
+                          {workflow.is_default && (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">Default</span>
+                          )}
+                        </h3>
+                        <p className="text-sm text-gray-500">{workflow.description}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            setEditingWorkflowId(workflow.id);
+                            setIsEditingWorkflow(true);
+                          }}
+                          className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteWorkflow(workflow.id)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
 
