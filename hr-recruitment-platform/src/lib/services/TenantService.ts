@@ -9,6 +9,7 @@ export interface Tenant {
 
 export interface Feature {
     id: string;
+    name: string;
     display_name: string;
     description?: string;
     category: 'module' | 'feature' | 'integration';

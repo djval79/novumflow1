@@ -54,8 +54,8 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
 
     const hasFeature = (featureKey: string) => {
         if (loading) return false;
-        // Find feature by key (display_name or id). We'll use display_name as key.
-        const feature = features.find(f => f.display_name === featureKey || f.id === featureKey);
+        // Find feature by name (the key used in routes)
+        const feature = features.find(f => f.name === featureKey || f.id === featureKey);
         if (!feature) return false;
         return featureMap.get(feature.id) ?? false;
     };
