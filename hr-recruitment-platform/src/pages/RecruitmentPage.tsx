@@ -163,7 +163,7 @@ export default function RecruitmentPage() {
     const { data: wfData } = await supabase.from('recruitment_workflows').select('*');
     if (wfData) setWorkflows(wfData);
 
-    const { data: stageData } = await supabase.from('workflow_stages').select('*').order('position');
+    const { data: stageData } = await supabase.from('workflow_stages').select('*').order('stage_order');
     if (stageData) setWorkflowStages(stageData);
   }
 

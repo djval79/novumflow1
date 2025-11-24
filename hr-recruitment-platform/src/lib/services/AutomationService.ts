@@ -95,6 +95,10 @@ export class AutomationService {
             supabase.removeChannel(this.subscription);
         }
     }
+
+    public cleanup() {
+        this.stopListening();
+    }
 }
 
 export const automationService = new AutomationService();

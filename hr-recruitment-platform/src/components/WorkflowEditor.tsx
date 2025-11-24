@@ -36,7 +36,10 @@ interface WorkflowEditorProps {
     onCancel?: () => void;
 }
 
+import { useAuth } from '@/contexts/AuthContext';
+
 export default function WorkflowEditor({ workflowId, onSave, onCancel }: WorkflowEditorProps) {
+    const { user } = useAuth();
     const [workflow, setWorkflow] = useState<Workflow>({
         id: '',
         name: '',
@@ -95,8 +98,9 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
             }));
 
             setStages(stagesWithAutomations);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error loading workflow:', error);
+            alert(`Error loading workflow: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -115,7 +119,8 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                         name: workflow.name,
                         description: workflow.description,
                         is_active: workflow.is_active,
-                        is_default: workflow.is_default
+                        is_default: workflow.is_default,
+                        created_by: user?.id
                     }])
                     .select()
                     .single();
@@ -180,14 +185,17 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                         .from('stage_automations')
                         .upsert(automationsToUpsert);
 
-                    if (autoError) console.error('Error saving automations for stage', savedStage.name, autoError);
+                    if (autoError) {
+                        console.error('Error saving automations for stage', savedStage.name, autoError);
+                        throw autoError;
+                    }
                 }
             }
 
             if (onSave) onSave();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving workflow:', error);
-            alert('Failed to save workflow');
+            alert(`Failed to save workflow: ${error.message || JSON.stringify(error)}`);
         } finally {
             setSaving(false);
         }
@@ -471,8 +479,8 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                                     <div key={auto.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md">
                                         <div className="flex items-center">
                                             <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${auto.action_type === 'send_email' ? 'bg-blue-100 text-blue-600' :
-                                                    auto.action_type === 'ai_interview' ? 'bg-purple-100 text-purple-600' :
-                                                        'bg-gray-100 text-gray-600'
+                                                auto.action_type === 'ai_interview' ? 'bg-purple-100 text-purple-600' :
+                                                    'bg-gray-100 text-gray-600'
                                                 }`}>
                                                 {auto.action_type === 'send_email' ? <Mail className="w-4 h-4" /> :
                                                     auto.action_type === 'ai_interview' ? <Bot className="w-4 h-4" /> :
