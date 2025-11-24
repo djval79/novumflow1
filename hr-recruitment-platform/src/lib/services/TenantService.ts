@@ -7,6 +7,10 @@ export interface Tenant {
     subscription_tier: string;
     subscription_price?: number;
     currency?: string;
+    subscription_interval?: 'monthly' | 'yearly';
+    slug?: string;
+    is_active?: boolean;
+    max_users?: number;
 }
 
 export interface Feature {
@@ -104,18 +108,61 @@ export const tenantService = {
     },
 
     /** Update tenant subscription details */
-    async updateTenantSubscription(tenantId: string, price: number, currency: string): Promise<boolean> {
+    async updateTenantSubscription(tenantId: string, price: number, currency: string, interval: 'monthly' | 'yearly'): Promise<boolean> {
         const { error } = await supabase
             .from('tenants')
             .update({
                 subscription_price: price,
                 currency: currency,
+                subscription_interval: interval,
                 updated_at: new Date().toISOString()
             })
             .eq('id', tenantId);
 
         if (error) {
             console.error('Error updating tenant subscription:', error);
+            return false;
+        }
+        return true;
+    },
+
+    /** Create a new tenant */
+    async createTenant(tenant: Omit<Tenant, 'id'>): Promise<Tenant | null> {
+        const { data, error } = await supabase
+            .from('tenants')
+            .insert({
+                name: tenant.name,
+                slug: tenant.slug || tenant.name.toLowerCase().replace(/\s+/g, '-'),
+                domain: tenant.domain,
+                subscription_tier: tenant.subscription_tier,
+                subscription_price: tenant.subscription_price,
+                currency: tenant.currency || 'GBP',
+                subscription_interval: tenant.subscription_interval || 'monthly',
+                is_active: tenant.is_active ?? true,
+                max_users: tenant.max_users || 10,
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating tenant:', error);
+            return null;
+        }
+        return data;
+    },
+
+    /** Update an existing tenant */
+    async updateTenant(tenantId: string, updates: Partial<Tenant>): Promise<boolean> {
+        const { error } = await supabase
+            .from('tenants')
+            .update({
+                ...updates,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', tenantId);
+
+        if (error) {
+            console.error('Error updating tenant:', error);
             return false;
         }
         return true;
