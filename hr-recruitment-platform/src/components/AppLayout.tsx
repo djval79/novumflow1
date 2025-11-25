@@ -82,6 +82,14 @@ export default function AppLayout() {
     feature: 'system'
   });
 
+  // Add Digital Passport (available to all users)
+  navigation.push({
+    name: 'My Passport',
+    href: '/my-passport',
+    icon: Shield,
+    feature: 'system'
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation Bar */}

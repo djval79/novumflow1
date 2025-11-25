@@ -30,6 +30,7 @@ import AuditLogPage from './pages/AuditLogPage';
 import PrivacyPage from './pages/PrivacyPage';
 import SupportPage from './pages/SupportPage';
 import InspectorDashboard from './pages/InspectorDashboard';
+import StaffPassportPage from './pages/StaffPassportPage';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -139,6 +140,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <InspectorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-passport"
+              element={
+                <ProtectedRoute>
+                  <StaffPassportPage />
                 </ProtectedRoute>
               }
             />
