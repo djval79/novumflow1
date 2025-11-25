@@ -32,6 +32,7 @@ import SupportPage from './pages/SupportPage';
 import InspectorDashboard from './pages/InspectorDashboard';
 import StaffPassportPage from './pages/StaffPassportPage';
 import StaffPortalPage from './pages/StaffPortalPage';
+import LandingPage from './pages/LandingPage';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -180,8 +181,11 @@ function App() {
               }
             />
 
+            {/* Public Landing Page */}
+            <Route path="/" element={<LandingPage />} />
+
             {/* Catch all */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </TenantProvider>
