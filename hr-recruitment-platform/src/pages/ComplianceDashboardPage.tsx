@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { complianceService, ComplianceStatus } from '@/lib/services/ComplianceService';
 import { useTenant } from '@/contexts/TenantContext';
 import {
@@ -17,6 +18,7 @@ import TrainingMatrix from '../components/TrainingMatrix';
 import DBSCheckForm from '../components/DBSCheckForm';
 
 export default function ComplianceDashboardPage() {
+    const navigate = useNavigate();
     const { currentTenant } = useTenant();
     const [loading, setLoading] = useState(true);
     const [complianceReport, setComplianceReport] = useState<any>(null);
@@ -111,13 +113,22 @@ export default function ComplianceDashboardPage() {
                     <h1 className="text-2xl font-bold text-gray-900">CQC Compliance Dashboard</h1>
                     <p className="text-gray-600 mt-1">Monitor staff compliance and CQC readiness</p>
                 </div>
-                <button
-                    onClick={handleExport}
-                    className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
-                >
-                    <Download className="w-4 h-4" />
-                    Export CQC Report
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => navigate('/inspector-mode')}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 border border-slate-700"
+                    >
+                        <Shield className="w-4 h-4" />
+                        Enter Inspector Mode
+                    </button>
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
+                    >
+                        <Download className="w-4 h-4" />
+                        Export CQC Report
+                    </button>
+                </div>
             </div>
 
             {/* Tabs */}

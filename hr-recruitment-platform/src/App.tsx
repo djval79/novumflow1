@@ -29,6 +29,7 @@ import ComplianceDashboardPage from './pages/ComplianceDashboardPage';
 import AuditLogPage from './pages/AuditLogPage';
 import PrivacyPage from './pages/PrivacyPage';
 import SupportPage from './pages/SupportPage';
+import InspectorDashboard from './pages/InspectorDashboard';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -131,6 +132,16 @@ function App() {
               <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
               <Route path="audit-logs" element={<AuditLogPage />} />
             </Route>
+
+            {/* Standalone Protected Routes (No App Layout) */}
+            <Route
+              path="/inspector-mode"
+              element={
+                <ProtectedRoute>
+                  <InspectorDashboard />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
