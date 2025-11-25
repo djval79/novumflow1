@@ -27,6 +27,8 @@ import FormsPage from './pages/FormsPage';
 import TenantManagementPage from './pages/TenantManagementPage';
 import ComplianceDashboardPage from './pages/ComplianceDashboardPage';
 import AuditLogPage from './pages/AuditLogPage';
+import PrivacyPage from './pages/PrivacyPage';
+import SupportPage from './pages/SupportPage';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -97,6 +99,8 @@ function App() {
             />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/support" element={<SupportPage />} />
 
             {/* Protected Routes */}
             <Route

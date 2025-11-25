@@ -13,6 +13,9 @@
     "clean": "rm -rf node_modules .pnpm-store pnpm-lock.yaml && pnpm store prune"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capgo/capacitor-native-biometric": "^7.5.3",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.2",
@@ -67,6 +70,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.4.4",
     "@eslint/js": "^9.15.0",
     "@types/node": "^22.10.7",
     "@types/react": "^18.3.12",
@@ -84,5 +89,12 @@
     "typescript-eslint": "^8.15.0",
     "vite-plugin-source-identifier": "1.1.2"
   },
-  "packageManager": "pnpm@10.21.0+sha512.da3337267e400fdd3d479a6c68079ac6db01d8ca4f67572083e722775a796788a7a9956613749e000fac20d424b594f7a791a5f4e2e13581c5ef947f26968a40"
+  "packageManager": "pnpm@10.21.0+sha512.da3337267e400fdd3d479a6c68079ac6db01d8ca4f67572083e722775a796788a7a9956613749e000fac20d424b594f7a791a5f4e2e13581c5ef947f26968a40",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "@parcel/watcher",
+      "esbuild"
+    ]
+  }
 }
