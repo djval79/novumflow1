@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "strict": false,
+        "noImplicitAny": false,
+        "lib": [
+            "deno.window",
+            "deno.ns",
+            "esnext"
+        ],
+        "jsx": "react",
+        "jsxImportSource": "react"
+    },
+    "importMap": "./import_map.json",
+    "tasks": {
+        "dev": "deno run --watch --allow-all index.ts"
+    },
+    "nodeModulesDir": false
+}

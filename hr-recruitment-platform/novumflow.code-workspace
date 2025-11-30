@@ -1,0 +1,107 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        // Deno Configuration
+        "deno.enable": true,
+        "deno.enablePaths": [
+            "supabase/functions"
+        ],
+        "deno.lint": true,
+        "deno.unstable": true,
+        "deno.suggest.imports.hosts": {
+            "https://deno.land": true,
+            "https://esm.sh": true
+        },
+        // TypeScript Configuration
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "typescript.enablePromptUseWorkspaceTsdk": true,
+        // Editor Configuration
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit",
+            "source.organizeImports": "explicit"
+        },
+        // File Associations
+        "[typescript]": {
+            "editor.defaultFormatter": "denoland.vscode-deno"
+        },
+        "[typescriptreact]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[javascript]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[javascriptreact]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        // Supabase Functions specific - use Deno formatter
+        "files.associations": {
+            "**/supabase/functions/**/*.ts": "typescript"
+        },
+        // Exclude node_modules from search
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/dist": true,
+            "**/.git": true,
+            "**/android": true
+        },
+        // Tailwind CSS
+        "tailwindCSS.experimental.classRegex": [
+            [
+                "cva\\(([^)]*)\\)",
+                "[\"'`]([^\"'`]*).*?[\"'`]"
+            ],
+            [
+                "cx\\(([^)]*)\\)",
+                "(?:'|\"|`)([^']*)(?:'|\"|`)"
+            ]
+        ],
+        // React
+        "emmet.includeLanguages": {
+            "typescript": "typescriptreact",
+            "javascript": "javascriptreact"
+        },
+        // Git
+        "git.ignoreLimitWarning": true
+    },
+    "extensions": {
+        "recommendations": [
+            // Essential for Deno (Supabase Edge Functions)
+            "denoland.vscode-deno",
+            // React & TypeScript Development
+            "dsznajder.es7-react-js-snippets",
+            "dbaeumer.vscode-eslint",
+            "esbenp.prettier-vscode",
+            // Supabase
+            "supabase.supabase-vscode",
+            // Tailwind CSS
+            "bradlc.vscode-tailwindcss",
+            // Database/SQL
+            "mtxr.sqltools",
+            "mtxr.sqltools-driver-pg",
+            // Git
+            "eamodio.gitlens",
+            // Utilities
+            "christian-kohler.path-intellisense",
+            "formulahendry.auto-rename-tag",
+            "yoavbls.pretty-ts-errors",
+            "usernamehw.errorlens",
+            // React Native (for Capacitor/Mobile)
+            "msjsdiag.vscode-react-native",
+            // GraphQL (if using with Supabase)
+            "graphql.vscode-graphql",
+            "graphql.vscode-graphql-syntax",
+            // Icons & Themes
+            "pkief.material-icon-theme",
+            // Code Quality
+            "streetsidesoftware.code-spell-checker",
+            // Environment Variables
+            "irongeek.vscode-env"
+        ]
+    }
+}

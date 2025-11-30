@@ -21,11 +21,8 @@ export default function LoginPage() {
     setAttemptsRemaining(null);
 
     try {
-      // Use direct Supabase authentication instead of broken Edge Function
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Use AuthContext signIn method for authentication
+      const { error: authError } = await signIn(email, password);
 
       if (authError) {
         console.error('Auth error:', authError);
@@ -34,12 +31,15 @@ export default function LoginPage() {
         return;
       }
 
-      if (data.user) {
+      // Get the current user after successful sign-in
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
         // Check if user has a profile, create admin profile if needed
         const { data: profile, error: profileError } = await supabase
           .from('users_profiles')
           .select('role, full_name')
-          .eq('user_id', data.user.id)
+          .eq('user_id', user.id)
           .single();
 
         if (!profile && !profileError) {
@@ -47,15 +47,13 @@ export default function LoginPage() {
           await supabase
             .from('users_profiles')
             .upsert({
-              user_id: data.user.id,
+              user_id: user.id,
               full_name: 'System Administrator',
               role: 'Admin',
               created_at: new Date().toISOString(),
             });
         }
 
-        // Use the AuthContext signIn method for consistency
-        await signIn(email, password);
         navigate('/dashboard');
       }
     } catch (err: any) {

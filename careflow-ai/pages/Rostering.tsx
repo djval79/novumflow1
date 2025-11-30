@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
 import { supabase } from '../lib/supabase';
-import { User, Calendar, Clock, AlertTriangle, CheckCircle, Lock, MapPin } from 'lucide-react';
+import { visitService, clientService, staffService } from '../services/supabaseService';
+import { Client } from '../types';
+import { User, Calendar, Clock, AlertTriangle, CheckCircle, Lock, MapPin, X, Plus } from 'lucide-react';
 
 interface StaffMember {
     id: string;
-    user_id: string;
-    full_name: string;
-    avatar_url: string | null;
-    compliance_status: {
-        dbs_status: 'compliant' | 'expired' | 'pending';
-        rtw_status: 'compliant' | 'expired' | 'pending';
-        training_status: 'compliant' | 'expired' | 'pending';
-    } | null;
+    userId: string;
+    name: string;
+    avatar: string;
+    dbsStatus: string;
+    rtwStatus: string;
 }
 
 interface Visit {
@@ -31,6 +30,8 @@ export default function Rostering() {
     const [unassignedVisits, setUnassignedVisits] = useState<Visit[]>([]);
     const [loading, setLoading] = useState(true);
     const [draggedVisit, setDraggedVisit] = useState<Visit | null>(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [clients, setClients] = useState<Client[]>([]);
 
     useEffect(() => {
         loadData();
@@ -39,39 +40,32 @@ export default function Rostering() {
     const loadData = async () => {
         setLoading(true);
         try {
-            // 1. Load Staff
-            const { data: staffData } = await supabase
-                .from('users_profiles')
-                .select(`
-          id,
-          user_id,
-          full_name,
-          avatar_url,
-          compliance_status (
-            dbs_status,
-            rtw_status,
-            training_status
-          )
-        `)
-                .eq('role', 'carer');
+            // 1. Load Staff using Service
+            const staffData = await staffService.getAll();
+            setStaff(staffData as unknown as StaffMember[]);
 
-            setStaff(staffData || []);
+            // 2. Load Unassigned Visits using Service
+            const visitsData = await visitService.getUnassigned();
 
-            // 2. Load Unassigned Visits
-            const { data: visitsData } = await supabase
-                .from('visits')
-                .select(`
-          id,
-          visit_date,
-          start_time,
-          end_time,
-          status,
-          carer_id,
-          client:clients (first_name, last_name)
-        `)
-                .is('carer_id', null); // Only unassigned
+            // Map to component format
+            const mappedVisits = visitsData.map((v: any) => ({
+                id: v.id,
+                client: {
+                    first_name: v.clients?.name.split(' ')[0] || 'Unknown',
+                    last_name: v.clients?.name.split(' ').slice(1).join(' ') || ''
+                },
+                visit_date: v.date,
+                start_time: v.start_time,
+                end_time: v.end_time,
+                status: v.status,
+                carer_id: v.staff_id
+            }));
 
-            setUnassignedVisits(visitsData || []);
+            setUnassignedVisits(mappedVisits || []);
+
+            // 3. Load Clients for dropdown
+            const clientsData = await clientService.getAll();
+            setClients(clientsData);
 
         } catch (error) {
             console.error('Error loading roster data:', error);
@@ -84,11 +78,8 @@ export default function Rostering() {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
     const isCompliant = (member: StaffMember) => {
-        const status = member.compliance_status;
-        if (!status) return false;
-        return status.dbs_status === 'compliant' &&
-            status.rtw_status === 'compliant' &&
-            status.training_status === 'compliant';
+        return member.dbsStatus === 'Clear' && member.rtwStatus === 'Valid';
+        // Note: 'Clear' and 'Valid' are the expected values from the DB check constraints
     };
 
     const handleDragStart = (visit: Visit) => {
@@ -100,7 +91,7 @@ export default function Rostering() {
 
         // COMPLIANCE LOCK
         if (!isCompliant(member)) {
-            alert(`⛔ COMPLIANCE LOCK\n\nCannot assign visits to ${member.full_name}.\nCheck DBS, Right to Work, or Training status.`);
+            alert(`⛔ COMPLIANCE LOCK\n\nCannot assign visits to ${member.name}.\nCheck DBS, Right to Work, or Training status.`);
             return;
         }
 
@@ -108,17 +99,8 @@ export default function Rostering() {
             // Optimistic update
             setUnassignedVisits(prev => prev.filter(v => v.id !== draggedVisit.id));
 
-            // Database update
-            const { error } = await supabase
-                .from('visits')
-                .update({
-                    carer_id: member.user_id,
-                    visit_date: format(date, 'yyyy-MM-dd'),
-                    status: 'scheduled'
-                })
-                .eq('id', draggedVisit.id);
-
-            if (error) throw error;
+            // Database update using Service
+            await visitService.assignStaff(draggedVisit.id, member.userId, format(date, 'yyyy-MM-dd'));
 
             // Reload to confirm
             loadData();
@@ -140,7 +122,13 @@ export default function Rostering() {
                     <p className="text-slate-500">Drag visits to assign. Non-compliant staff are locked.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm">
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm flex items-center gap-2"
+                    >
+                        <Plus size={18} /> Add Visit
+                    </button>
+                    <button className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm">
                         Publish Roster
                     </button>
                 </div>
@@ -209,13 +197,9 @@ export default function Rostering() {
                                         {/* Staff Info Column */}
                                         <div className="w-64 p-4 border-r border-slate-200 flex items-center gap-3">
                                             <div className="relative">
-                                                {member.avatar_url ? (
-                                                    <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                                                        <User className="w-5 h-5 text-slate-400" />
-                                                    </div>
-                                                )}
+                                                <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                                                    {member.avatar}
+                                                </div>
                                                 {!compliant && (
                                                     <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 border-2 border-white" title="Non-Compliant">
                                                         <Lock className="w-3 h-3 text-white" />
@@ -223,7 +207,7 @@ export default function Rostering() {
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-slate-900 truncate">{member.full_name}</p>
+                                                <p className="font-medium text-slate-900 truncate">{member.name}</p>
                                                 <p className="text-xs text-slate-500 flex items-center gap-1">
                                                     {compliant ? (
                                                         <><CheckCircle className="w-3 h-3 text-green-500" /> Active</>
@@ -257,6 +241,79 @@ export default function Rostering() {
                     </div>
                 </div>
             </div>
+            {/* Add Visit Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 className="font-bold text-lg text-slate-800">Schedule New Visit</h3>
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-1 hover:bg-slate-200 rounded-full text-slate-500">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            try {
+                                await visitService.create({
+                                    clientId: formData.get('clientId') as string,
+                                    date: formData.get('date') as string,
+                                    startTime: formData.get('startTime') as string,
+                                    endTime: formData.get('endTime') as string,
+                                    visitType: formData.get('visitType') as string,
+                                    status: 'Scheduled'
+                                });
+                                setIsAddModalOpen(false);
+                                loadData();
+                            } catch (err) {
+                                console.error(err);
+                                alert('Failed to create visit');
+                            }
+                        }} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Client</label>
+                                <select name="clientId" required className="w-full p-2 border border-slate-300 rounded-lg">
+                                    <option value="">Select Client...</option>
+                                    {clients.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                                <input name="date" type="date" required className="w-full p-2 border border-slate-300 rounded-lg" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
+                                    <input name="startTime" type="time" required className="w-full p-2 border border-slate-300 rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
+                                    <input name="endTime" type="time" required className="w-full p-2 border border-slate-300 rounded-lg" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Visit Type</label>
+                                <select name="visitType" className="w-full p-2 border border-slate-300 rounded-lg">
+                                    <option>Personal Care</option>
+                                    <option>Domestic</option>
+                                    <option>Social</option>
+                                    <option>Medication</option>
+                                    <option>Shopping</option>
+                                </select>
+                            </div>
+
+                            <button className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg mt-2 hover:bg-indigo-700">
+                                Schedule Visit
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

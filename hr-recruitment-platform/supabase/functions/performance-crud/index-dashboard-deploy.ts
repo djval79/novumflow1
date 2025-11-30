@@ -1,4 +1,9 @@
+// Deno type declarations
+declare const Deno: any;
+
+// @deno-types="https://deno.land/std@0.168.0/http/server.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// @deno-types="https://esm.sh/@supabase/supabase-js@2"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // Inline logger for Supabase Dashboard deployment
@@ -107,21 +112,21 @@ serve(async (req: Request) => {
 
             // Rating distribution
             const ratingDistribution = [
-                { name: '1.0-2.0', count: reviews?.filter(r => r.overall_rating >= 1 && r.overall_rating < 2).length || 0 },
-                { name: '2.1-3.0', count: reviews?.filter(r => r.overall_rating >= 2 && r.overall_rating < 3).length || 0 },
-                { name: '3.1-4.0', count: reviews?.filter(r => r.overall_rating >= 3 && r.overall_rating < 4).length || 0 },
-                { name: '4.1-5.0', count: reviews?.filter(r => r.overall_rating >= 4 && r.overall_rating <= 5).length || 0 },
+                { name: '1.0-2.0', count: reviews?.filter((r: any) => r.overall_rating >= 1 && r.overall_rating < 2).length || 0 },
+                { name: '2.1-3.0', count: reviews?.filter((r: any) => r.overall_rating >= 2 && r.overall_rating < 3).length || 0 },
+                { name: '3.1-4.0', count: reviews?.filter((r: any) => r.overall_rating >= 3 && r.overall_rating < 4).length || 0 },
+                { name: '4.1-5.0', count: reviews?.filter((r: any) => r.overall_rating >= 4 && r.overall_rating <= 5).length || 0 },
             ]
 
             // Goal status distribution
             const goalStatus = [
-                { name: 'Active', value: goals?.filter(g => g.status === 'active').length || 0 },
-                { name: 'Completed', value: goals?.filter(g => g.status === 'completed').length || 0 },
-                { name: 'At Risk', value: goals?.filter(g => g.status === 'at_risk').length || 0 },
+                { name: 'Active', value: goals?.filter((g: any) => g.status === 'active').length || 0 },
+                { name: 'Completed', value: goals?.filter((g: any) => g.status === 'completed').length || 0 },
+                { name: 'At Risk', value: goals?.filter((g: any) => g.status === 'at_risk').length || 0 },
             ]
 
             const avgKPI = kpiValues && kpiValues.length > 0
-                ? kpiValues.reduce((sum, kpi) => sum + (kpi.value || 0), 0) / kpiValues.length
+                ? kpiValues.reduce((sum: any, kpi: any) => sum + (kpi.value || 0), 0) / kpiValues.length
                 : 0
 
             result = {
@@ -164,7 +169,7 @@ serve(async (req: Request) => {
                 }
 
                 // Create sample reviews
-                const reviewPromises = employees.map(async (emp, idx) => {
+                const reviewPromises = employees.map(async (emp: any, idx: number) => {
                     return adminClient.from('reviews').insert({
                         employee_id: emp.id,
                         review_period_start: '2023-01-01',
@@ -176,7 +181,7 @@ serve(async (req: Request) => {
                 })
 
                 // Create sample goals (3 per employee)
-                const goalPromises = employees.flatMap((emp) => {
+                const goalPromises = employees.flatMap((emp: any) => {
                     return [
                         adminClient.from('goals').insert({
                             employee_id: emp.id,

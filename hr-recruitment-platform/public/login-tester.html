@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareFlow Login Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .results {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 2px solid #e0e0e0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .results pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .success {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .error {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .info {
+            color: #17a2b8;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 CareFlow Login Diagnostic Tool</h1>
+            <p>Test your Supabase connection and authentication</p>
+        </div>
+
+        <div class="content">
+            <!-- Connection Test -->
+            <div class="test-section">
+                <h2>1️⃣ Supabase Connection Test</h2>
+                <button onclick="testConnection()">Test Connection</button>
+                <div id="connection-result" class="results" style="display: none;"></div>
+            </div>
+
+            <!-- Auth State -->
+            <div class="test-section">
+                <h2>2️⃣ Current Auth State</h2>
+                <button onclick="checkAuthState()">Check Auth State</button>
+                <button onclick="clearAuth()">Clear Auth & Reload</button>
+                <div id="auth-result" class="results" style="display: none;"></div>
+            </div>
+
+            <!-- Test Login -->
+            <div class="test-section">
+                <h2>3️⃣ Test Login</h2>
+                <input type="email" id="test-email" placeholder="Email (e.g., admin@ringsteadcare.com)">
+                <input type="password" id="test-password" placeholder="Password">
+                <button onclick="testLogin()">Test Login</button>
+                <div id="login-result" class="results" style="display: none;"></div>
+            </div>
+
+            <!-- Check Profile -->
+            <div class="test-section">
+                <h2>4️⃣ Check User Profile</h2>
+                <button onclick="checkProfile()">Check My Profile</button>
+                <div id="profile-result" class="results" style="display: none;"></div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="test-section">
+                <h2>5️⃣ Quick Actions</h2>
+                <button onclick="goToApp()">Go to App</button>
+                <button onclick="goToSupabase()">Open Supabase Dashboard</button>
+                <button onclick="copyDiagnostic()">Copy Diagnostic Info</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = "https://niikshfoecitimepiifo.supabase.co";
+        const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paWtzaGZvZWNpdGltZXBpaWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNTIyMTUsImV4cCI6MjA3ODYyODIxNX0.4KzLoUez4xQ1_h-vpx1dOa1PrzvAbi65UC4Mf7JQAfc";
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        function showResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.innerHTML = content;
+        }
+
+        async function testConnection() {
+            showResult('connection-result', '<pre class="info">Testing connection...</pre>');
+
+            try {
+                const response = await fetch(supabaseUrl);
+                const status = response.ok ? 'success' : 'error';
+                const statusClass = response.ok ? 'success' : 'error';
+
+                showResult('connection-result', `
+                    <pre class="${statusClass}">
+✅ Connection Status: ${response.status} - ${response.statusText}
+✅ Supabase URL: ${supabaseUrl}
+✅ Response Time: ${response.headers.get('x-response-time') || 'N/A'}
+                    </pre>
+                `);
+            } catch (error) {
+                showResult('connection-result', `
+                    <pre class="error">
+❌ Connection Failed!
+Error: ${error.message}
+
+Possible causes:
+• No internet connection
+• Supabase project is paused
+• Firewall blocking access
+                    </pre>
+                `);
+            }
+        }
+
+        async function checkAuthState() {
+            showResult('auth-result', '<pre class="info">Checking auth state...</pre>');
+
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (error) throw error;
+
+                if (user) {
+                    showResult('auth-result', `
+                        <pre class="success">
+✅ User Logged In!
+
+📧 Email: ${user.email}
+🆔 User ID: ${user.id}
+📅 Last Sign In: ${new Date(user.last_sign_in_at).toLocaleString()}
+✉️ Email Confirmed: ${user.email_confirmed_at ? 'Yes' : 'No'}
+
+Session Expires: ${session ? new Date(session.expires_at * 1000).toLocaleString() : 'N/A'}
+                        </pre>
+                    `);
+                } else {
+                    showResult('auth-result', `
+                        <pre class="error">
+❌ No user logged in
+
+Try logging in at: http://localhost:5173
+                        </pre>
+                    `);
+                }
+            } catch (error) {
+                showResult('auth-result', `
+                    <pre class="error">
+❌ Error checking auth state:
+${error.message}
+                    </pre>
+                `);
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+
+            if (!email || !password) {
+                showResult('login-result', '<pre class="error">❌ Please enter both email and password</pre>');
+                return;
+            }
+
+            showResult('login-result', '<pre class="info">Attempting login...</pre>');
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) throw error;
+
+                showResult('login-result', `
+                    <pre class="success">
+✅ Login Successful!
+
+📧 Email: ${data.user.email}
+🆔 User ID: ${data.user.id}
+🔐 Session Token: ${data.session.access_token.substring(0, 20)}...
+
+Redirecting to app...
+                    </pre>
+                `);
+
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:5173/dashboard';
+                }, 2000);
+
+            } catch (error) {
+                showResult('login-result', `
+                    <pre class="error">
+❌ Login Failed!
+
+Error: ${error.message}
+
+Possible causes:
+• Email or password is incorrect
+• Email not confirmed
+• Account disabled
+• User doesn't exist
+
+Solutions:
+1. Use the Quick Admin Setup on the login page
+2. Reset your password
+3. Run fix_login_issues.sql in Supabase
+                    </pre>
+                `);
+            }
+        }
+
+        async function checkProfile() {
+            showResult('profile-result', '<pre class="info">Checking profile...</pre>');
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (!user) {
+                    showResult('profile-result', '<pre class="error">❌ Not logged in. Please login first.</pre>');
+                    return;
+                }
+
+                const { data: profile, error } = await supabase
+                    .from('users_profiles')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (error) throw error;
+
+                if (profile) {
+                    showResult('profile-result', `
+                        <pre class="success">
+✅ Profile Found!
+
+👤 Name: ${profile.full_name || 'Not set'}
+📧 Email: ${profile.email}
+🎭 Role: ${profile.role}
+✅ Active: ${profile.is_active ? 'Yes' : 'No'}
+🔑 Super Admin: ${profile.is_super_admin ? 'Yes' : 'No'}
+📅 Created: ${new Date(profile.created_at).toLocaleString()}
+                        </pre>
+                    `);
+                } else {
+                    showResult('profile-result', `
+                        <pre class="warning">
+⚠️ Profile Not Found!
+
+User exists in auth but no profile in users_profiles table.
+
+Fix this by:
+1. Running migrations/fix_login_issues.sql
+2. Using Quick Admin Setup to recreate account
+                        </pre>
+                    `);
+                }
+            } catch (error) {
+                showResult('profile-result', `
+                    <pre class="error">
+❌ Error checking profile:
+${error.message}
+                    </pre>
+                `);
+            }
+        }
+
+        function clearAuth() {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('✅ Auth data cleared! Reloading page...');
+            location.reload();
+        }
+
+        function goToApp() {
+            window.location.href = 'http://localhost:5173';
+        }
+
+        function goToSupabase() {
+            window.open('https://supabase.com/dashboard/project/niikshfoecitimepiifo', '_blank');
+        }
+
+        async function copyDiagnostic() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                const { data: { session } } = await supabase.auth.getSession();
+
+                const info = `
+CareFlow Login Diagnostic Info
+================================
+
+Timestamp: ${new Date().toISOString()}
+Browser: ${navigator.userAgent}
+
+Supabase Configuration:
+- URL: ${supabaseUrl}
+- Project ID: niikshfoecitimepiifo
+
+Auth State:
+- Logged In: ${user ? 'Yes' : 'No'}
+- User Email: ${user?.email || 'N/A'}
+- User ID: ${user?.id || 'N/A'}
+- Email Confirmed: ${user?.email_confirmed_at ? 'Yes' : 'No'}
+- Session Valid: ${session ? 'Yes' : 'No'}
+
+Local Storage Keys: ${Object.keys(localStorage).join(', ') || 'None'}
+                `;
+
+                await navigator.clipboard.writeText(info);
+                alert('✅ Diagnostic info copied to clipboard!');
+            } catch (error) {
+                alert('❌ Failed to copy: ' + error.message);
+            }
+        }
+
+        // Auto-run connection test on load
+        window.addEventListener('load', () => {
+            testConnection();
+        });
+    </script>
+</body>
+
+</html>

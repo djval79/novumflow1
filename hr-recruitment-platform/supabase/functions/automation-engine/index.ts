@@ -1,4 +1,7 @@
-Deno.serve(async (req) => {
+// Deno type declarations
+declare const Deno: any;
+
+Deno.serve(async (req: Request) => {
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -113,7 +116,7 @@ Deno.serve(async (req) => {
                             console.log(`Processing action:`, action);
 
                             let integrationAction = '';
-                            let integrationData = {};
+                            let integrationData: Record<string, any> = {};
 
                             // Map automation actions to integration actions
                             switch (action.type) {
@@ -193,7 +196,7 @@ Deno.serve(async (req) => {
                     }
                 } catch (error) {
                     executionStatus = 'failed';
-                    executionError = error.message;
+                    executionError = (error as Error).message;
                     console.error('Execution failed:', error);
                 }
 
@@ -289,7 +292,7 @@ Deno.serve(async (req) => {
         const errorResponse = {
             error: {
                 code: 'AUTOMATION_ENGINE_ERROR',
-                message: error.message
+                message: (error as Error).message
             }
         };
 

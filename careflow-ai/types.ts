@@ -47,7 +47,7 @@ export interface Client {
   age: number;
   address: string;
   coordinates?: { x: number; y: number }; // 0-100 grid for demo map
-  careLevel: 'Low' | 'Medium' | 'High';
+  careLevel: 'Low' | 'Medium' | 'High' | 'Critical';
   fundingDetails: {
     source: 'Private' | 'Council' | 'NHS';
     budgetLimit?: number;
@@ -61,6 +61,32 @@ export interface Client {
   lastVisit: string;
   dietaryRequirements?: string[];
   allergies?: string[];
+}
+
+export interface Visit {
+  id: string;
+  clientId: string;
+  staffId?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  visitType: string;
+  status: 'Scheduled' | 'In Progress' | 'Completed' | 'Missed' | 'Cancelled';
+  clientName?: string;
+  staffName?: string;
+}
+
+export interface CarePlan {
+  id: string;
+  clientId: string;
+  title: string;
+  summary: string;
+  startDate: string;
+  reviewDate?: string;
+  status: 'Active' | 'Draft' | 'Archived';
+  needs: any[];
+  risks: any[];
+  goals: any[];
 }
 
 export interface Shift {

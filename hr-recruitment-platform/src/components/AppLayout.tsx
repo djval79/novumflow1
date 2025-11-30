@@ -25,6 +25,9 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
+import TenantSwitcher from './TenantSwitcher';
+import { QuickAppSwitcher } from './CrossAppNavigation';
+
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
   const { hasFeature } = useTenant();
@@ -120,9 +123,17 @@ export default function AppLayout() {
                 />
                 <span className="ml-3 text-xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-500 bg-clip-text text-transparent">NovumFlow</span>
               </div>
+
+              {/* Tenant Switcher */}
+              <div className="hidden md:block ml-6">
+                <TenantSwitcher />
+              </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              {/* Cross-App Navigation */}
+              <QuickAppSwitcher />
+
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-gray-900">{profile?.full_name || user?.email}</p>
                 <p className="text-xs text-gray-500 capitalize">{profile?.role?.replace('_', ' ')}</p>

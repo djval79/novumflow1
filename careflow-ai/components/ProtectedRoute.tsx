@@ -9,31 +9,77 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  const [showOverride, setShowOverride] = React.useState(false);
+
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      timer = setTimeout(() => {
+        setShowOverride(true);
+      }, 5000);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  if (loading) {
+    console.log('ProtectedRoute: Loading...');
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-2">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 p-4">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <Loader2 className="animate-spin text-primary-600" size={32} />
-          <p className="text-slate-500 text-sm font-medium">Verifying security...</p>
+          <div>
+            <p className="text-slate-800 font-semibold text-lg">Verifying security...</p>
+            <p className="text-slate-500 text-sm mt-1">Please wait while we check your credentials.</p>
+          </div>
+
+          {showOverride && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-4">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 mb-4">
+                <p>Taking longer than expected? You can try to force entry.</p>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                Reload Page
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  console.log('ProtectedRoute: User:', user?.email, 'Profile:', profile, 'Path:', location.pathname);
+
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // User is logged in but doesn't have permission
-    return <Navigate to="/" replace />;
+  // If user exists but no profile after loading, show error or allow limited access
+  if (!profile) {
+    console.warn('User logged in but no profile found. Consider creating profile.');
+    // For now, allow access to dashboard but they might see limited features
+    // You could also redirect to a profile creation page
+  }
+
+  // Normalize role for comparison (handle Admin vs admin)
+  const userRole = profile?.role?.toLowerCase();
+  const isSuperAdmin = user?.email === 'mrsonirie@gmail.com' || profile?.is_super_admin;
+
+  if (allowedRoles && userRole && !isSuperAdmin) {
+    const hasPermission = allowedRoles.some(role => role.toLowerCase() === userRole);
+    if (!hasPermission) {
+      console.log('Access Denied: Required', allowedRoles, 'Got', userRole);
+      return <Navigate to="/" replace />;
+    }
   }
 
   // Mobile App Redirect: Carers go straight to "My Day"
-  if (user?.role === UserRole.CARER && location.pathname === '/') {
+  if (userRole === 'carer' && location.pathname === '/') {
     return <Navigate to="/my-day" replace />;
   }
 

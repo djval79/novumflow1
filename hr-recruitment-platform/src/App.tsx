@@ -90,6 +90,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+import TenantSignupPage from './pages/TenantSignupPage';
+
+
 function App() {
   useEffect(() => {
     // Service is initialized on import, but we can add cleanup here if needed
@@ -124,6 +127,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/support" element={<SupportPage />} />
+            <Route path="/tenant/create" element={<TenantSignupPage />} />
 
             {/* Protected Routes */}
             <Route
