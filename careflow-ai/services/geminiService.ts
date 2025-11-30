@@ -6,7 +6,7 @@ import { GeneratedCarePlan, Shift, StaffMember, ProgressLog, CareGoal, Medicatio
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateCarePlanAI = async (
-  clientDetails: string, 
+  clientDetails: string,
   medicalHistory: string
 ): Promise<GeneratedCarePlan | null> => {
   try {
@@ -83,12 +83,12 @@ export const analyzeRiskScenario = async (incidentDescription: string): Promise<
 };
 
 export const generateRosterSuggestions = async (
-  shifts: Shift[], 
+  shifts: Shift[],
   staff: StaffMember[]
 ): Promise<{ shiftId: string; staffName: string; reason: string }[]> => {
   try {
     const unassignedShifts = shifts.filter(s => s.status === 'Unassigned');
-    
+
     if (unassignedShifts.length === 0) return [];
 
     // Simplified data to reduce token usage
@@ -141,10 +141,10 @@ export const generateRosterSuggestions = async (
 };
 
 export const generateExecutiveReport = async (
-  stats: { 
-    revenue: number; 
-    costs: number; 
-    incidents: number; 
+  stats: {
+    revenue: number;
+    costs: number;
+    incidents: number;
     compliance: number;
     missedVisits: number;
   }
@@ -170,7 +170,7 @@ export const generateExecutiveReport = async (
 };
 
 export const generatePolicyDocument = async (
-  trainingModules: string[], 
+  trainingModules: string[],
   companyName: string
 ): Promise<string> => {
   try {
@@ -197,7 +197,7 @@ export const generatePolicyDocument = async (
 };
 
 export const generateProgressReview = async (
-  logs: ProgressLog[], 
+  logs: ProgressLog[],
   goals: CareGoal[]
 ): Promise<string> => {
   try {
@@ -308,7 +308,7 @@ export const analyzeMedicationSafety = async (
 ): Promise<string> => {
   try {
     const medList = medications.map(m => `${m.name} (${m.dosage})`).join(', ');
-    
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `As a Clinical Pharmacist AI, review this patient's medication list against their conditions for safety.
@@ -447,8 +447,8 @@ export const generateIncidentInvestigation = async (
           type: Type.OBJECT,
           properties: {
             rootCause: { type: Type.STRING, description: "Probable root cause analysis." },
-            recommendedActions: { 
-              type: Type.ARRAY, 
+            recommendedActions: {
+              type: Type.ARRAY,
               items: { type: Type.STRING },
               description: "Immediate and long-term actions."
             },
@@ -490,8 +490,8 @@ export const analyzeCandidateProfile = async (
             matchScore: { type: Type.NUMBER, description: "0-100 suitability score" },
             strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
             concerns: { type: Type.ARRAY, items: { type: Type.STRING } },
-            interviewQuestions: { 
-              type: Type.ARRAY, 
+            interviewQuestions: {
+              type: Type.ARRAY,
               items: { type: Type.STRING },
               description: "3 specific interview questions to ask this candidate"
             }
@@ -876,21 +876,42 @@ export const analyzeSecurityLogs = async (
 };
 
 export const validateImportData = async (
-  rows: string[]
+  rows: string[],
+  entityType: 'Staff' | 'Clients' = 'Staff'
 ): Promise<{ isValid: boolean; errors: string[]; mappedData?: any[] }> => {
   try {
+    const prompt = entityType === 'Staff'
+      ? `Goal: Map them to standard Staff fields: 'name', 'email', 'role', 'phone'.`
+      : `Goal: Map them to standard Client fields: 'name', 'address', 'care_level' (Low/Medium/High), 'date_of_birth' (YYYY-MM-DD).`;
+
+    const schemaProperties = entityType === 'Staff'
+      ? {
+        name: { type: Type.STRING },
+        email: { type: Type.STRING },
+        role: { type: Type.STRING },
+        phone: { type: Type.STRING },
+        status: { type: Type.STRING } // 'Valid' or 'Invalid'
+      }
+      : {
+        name: { type: Type.STRING },
+        address: { type: Type.STRING },
+        care_level: { type: Type.STRING },
+        date_of_birth: { type: Type.STRING },
+        status: { type: Type.STRING } // 'Valid' or 'Invalid'
+      };
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Act as a Data Import Validator for a Care Management System.
       Review the following raw CSV rows (header + data).
       
-      Goal: Map them to standard Staff fields: 'name', 'email', 'role', 'phone'.
+      ${prompt}
       
       Rows:
       ${rows.join('\n')}
       
       1. Identify the correct column mapping.
-      2. Validate data formats (e.g. email regex, phone number length).
+      2. Validate data formats.
       3. Return a structured JSON with validation status.`,
       config: {
         responseMimeType: "application/json",
@@ -899,18 +920,12 @@ export const validateImportData = async (
           properties: {
             isValid: { type: Type.BOOLEAN },
             errors: { type: Type.ARRAY, items: { type: Type.STRING } },
-            mappedData: { 
-              type: Type.ARRAY, 
-              items: { 
+            mappedData: {
+              type: Type.ARRAY,
+              items: {
                 type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  email: { type: Type.STRING },
-                  role: { type: Type.STRING },
-                  phone: { type: Type.STRING },
-                  status: { type: Type.STRING } // 'Valid' or 'Invalid'
-                }
-              } 
+                properties: schemaProperties
+              }
             }
           }
         }
@@ -975,7 +990,7 @@ export const generateDailyBriefing = async (
   try {
     const unread = notifications.filter(n => !n.isRead);
     const alerts = unread.map(n => `- [${n.type}] ${n.title}: ${n.message}`).join('\n');
-    
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `You are an Intelligent Care Manager Assistant.

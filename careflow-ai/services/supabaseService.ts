@@ -393,5 +393,33 @@ export const staffService = {
 
         if (error) throw error;
         return data;
+    },
+
+    async addTrainingRecord(record: { userId: string, trainingName: string, expiryDate: string, status: string, certificateUrl?: string }) {
+        // First get the employee ID from the user ID
+        const { data: employee, error: empError } = await supabase
+            .from('employees')
+            .select('id, tenant_id')
+            .eq('user_id', record.userId)
+            .single();
+
+        if (empError) throw empError;
+
+        const { data, error } = await supabase
+            .from('training_records')
+            .insert([{
+                tenant_id: employee.tenant_id,
+                employee_id: employee.id,
+                training_name: record.trainingName,
+                expiry_date: record.expiryDate,
+                status: record.status,
+                certificate_url: record.certificateUrl,
+                completion_date: new Date().toISOString()
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
     }
 };

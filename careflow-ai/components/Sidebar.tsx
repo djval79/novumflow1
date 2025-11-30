@@ -56,6 +56,12 @@ const Sidebar: React.FC = () => {
       roles: [UserRole.ADMIN, UserRole.CARER]
     },
     {
+      icon: GraduationCap,
+      label: 'Training Academy',
+      path: '/training',
+      roles: [UserRole.ADMIN, UserRole.CARER]
+    },
+    {
       icon: Mail,
       label: 'Messages',
       path: '/messages',
@@ -137,12 +143,6 @@ const Sidebar: React.FC = () => {
       icon: Package,
       label: 'Inventory & Supplies',
       path: '/inventory',
-      roles: [UserRole.ADMIN, UserRole.CARER]
-    },
-    {
-      icon: GraduationCap,
-      label: 'Training',
-      path: '/training',
       roles: [UserRole.ADMIN, UserRole.CARER]
     },
     {
