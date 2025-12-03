@@ -16,7 +16,7 @@ export default function DocumentsPage() {
   async function loadDocuments() {
     try {
       let query = supabase
-        .from('document_uploads')
+        .from('documents')
         .select('*')
         .order('uploaded_at', { ascending: false });
 
@@ -164,11 +164,10 @@ export default function DocumentsPage() {
                         {new Date(doc.uploaded_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          doc.is_verified
+                        <span className={`px-2 py-1 text-xs rounded-full ${doc.is_verified
                             ? 'bg-green-100 text-green-800'
                             : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                          }`}>
                           {doc.is_verified ? 'Verified' : 'Pending'}
                         </span>
                       </td>
