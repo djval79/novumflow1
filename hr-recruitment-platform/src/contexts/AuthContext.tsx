@@ -22,7 +22,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function loadUser() {
       setLoading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error) {
+          console.error('Error loading user:', error.message);
+          // If refresh token is invalid, clear session and user
+          if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            return;
+          }
+        }
+
         setUser(user);
 
         if (user) {
@@ -34,6 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setProfile(profileData);
         }
+      } catch (err) {
+        console.error('Unexpected error loading user:', err);
+        setUser(null);
+        setProfile(null);
       } finally {
         setLoading(false);
       }

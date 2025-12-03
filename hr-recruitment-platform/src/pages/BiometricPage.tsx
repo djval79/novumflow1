@@ -3,6 +3,7 @@ import { Fingerprint, Clock, Shield, TrendingUp, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { NativeBiometric } from '@capgo/capacitor-native-biometric';
+import { Capacitor } from '@capacitor/core';
 
 export default function BiometricPage() {
   const { user } = useAuth();
@@ -84,11 +85,18 @@ export default function BiometricPage() {
   }
 
   async function checkNativeBiometric() {
+    if (!Capacitor.isNativePlatform()) {
+      console.log('Native biometric not available: Web platform');
+      setIsNativeBiometricAvailable(false);
+      return;
+    }
+
     try {
       const result = await NativeBiometric.isAvailable();
       setIsNativeBiometricAvailable(result.isAvailable);
     } catch (error) {
       console.log('Native biometric not available:', error);
+      setIsNativeBiometricAvailable(false);
     }
   }
 
