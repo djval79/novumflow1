@@ -72,6 +72,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         ...formData,
         salary_range_min: formData.salary_range_min ? parseFloat(formData.salary_range_min) : null,
         salary_range_max: formData.salary_range_max ? parseFloat(formData.salary_range_max) : null,
+        application_deadline: formData.application_deadline || null,
         posted_by: user?.id
       };
 

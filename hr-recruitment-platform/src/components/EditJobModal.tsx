@@ -85,7 +85,7 @@ export default function EditJobModal({ isOpen, onClose, onSuccess, onError, jobT
         ...formData,
         salary_range_min: formData.salary_range_min ? parseFloat(formData.salary_range_min) : null,
         salary_range_max: formData.salary_range_max ? parseFloat(formData.salary_range_max) : null,
-        // application_deadline should already be in YYYY-MM-DD format from input type="date"
+        application_deadline: formData.application_deadline || null,
       };
 
       let result;
