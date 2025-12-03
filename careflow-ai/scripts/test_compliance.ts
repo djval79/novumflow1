@@ -16,7 +16,7 @@ async function main() {
     console.log('🛡️ Starting Compliance Enforcement Verification...');
 
     // 1. Get/Create Tenant
-    let { data: tenant } = await supabase.from('tenants').select('id').limit(1).single();
+    let { data: tenant } = await supabase.from('tenants').select('id, settings').limit(1).single();
     if (!tenant) {
         console.log('⚠️ No tenants found. Creating test tenant...');
         const { data: newTenant, error } = await supabase.from('tenants').insert({

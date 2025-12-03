@@ -103,3 +103,9 @@ yarn-error.log*
 
 # Local development
 .local-env
+
+# Temporary Tools
+mcp-client.cjs
+create-user.cjs
+claude_desktop_config.json
+

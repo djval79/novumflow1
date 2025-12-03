@@ -1,8 +1,14 @@
+import os
 import requests
 import json
 
-SUPABASE_URL = "https://kvtdyttgthbeomyvtmbj.supabase.co"
-ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2dGR5dHRndGhiZW9teXZ0bWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4ODkwMjIsImV4cCI6MjA3ODQ2NTAyMn0.H2d19-9u0gqWea004sq4ZCWDzsIWv8iujRWW5ugmKXU"
+SUPABASE_URL = os.environ.get("VITE_SUPABASE_URL")
+ANON_KEY = os.environ.get("VITE_SUPABASE_ANON_KEY")
+
+if not SUPABASE_URL or not ANON_KEY:
+    print("❌ Error: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables must be set.")
+    exit(1)
+
 
 print("=" * 60)
 print("HR PLATFORM FINAL INTEGRATION TESTS")
@@ -30,6 +36,8 @@ print()
 # Step 2: Test Employee Creation
 print("Test 2: Employee Creation")
 print("-" * 60)
+import random
+random_suffix = random.randint(1000, 9999)
 emp_response = requests.post(
     f"{SUPABASE_URL}/functions/v1/employee-crud",
     headers={
@@ -41,9 +49,9 @@ emp_response = requests.post(
         "data": {
             "first_name": "Final",
             "last_name": "TestUser",
-            "email": "final.testuser@company.com",
+            "email": f"final.testuser.{random_suffix}@company.com",
             "phone": "555-FINAL",
-            "employee_number": "FINAL999",
+            "employee_number": f"FINAL{random_suffix}",
             "department": "Quality Assurance",
             "position": "Senior QA Engineer",
             "employment_type": "full_time",
@@ -110,7 +118,7 @@ template_response = requests.post(
     json={
         "action": "create",
         "data": {
-            "template_name": "Final Test Template",
+            "template_name": f"Final Test Template {random_suffix}",
             "template_type": "offer_letter",
             "subject": "Job Offer - Final Test",
             "content": "Dear [employee_name],\n\nWe are pleased to offer you the position.\n\nBest regards",
@@ -123,7 +131,7 @@ if template_response.status_code == 200 and "data" in template_response.json():
     template_data = template_response.json()["data"]
     print(f"✅ Letter template created successfully")
     print(f"   Name: {template_data['template_name']}")
-    print(f"   Type: {template_data['template_type']}")
+    print(f"   Type: {template_data.get('category', 'N/A')}")
 else:
     print(f"❌ Letter template creation failed: {template_response.status_code}")
     print(json.dumps(template_response.json(), indent=2))
@@ -199,10 +207,11 @@ if jobs_response.status_code == 200 and len(jobs_response.json()) > 0:
         json={
             "action": "create",
             "data": {
-                "job_id": job_id,
-                "candidate_name": "Jane Doe",
-                "email": "jane.doe@example.com",
-                "phone": "555-APPLICATION",
+                "job_posting_id": job_id,
+                "applicant_first_name": "Jane",
+                "applicant_last_name": "Doe",
+                "applicant_email": "jane.doe@example.com",
+                "applicant_phone": "555-APPLICATION",
                 "resume_url": "https://example.com/resume.pdf",
                 "cover_letter": "I am very interested in this position",
                 "status": "applied"
@@ -248,7 +257,8 @@ if apps_response.status_code == 200 and len(apps_response.json()) > 0:
             "data": {
                 "application_id": application_id,
                 "interview_type": "technical",
-                "scheduled_date": "2025-03-15T10:00:00",
+                "scheduled_date": "2025-03-15",
+                "scheduled_time": "10:00:00",
                 "location": "Conference Room A",
                 "status": "scheduled"
             }

@@ -52,7 +52,7 @@ BEGIN
     
     IF job_id IS NULL THEN
         INSERT INTO job_postings (job_title, department, employment_type, description, status, workflow_id, location)
-        VALUES ('Senior Care Assistant', 'Care', 'full_time', 'Experienced carer needed.', 'published', wf_id, 'London')
+        VALUES ('Senior Care Assistant', 'Care', 'full_time', 'Experienced carer needed.', 'active', wf_id, 'London')
         RETURNING id INTO job_id;
     END IF;
 
@@ -81,15 +81,15 @@ BEGIN
 
     -- 5. Seed Applications
     IF stage_applied_id IS NOT NULL AND job_id IS NOT NULL THEN
-        INSERT INTO applications (applicant_first_name, applicant_last_name, applicant_email, current_stage_id, status, job_id)
+        INSERT INTO applications (applicant_first_name, applicant_last_name, applicant_email, current_stage_id, status, job_posting_id)
         SELECT 'Alice', 'Brown', 'alice@test.com', stage_applied_id, 'applied', job_id
         WHERE NOT EXISTS (SELECT 1 FROM applications WHERE applicant_email = 'alice@test.com');
         
-        INSERT INTO applications (applicant_first_name, applicant_last_name, applicant_email, current_stage_id, status, job_id)
-        SELECT 'Bob', 'Wilson', 'bob@test.com', stage_interview_id, 'in_progress', job_id
+        INSERT INTO applications (applicant_first_name, applicant_last_name, applicant_email, current_stage_id, status, job_posting_id)
+        SELECT 'Bob', 'Wilson', 'bob@test.com', stage_interview_id, 'interview_scheduled', job_id
         WHERE NOT EXISTS (SELECT 1 FROM applications WHERE applicant_email = 'bob@test.com');
         
-        INSERT INTO applications (applicant_first_name, applicant_last_name, applicant_email, current_stage_id, status, job_id)
+        INSERT INTO applications (applicant_first_name, applicant_last_name, applicant_email, current_stage_id, status, job_posting_id)
         SELECT 'Charlie', 'Davis', 'charlie@test.com', stage_hired_id, 'hired', job_id
         WHERE NOT EXISTS (SELECT 1 FROM applications WHERE applicant_email = 'charlie@test.com');
     END IF;

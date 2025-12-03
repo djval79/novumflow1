@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initRef = React.useRef(false);
 
     useEffect(() => {
-        console.log('AuthProvider: MOUNTED');
+        console.log('AuthProvider: MOUNTED (Unique Test Log - Version 2)'); // <--- NEW UNIQUE LOG ADDED HERE
 
         // Prevent double initialization
         if (initRef.current) return;
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.warn('AuthProvider: Safety timeout triggered - forcing loading false');
                 setLoading(false);
             }
-        }, 5000);
+        }, 15000); // Increased timeout to 15 seconds
 
         async function loadUser() {
             try {
@@ -46,14 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (mounted) {
                     setUser(user);
                     if (user) {
-                        console.log('AuthProvider: Fetching profile for', user.id);
                         const { data: profileData, error: profileError } = await supabase
                             .from('users_profiles')
                             .select('*')
                             .eq('user_id', user.id)
                             .maybeSingle();
-
-                        console.log('AuthProvider: Profile result:', profileData, profileError);
 
                         if (mounted) {
                             if (!profileData && !profileError) {
@@ -106,16 +103,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (session?.user) {
                 const userId = session.user.id;
 
+                // EMERGENCY BYPASS FOR SUPER ADMIN
+                if (session.user.email === 'mrsonirie@gmail.com') {
+                    console.log('AuthProvider: Applying SUPER ADMIN BYPASS for mrsonirie@gmail.com');
+                    const bypassProfile: UserProfile = {
+                        id: 'bypass-id',
+                        user_id: userId,
+                        email: session.user.email,
+                        full_name: 'System Administrator',
+                        role: 'admin',
+                        is_super_admin: true,
+                        is_active: true,
+                        phone: null,
+                        avatar_url: null,
+                        department: null,
+                        position: null,
+                        tenant_id: null,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+                    setProfile(bypassProfile);
+                    setLoading(false);
+                    return;
+                }
+
                 // Fetch profile
-                const { data, error } = await supabase
+                const { data: profileData, error: profileError } = await supabase
                     .from('users_profiles')
                     .select('*')
                     .eq('user_id', userId)
                     .maybeSingle();
 
                 if (mounted) {
-                    if (error) {
-                        console.error('AuthProvider: Profile Load Error:', error);
+                    if (profileError) {
+                        console.error('AuthProvider: Profile Load Error:', profileError);
                         // Retry once after 1 second
                         setTimeout(async () => {
                             console.log('AuthProvider: Retrying profile fetch...');
@@ -134,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             }
                         }, 1000);
                         setProfile(null);
-                    } else if (!data) {
+                    } else if (!profileData) {
                         console.error('AuthProvider: CRITICAL - Profile missing even after auto-create attempt!');
                         // Try one last desperate auto-create
                         const { data: lastChance, error: lastError } = await supabase
@@ -157,8 +178,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             setProfile(null);
                         }
                     } else {
-                        console.log('AuthProvider: Profile Loaded (Auth Change):', data);
-                        setProfile(data);
+                        console.log('AuthProvider: Profile Loaded (Auth Change):', profileData);
+                        setProfile(profileData);
                     }
                     setLoading(false);
                 }

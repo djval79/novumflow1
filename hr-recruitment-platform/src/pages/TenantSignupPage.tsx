@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
+import { supabase } from '@/lib/supabase';
 import { Building2, User, CreditCard, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 
 interface TenantSignupData {
@@ -146,8 +147,32 @@ export default function TenantSignupPage() {
         return true;
     };
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!validateStep()) return;
+
+        if (currentStep === 1) {
+            setLoading(true);
+            try {
+                const { data: isAvailable, error } = await supabase.rpc('check_subdomain_availability', {
+                    p_subdomain: formData.subdomain
+                });
+
+                if (error) throw error;
+
+                if (!isAvailable) {
+                    setError('This subdomain is already taken');
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.error('Error checking subdomain:', err);
+                setError('Failed to verify subdomain availability');
+                setLoading(false);
+                return;
+            }
+            setLoading(false);
+        }
+
         if (currentStep < 3) {
             setCurrentStep(prev => prev + 1);
         }
@@ -167,20 +192,55 @@ export default function TenantSignupPage() {
         setError('');
 
         try {
-            // Create tenant
-            const tenant = await createTenant(formData.organizationName, formData.subdomain);
+            // 1. Create Admin User
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.adminEmail,
+                password: formData.adminPassword,
+                options: {
+                    data: {
+                        full_name: formData.adminName,
+                        role: 'admin' // Initial role
+                    }
+                }
+            });
 
-            if (!tenant) {
-                throw new Error('Failed to create organization');
+            if (authError) throw authError;
+            if (!authData.user) throw new Error('Failed to create user account');
+
+            // 2. Create Tenant
+            const { data: tenantId, error: tenantError } = await supabase.rpc('create_tenant', {
+                p_name: formData.organizationName,
+                p_subdomain: formData.subdomain,
+                p_owner_user_id: authData.user.id
+            });
+
+            if (tenantError) throw tenantError;
+
+            // 3. Send Welcome Email
+            try {
+                await supabase.functions.invoke('send-welcome-email', {
+                    body: {
+                        email: formData.adminEmail,
+                        name: formData.adminName,
+                        organizationName: formData.organizationName
+                    }
+                });
+            } catch (emailError) {
+                console.error('Failed to send welcome email:', emailError);
+                // Don't block signup flow on email failure
             }
 
-            // TODO: Create admin user via Supabase Auth
-            // TODO: Send welcome email
-            // TODO: Set up initial data
-
-            // Redirect to dashboard
-            navigate('/dashboard');
+            // Redirect to login or dashboard
+            // If email confirmation is enabled, we should show a message
+            if (authData.session) {
+                navigate('/dashboard');
+            } else {
+                // User created but not logged in (email confirmation required)
+                alert('Account created! Please check your email to confirm your account.');
+                navigate('/login');
+            }
         } catch (err: any) {
+            console.error('Signup error:', err);
             setError(err.message || 'Failed to create organization');
         } finally {
             setLoading(false);
@@ -204,10 +264,10 @@ export default function TenantSignupPage() {
                                 <div className="flex flex-col items-center">
                                     <div
                                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${currentStep > step.id
-                                                ? 'bg-cyan-600 text-white'
-                                                : currentStep === step.id
-                                                    ? 'bg-cyan-600 text-white ring-4 ring-cyan-100'
-                                                    : 'bg-gray-200 text-gray-500'
+                                            ? 'bg-cyan-600 text-white'
+                                            : currentStep === step.id
+                                                ? 'bg-cyan-600 text-white ring-4 ring-cyan-100'
+                                                : 'bg-gray-200 text-gray-500'
                                             }`}
                                     >
                                         {currentStep > step.id ? (
@@ -382,8 +442,8 @@ export default function TenantSignupPage() {
                                         key={tier.id}
                                         onClick={() => updateFormData('subscriptionTier', tier.id as any)}
                                         className={`relative p-6 border-2 rounded-xl text-left transition-all ${formData.subscriptionTier === tier.id
-                                                ? 'border-cyan-600 bg-cyan-50'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-cyan-600 bg-cyan-50'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             } ${tier.popular ? 'ring-2 ring-cyan-200' : ''}`}
                                     >
                                         {tier.popular && (

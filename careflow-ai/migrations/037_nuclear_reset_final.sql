@@ -28,7 +28,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT t.id, t.name, t.slug, t.subdomain, t.logo_url, t.subscription_status, t.features
+    SELECT t.id, t.name, t.slug, t.subdomain, t.logo_url, t.subscription_status::TEXT, t.features
     FROM public.tenants t
     JOIN public.user_tenant_memberships m ON m.tenant_id = t.id
     WHERE m.user_id = auth.uid() AND m.is_active = true;

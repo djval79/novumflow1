@@ -91,6 +91,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 import TenantSignupPage from './pages/TenantSignupPage';
+import AdminPortalPage from './pages/AdminPortalPage';
 
 
 function App() {
@@ -157,6 +158,7 @@ function App() {
               <Route path="tenant-management" element={<TenantManagementPage />} />
               <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
               <Route path="audit-logs" element={<AuditLogPage />} />
+              <Route path="admin" element={<AdminPortalPage />} />
             </Route>
 
             {/* Standalone Protected Routes (No App Layout) */}

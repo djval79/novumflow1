@@ -1,5 +1,4 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { verifySignature } from "./security.ts";
 import { addToDeadLetterQueue } from "./dead_letter_queue.ts";
 import { handleSync } from "./handler.ts";
@@ -9,7 +8,7 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-novumflow-signature",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
     // Handle CORS
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });

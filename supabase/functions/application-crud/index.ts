@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     // CREATE Application
     if (method === 'POST') {
       const requestBody = await req.json();
-      
+
       // Handle different request formats from frontend
       let applicationData;
       if (requestBody.action === 'create' && requestBody.data) {
@@ -55,13 +55,8 @@ Deno.serve(async (req) => {
       } else {
         applicationData = requestBody;
       }
-      
-      // Generate application number if not provided
-      if (!applicationData.application_number) {
-        const timestamp = Date.now().toString().slice(-6);
-        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        applicationData.application_number = `APP-${timestamp}${random}`;
-      }
+
+
 
       applicationData.status = applicationData.status || 'applied';
       applicationData.applied_at = new Date().toISOString();
@@ -278,7 +273,7 @@ Deno.serve(async (req) => {
         }),
       });
 
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         data: {
           employee: newEmployee[0],
           message: 'Application converted to employee successfully'
