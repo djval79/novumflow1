@@ -21,7 +21,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
     employment_type: 'full_time',
     salary_range_min: '',
     salary_range_max: '',
-    job_description: '',
+    description: '',
     requirements: '',
     application_deadline: '',
     status: 'draft'
@@ -36,7 +36,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         employment_type: job.employment_type || 'full_time',
         salary_range_min: job.salary_range_min ? job.salary_range_min.toString() : '',
         salary_range_max: job.salary_range_max ? job.salary_range_max.toString() : '',
-        job_description: job.job_description || '',
+        description: job.description || '',
         requirements: job.requirements || '',
         application_deadline: job.application_deadline ? job.application_deadline.split('T')[0] : '',
         status: job.status || 'draft'
@@ -50,7 +50,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         employment_type: 'full_time',
         salary_range_min: '',
         salary_range_max: '',
-        job_description: '',
+        description: '',
         requirements: '',
         application_deadline: '',
         status: 'draft'
@@ -68,12 +68,22 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         throw new Error('No active session');
       }
 
+      const salaryRange = formData.salary_range_min && formData.salary_range_max
+        ? `${formData.salary_range_min} - ${formData.salary_range_max}`
+        : formData.salary_range_min || formData.salary_range_max || null;
+
       const payload = {
-        ...formData,
-        salary_range_min: formData.salary_range_min ? parseFloat(formData.salary_range_min) : null,
-        salary_range_max: formData.salary_range_max ? parseFloat(formData.salary_range_max) : null,
+        job_title: formData.job_title,
+        department: formData.department,
+        location: formData.location || null,
+        employment_type: formData.employment_type,
+        description: formData.description,
+        requirements: formData.requirements,
+        salary_range: salaryRange,
+        status: formData.status,
         application_deadline: formData.application_deadline || null,
-                  created_by: user?.id      };
+        created_by: user?.id
+      };
 
       let error;
 
@@ -106,7 +116,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
           employment_type: 'full_time',
           salary_range_min: '',
           salary_range_max: '',
-          job_description: '',
+          description: '',
           requirements: '',
           application_deadline: '',
           status: 'draft'
@@ -221,8 +231,8 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
           <textarea
             required
             rows={4}
-            value={formData.job_description}
-            onChange={(e) => setFormData({ ...formData, job_description: e.target.value })}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
           />
         </div>

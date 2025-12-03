@@ -10,9 +10,8 @@ interface Job {
   department: string;
   location?: string;
   employment_type: 'full_time' | 'part_time' | 'contract' | 'intern';
-  salary_range_min?: number;
-  salary_range_max?: number;
-  job_description: string;
+  salary_range?: string;
+  description: string;
   requirements: string;
   application_deadline?: string;
   status: 'draft' | 'published' | 'closed' | 'cancelled';
@@ -40,7 +39,7 @@ export default function EditJobModal({ isOpen, onClose, onSuccess, onError, jobT
     employment_type: 'full_time' as 'full_time' | 'part_time' | 'contract' | 'intern',
     salary_range_min: '',
     salary_range_max: '',
-    job_description: '',
+    description: '',
     requirements: '',
     application_deadline: '',
     status: 'draft' as 'draft' | 'published' | 'closed' | 'cancelled'
@@ -49,14 +48,15 @@ export default function EditJobModal({ isOpen, onClose, onSuccess, onError, jobT
   // Effect to populate form data when jobToEdit changes or modal opens
   useEffect(() => {
     if (isOpen && jobToEdit) {
+      const [min, max] = jobToEdit.salary_range ? jobToEdit.salary_range.split(' - ') : ['', ''];
       setFormData({
         job_title: jobToEdit.job_title,
         department: jobToEdit.department,
         location: jobToEdit.location || '',
         employment_type: jobToEdit.employment_type || 'full_time',
-        salary_range_min: jobToEdit.salary_range_min ? String(jobToEdit.salary_range_min) : '',
-        salary_range_max: jobToEdit.salary_range_max ? String(jobToEdit.salary_range_max) : '',
-        job_description: jobToEdit.job_description,
+        salary_range_min: min || '',
+        salary_range_max: max || '',
+        description: jobToEdit.description,
         requirements: jobToEdit.requirements,
         application_deadline: jobToEdit.application_deadline ? jobToEdit.application_deadline.split('T')[0] : '', // Format date for input type="date"
         status: jobToEdit.status || 'draft'
@@ -65,7 +65,7 @@ export default function EditJobModal({ isOpen, onClose, onSuccess, onError, jobT
       // Clear form if opening for new job (shouldn't happen for EditJobModal, but good practice)
       setFormData({
         job_title: '', department: '', location: '', employment_type: 'full_time',
-        salary_range_min: '', salary_range_max: '', job_description: '', requirements: '',
+        salary_range_min: '', salary_range_max: '', description: '', requirements: '',
         application_deadline: '', status: 'draft'
       });
     }
@@ -81,10 +81,19 @@ export default function EditJobModal({ isOpen, onClose, onSuccess, onError, jobT
         throw new Error('User not authenticated');
       }
 
+      const salaryRange = formData.salary_range_min && formData.salary_range_max
+        ? `${formData.salary_range_min} - ${formData.salary_range_max}`
+        : formData.salary_range_min || formData.salary_range_max || null;
+
       const payload = {
-        ...formData,
-        salary_range_min: formData.salary_range_min ? parseFloat(formData.salary_range_min) : null,
-        salary_range_max: formData.salary_range_max ? parseFloat(formData.salary_range_max) : null,
+        job_title: formData.job_title,
+        department: formData.department,
+        location: formData.location,
+        employment_type: formData.employment_type,
+        salary_range: salaryRange,
+        description: formData.description,
+        requirements: formData.requirements,
+        status: formData.status,
         application_deadline: formData.application_deadline || null,
       };
 
@@ -235,8 +244,8 @@ export default function EditJobModal({ isOpen, onClose, onSuccess, onError, jobT
           <textarea
             required
             rows={4}
-            value={formData.job_description}
-            onChange={(e) => setFormData({ ...formData, job_description: e.target.value })}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
           />
         </div>
