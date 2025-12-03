@@ -106,7 +106,7 @@ export default function EditJobModal({ isOpen, onClose, onSuccess, onError, jobT
           .from('job_postings')
           .insert({
             ...payload,
-            posted_by: user.id
+            created_by: user.id
           })
           .select()
           .single();
