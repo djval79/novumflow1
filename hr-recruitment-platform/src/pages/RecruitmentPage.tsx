@@ -8,6 +8,7 @@ import AddApplicationModal from '@/components/AddApplicationModal';
 import AddInterviewModal from '@/components/AddInterviewModal';
 import Toast from '@/components/Toast';
 import { X, MessageSquare, Clock } from 'lucide-react';
+import { callEmployeeCrud } from '@/lib/employeeCrud';
 
 type TabType = 'jobs' | 'applications' | 'interviews';
 type ViewType = 'list' | 'board';
@@ -17,9 +18,12 @@ interface ApplicationDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate: () => void;
+  onAiScreen: (app: any) => void;
+  onConvertToEmployee: (app: any) => void;
+  onGenerateDocument: (app: any, templateId: string) => void;
 }
 
-function ApplicationDetailsModal({ application, isOpen, onClose, onUpdate }: ApplicationDetailsModalProps) {
+function ApplicationDetailsModal({ application, isOpen, onClose, onUpdate, onAiScreen, onConvertToEmployee, onGenerateDocument }: ApplicationDetailsModalProps) {
   const [notes, setNotes] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const { user } = useAuth();
@@ -107,7 +111,7 @@ function ApplicationDetailsModal({ application, isOpen, onClose, onUpdate }: App
               </a>
             )}
             <button
-              onClick={() => handleAiScreen(application)}
+              onClick={() => onAiScreen(application)}
               className="flex items-center justify-center p-3 border border-transparent rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
             >
               AI Screen
@@ -115,13 +119,13 @@ function ApplicationDetailsModal({ application, isOpen, onClose, onUpdate }: App
             {application.status === 'Hired' && (
               <>
                 <button
-                  onClick={() => handleConvertToEmployee(application)}
+                  onClick={() => onConvertToEmployee(application)}
                   className="flex items-center justify-center p-3 border border-transparent rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-medium"
                 >
                   Convert to Employee
                 </button>
                 <button
-                  onClick={() => handleGenerateDocument(application, '1')} // Using hardcoded template ID '1' for offer letter
+                  onClick={() => onGenerateDocument(application, '1')} // Using hardcoded template ID '1' for offer letter
                   className="flex items-center justify-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
                 >
                   Generate Offer Letter
@@ -183,6 +187,10 @@ export default function RecruitmentPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
   const { user } = useAuth();
+
+  const [selectedJob, setSelectedJob] = useState<any>(null);
+
+  const [selectedInterview, setSelectedInterview] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -319,7 +327,8 @@ export default function RecruitmentPage() {
   }
 
   function editJob(job: any) {
-    setToast({ message: 'Edit functionality will be available in the next update', type: 'warning' });
+    setSelectedJob(job);
+    setShowAddJobModal(true);
   }
 
   function viewApplicationDetails(app: any) {
@@ -327,18 +336,22 @@ export default function RecruitmentPage() {
   }
 
   function scheduleInterviewForApplication(app: any) {
+    setSelectedInterview(null); // Clear any selection
     setShowAddInterviewModal(true);
-    setToast({ message: 'Interview scheduling modal opened', type: 'success' });
+    // Pre-select application logic would go here if modal supported it via props, 
+    // but currently it loads all applications. 
+    // Ideally we'd pass the app ID to pre-select.
+    // For now, just opening the modal is fine.
   }
 
   function editInterview(interview: any) {
-    setToast({ message: 'Interview edit functionality will be available in the next update', type: 'warning' });
+    setSelectedInterview(interview);
+    setShowAddInterviewModal(true);
   }
 
   function rescheduleInterview(interview: any) {
-    if (window.confirm('Reschedule this interview?')) {
-      setToast({ message: 'Interview rescheduling will be available in the next update', type: 'warning' });
-    }
+    setSelectedInterview(interview);
+    setShowAddInterviewModal(true);
   }
 
   async function handleAiScreen(application: any) {
@@ -352,7 +365,8 @@ export default function RecruitmentPage() {
       if (error) throw error;
 
       setToast({ message: 'AI screening completed successfully!', type: 'success' });
-      onUpdate(); // Refresh the application data to show the new score and summary
+      setToast({ message: 'AI screening completed successfully!', type: 'success' });
+      loadData(); // Refresh the application data to show the new score and summary
     } catch (error: any) {
       setToast({ message: error.message || 'Failed to start AI screening', type: 'error' });
     }
@@ -399,16 +413,18 @@ export default function RecruitmentPage() {
 
   function handleAddNew() {
     if (activeTab === 'jobs') {
+      setSelectedJob(null); // Clear selection for new job
       setShowAddJobModal(true);
     } else if (activeTab === 'applications') {
       setShowAddApplicationModal(true);
     } else if (activeTab === 'interviews') {
+      setSelectedInterview(null); // Clear selection for new interview
       setShowAddInterviewModal(true);
     }
   }
 
   function handleSuccess() {
-    setToast({ message: 'Item created successfully!', type: 'success' });
+    setToast({ message: (selectedJob || selectedInterview) ? 'Item updated successfully!' : 'Item created successfully!', type: 'success' });
     loadData();
   }
 
@@ -897,6 +913,7 @@ export default function RecruitmentPage() {
         onClose={() => setShowAddJobModal(false)}
         onSuccess={handleSuccess}
         onError={handleError}
+        job={selectedJob}
       />
       <AddApplicationModal
         isOpen={showAddApplicationModal}
@@ -909,6 +926,7 @@ export default function RecruitmentPage() {
         onClose={() => setShowAddInterviewModal(false)}
         onSuccess={handleSuccess}
         onError={handleError}
+        interview={selectedInterview}
       />
       <ApplicationDetailsModal
         application={selectedApplication}
@@ -918,6 +936,9 @@ export default function RecruitmentPage() {
           loadData();
           // Keep modal open to show updated notes
         }}
+        onAiScreen={handleAiScreen}
+        onConvertToEmployee={handleConvertToEmployee}
+        onGenerateDocument={handleGenerateDocument}
       />
 
       {/* Toast Notification */}

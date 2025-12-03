@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
-import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AddInterviewModalProps {
@@ -8,9 +8,10 @@ interface AddInterviewModalProps {
   onClose: () => void;
   onSuccess: () => void;
   onError: (message: string) => void;
+  interview?: any; // Optional interview for editing
 }
 
-export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError }: AddInterviewModalProps) {
+export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError, interview }: AddInterviewModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [applications, setApplications] = useState<any[]>([]);
@@ -31,6 +32,33 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError 
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (interview) {
+      const date = new Date(interview.scheduled_date);
+      setFormData({
+        application_id: interview.application_id,
+        interview_type: interview.interview_type,
+        scheduled_date: date.toISOString().split('T')[0],
+        scheduled_time: date.toTimeString().slice(0, 5),
+        duration: interview.duration || 60,
+        location: interview.location || '',
+        interviewer_notes: interview.notes || '',
+        status: interview.status
+      });
+    } else {
+      setFormData({
+        application_id: '',
+        interview_type: 'phone_screening',
+        scheduled_date: '',
+        scheduled_time: '',
+        duration: 60,
+        location: '',
+        interviewer_notes: '',
+        status: 'scheduled'
+      });
+    }
+  }, [interview, isOpen]);
+
   async function loadApplications() {
     const { data } = await supabase
       .from('applications')
@@ -46,50 +74,54 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError 
 
     try {
       const scheduledDateTime = `${formData.scheduled_date}T${formData.scheduled_time}:00`;
-      
-      // Ensure duration is a number
-      const interviewData = {
-        ...formData,
-        duration: Number(formData.duration) || 60, // Default to 60 minutes if not provided
-        scheduled_at: scheduledDateTime,
-        created_by: user?.id,
-        updated_by: user?.id
+
+      const payload = {
+        application_id: formData.application_id,
+        interview_type: formData.interview_type,
+        scheduled_date: scheduledDateTime,
+        duration: Number(formData.duration) || 60,
+        location: formData.location,
+        notes: formData.interviewer_notes,
+        status: formData.status,
+        interviewer_id: user?.id,
+        updated_at: new Date().toISOString()
       };
-      
-      // Get the user's session token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No active session');
+
+      let error;
+
+      if (interview) {
+        // Update existing interview
+        const { error: updateError } = await supabase
+          .from('interviews')
+          .update(payload)
+          .eq('id', interview.id);
+        error = updateError;
+      } else {
+        // Create new interview
+        const { error: insertError } = await supabase
+          .from('interviews')
+          .insert({
+            ...payload,
+            created_at: new Date().toISOString()
+          });
+        error = insertError;
       }
-      
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/interview-crud`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({
-            action: 'create',
-            data: {
-              application_id: formData.application_id,
-              interview_type: formData.interview_type,
-              scheduled_date: scheduledDateTime,
-              duration: formData.duration,
-              location: formData.location,
-              feedback: formData.interviewer_notes,
-              status: formData.status
-            }
-          })
-        }
-      );
 
-      const result = await response.json();
+      if (error) {
+        throw new Error(error.message || `Failed to ${interview ? 'update' : 'schedule'} interview`);
+      }
 
-      if (response.ok && result.data) {
-        onSuccess();
-        onClose();
+      // Update application status if needed
+      if (!interview && formData.status === 'scheduled') {
+        await supabase
+          .from('applications')
+          .update({ status: 'interview_scheduled' })
+          .eq('id', formData.application_id);
+      }
+
+      onSuccess();
+      onClose();
+      if (!interview) {
         setFormData({
           application_id: '',
           interview_type: 'phone_screening',
@@ -100,18 +132,16 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError 
           interviewer_notes: '',
           status: 'scheduled'
         });
-      } else {
-        throw new Error(result.error?.message || 'Failed to schedule interview');
       }
     } catch (error: any) {
-      onError(error.message || 'Failed to schedule interview');
+      onError(error.message || `Failed to ${interview ? 'update' : 'schedule'} interview`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Schedule Interview">
+    <Modal isOpen={isOpen} onClose={onClose} title={interview ? "Edit Interview" : "Schedule Interview"}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Application *</label>
@@ -120,6 +150,7 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError 
             value={formData.application_id}
             onChange={(e) => setFormData({ ...formData, application_id: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+            disabled={!!interview} // Disable changing application when editing
           >
             <option value="">Select Application</option>
             {applications.map((app) => (
@@ -127,6 +158,9 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError 
                 {app.applicant_first_name} {app.applicant_last_name} - {app.status}
               </option>
             ))}
+            {interview && !applications.find(a => a.id === interview.application_id) && (
+              <option value={interview.application_id}>Current Application</option>
+            )}
           </select>
         </div>
 
@@ -171,6 +205,33 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError 
           </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
+            <input
+              type="number"
+              required
+              value={formData.duration}
+              onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+            >
+              <option value="scheduled">Scheduled</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="rescheduled">Rescheduled</option>
+              <option value="no_show">No Show</option>
+            </select>
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
           <input
@@ -207,10 +268,11 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError 
             disabled={loading}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
           >
-            {loading ? 'Scheduling...' : 'Schedule Interview'}
+            {loading ? (interview ? 'Updating...' : 'Scheduling...') : (interview ? 'Update Interview' : 'Schedule Interview')}
           </button>
         </div>
       </form>
     </Modal>
   );
 }
+

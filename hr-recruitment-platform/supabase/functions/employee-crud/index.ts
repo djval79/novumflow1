@@ -1,11 +1,7 @@
 // Deno type declarations
 declare const Deno: any;
 
-// @deno-types="https://deno.land/std@0.168.0/http/server.ts"
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-// @deno-types="https://esm.sh/@supabase/supabase-js@2"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -29,7 +25,7 @@ async function generateHmacSignature(payload: string, secret: string): Promise<s
         .join("");
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
         return new Response(null, { status: 200, headers: corsHeaders });
     }
@@ -54,14 +50,25 @@ serve(async (req: Request) => {
         const { action, data } = await req.json();
 
         if (action === 'create') {
-            const { error: insertError } = await supabase
+            // Fetch tenant_id for the creator
+            const { data: profileData, error: profileError } = await supabase
+                .from('users_profiles')
+                .select('tenant_id')
+                .eq('id', user.id)
+                .single();
+
+            const tenantId = profileData?.tenant_id;
+
+            const { data: newEmployee, error: insertError } = await supabase
                 .from('employees')
                 .insert({
                     ...data,
                     created_by: user.id,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
-                });
+                })
+                .select()
+                .single();
 
             if (insertError) {
                 throw new Error(`Failed to create employee: ${insertError.message}`);
@@ -74,8 +81,8 @@ serve(async (req: Request) => {
             if (careflowWebhookSecret && careflowSyncEmployeeUrl) {
                 const webhookPayload = {
                     action: 'employee.created',
-                    employee: { ...data, id: user.id }, // Assuming data contains full employee info, and user.id is the employee's ID in HR platform
-                    tenant_id: user.id // Placeholder for tenant ID, adjust as per your multi-tenancy model
+                    employee: newEmployee,
+                    tenant_id: tenantId
                 };
                 const jsonPayload = JSON.stringify(webhookPayload);
                 const signature = await generateHmacSignature(jsonPayload, careflowWebhookSecret);

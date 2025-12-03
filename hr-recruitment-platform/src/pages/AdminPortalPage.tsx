@@ -17,16 +17,35 @@ interface Tenant {
 
 export default function AdminPortalPage() {
     const { user } = useAuth();
+    const [stats, setStats] = useState({
+        total_tenants: 0,
+        active_tenants: 0,
+        total_users: 0,
+        total_jobs: 0,
+        total_applications: 0,
+        total_mrr: 0
+    });
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     useEffect(() => {
         fetchTenants();
+        fetchStats();
     }, []);
+
+    const fetchStats = async () => {
+        try {
+            const { data, error } = await supabase.rpc('get_platform_stats');
+            if (error) throw error;
+            if (data) setStats(data);
+        } catch (err) {
+            console.error('Error fetching stats:', err);
+        }
+    };
 
     const fetchTenants = async () => {
         try {
@@ -53,6 +72,7 @@ export default function AdminPortalPage() {
 
             // Refresh list
             fetchTenants();
+            fetchStats(); // Update stats too
         } catch (err: any) {
             console.error('Error toggling status:', err);
             alert('Failed to update tenant status');
@@ -90,7 +110,8 @@ export default function AdminPortalPage() {
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Total Tenants</p>
-                                <p className="text-xl font-bold text-gray-900">{tenants.length}</p>
+                                <p className="text-xl font-bold text-gray-900">{stats.total_tenants}</p>
+                                <p className="text-xs text-gray-500">{stats.active_tenants} Active</p>
                             </div>
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex items-center gap-3">
@@ -99,9 +120,16 @@ export default function AdminPortalPage() {
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Total Users</p>
-                                <p className="text-xl font-bold text-gray-900">
-                                    {tenants.reduce((acc, t) => acc + (t.member_count || 0), 0)}
-                                </p>
+                                <p className="text-xl font-bold text-gray-900">{stats.total_users}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex items-center gap-3">
+                            <div className="p-2 bg-purple-50 rounded-lg">
+                                <Activity className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Est. MRR</p>
+                                <p className="text-xl font-bold text-gray-900">${stats.total_mrr}</p>
                             </div>
                         </div>
                     </div>

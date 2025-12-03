@@ -1,5 +1,12 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { format } from 'date-fns';
+import { Download, User, FileText, Clock, Calendar, BarChart, Plus, Search, Edit, Trash2 } from 'lucide-react';
 import { callEmployeeCrud } from '@/lib/employeeCrud';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
+import AddEmployeeModal from '@/components/AddEmployeeModal';
+import AddLeaveRequestModal from '@/components/AddLeaveRequestModal';
 import HRAnalyticsDashboard from '@/components/HRAnalyticsDashboard';
 import Toast from '@/components/Toast';
 
@@ -240,8 +247,8 @@ export default function HRModulePage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
               className={`flex items-center whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               <tab.icon className="w-4 h-4 mr-2" />
@@ -310,8 +317,8 @@ export default function HRModulePage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${emp.status === 'active' ? 'bg-green-100 text-green-800' :
-                                emp.status === 'on_leave' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
+                              emp.status === 'on_leave' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
                               }`}>
                               {emp.status}
                             </span>
@@ -447,8 +454,8 @@ export default function HRModulePage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${leave.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                leave.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                  'bg-yellow-100 text-yellow-800'
+                              leave.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
                               }`}>
                               {leave.status}
                             </span>

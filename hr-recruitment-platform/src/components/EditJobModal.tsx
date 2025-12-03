@@ -3,124 +3,136 @@ import Modal from './Modal';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface AddJobModalProps {
+// Define the Job interface based on your database schema
+interface Job {
+  id: string;
+  job_title: string;
+  department: string;
+  location?: string;
+  employment_type: 'full_time' | 'part_time' | 'contract' | 'intern';
+  salary_range_min?: number;
+  salary_range_max?: number;
+  job_description: string;
+  requirements: string;
+  application_deadline?: string;
+  status: 'draft' | 'published' | 'closed' | 'cancelled';
+  posted_by?: string;
+  created_at: string;
+  updated_at: string;
+  workflow_id?: string;
+}
+
+interface EditJobModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   onError: (message: string) => void;
-  job?: any; // Optional job for editing
+  jobToEdit: Job | null; // Pass the job object when editing
 }
 
-export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }: AddJobModalProps) {
+export default function EditJobModal({ isOpen, onClose, onSuccess, onError, jobToEdit }: EditJobModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     job_title: '',
     department: '',
     location: '',
-    employment_type: 'full_time',
+    employment_type: 'full_time' as 'full_time' | 'part_time' | 'contract' | 'intern',
     salary_range_min: '',
     salary_range_max: '',
     job_description: '',
     requirements: '',
     application_deadline: '',
-    status: 'draft'
+    status: 'draft' as 'draft' | 'published' | 'closed' | 'cancelled'
   });
 
+  // Effect to populate form data when jobToEdit changes or modal opens
   useEffect(() => {
-    if (job) {
+    if (isOpen && jobToEdit) {
       setFormData({
-        job_title: job.job_title || '',
-        department: job.department || '',
-        location: job.location || '',
-        employment_type: job.employment_type || 'full_time',
-        salary_range_min: job.salary_range_min ? job.salary_range_min.toString() : '',
-        salary_range_max: job.salary_range_max ? job.salary_range_max.toString() : '',
-        job_description: job.job_description || '',
-        requirements: job.requirements || '',
-        application_deadline: job.application_deadline ? job.application_deadline.split('T')[0] : '',
-        status: job.status || 'draft'
+        job_title: jobToEdit.job_title,
+        department: jobToEdit.department,
+        location: jobToEdit.location || '',
+        employment_type: jobToEdit.employment_type || 'full_time',
+        salary_range_min: jobToEdit.salary_range_min ? String(jobToEdit.salary_range_min) : '',
+        salary_range_max: jobToEdit.salary_range_max ? String(jobToEdit.salary_range_max) : '',
+        job_description: jobToEdit.job_description,
+        requirements: jobToEdit.requirements,
+        application_deadline: jobToEdit.application_deadline ? jobToEdit.application_deadline.split('T')[0] : '', // Format date for input type="date"
+        status: jobToEdit.status || 'draft'
       });
-    } else {
-      // Reset for new job
+    } else if (isOpen && !jobToEdit) {
+      // Clear form if opening for new job (shouldn't happen for EditJobModal, but good practice)
       setFormData({
-        job_title: '',
-        department: '',
-        location: '',
-        employment_type: 'full_time',
-        salary_range_min: '',
-        salary_range_max: '',
-        job_description: '',
-        requirements: '',
-        application_deadline: '',
-        status: 'draft'
+        job_title: '', department: '', location: '', employment_type: 'full_time',
+        salary_range_min: '', salary_range_max: '', job_description: '', requirements: '',
+        application_deadline: '', status: 'draft'
       });
     }
-  }, [job, isOpen]);
+  }, [isOpen, jobToEdit]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No active session');
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
       const payload = {
         ...formData,
         salary_range_min: formData.salary_range_min ? parseFloat(formData.salary_range_min) : null,
         salary_range_max: formData.salary_range_max ? parseFloat(formData.salary_range_max) : null,
-        posted_by: user?.id
+        // application_deadline should already be in YYYY-MM-DD format from input type="date"
       };
 
-      let error;
-
-      if (job) {
+      let result;
+      if (jobToEdit) {
         // Update existing job
-        const { error: updateError } = await supabase
+        const { data, error } = await supabase
           .from('job_postings')
           .update(payload)
-          .eq('id', job.id);
-        error = updateError;
+          .eq('id', jobToEdit.id)
+          .select()
+          .single();
+
+        if (error) throw new Error(error.message || 'Failed to update job posting');
+        result = { data };
       } else {
-        // Create new job
-        const { error: insertError } = await supabase
+        // Create new job (should not happen in EditJobModal, but kept for robustness)
+        const { data, error } = await supabase
           .from('job_postings')
-          .insert(payload);
-        error = insertError;
+          .insert({
+            ...payload,
+            posted_by: user.id
+          })
+          .select()
+          .single();
+
+        if (error) throw new Error(error.message || 'Failed to create job posting');
+        result = { data };
       }
 
-      if (error) {
-        throw new Error(error.message || `Failed to ${job ? 'update' : 'create'} job posting`);
-      }
-
-      onSuccess();
-      onClose();
-      if (!job) {
-        setFormData({
-          job_title: '',
-          department: '',
-          location: '',
-          employment_type: 'full_time',
-          salary_range_min: '',
-          salary_range_max: '',
-          job_description: '',
-          requirements: '',
-          application_deadline: '',
-          status: 'draft'
-        });
+      if (result.data) {
+        onSuccess();
+        onClose();
+      } else {
+        throw new Error(jobToEdit ? 'Failed to update job posting' : 'Failed to create job posting');
       }
     } catch (error: any) {
-      onError(error.message || `Failed to ${job ? 'update' : 'create'} job posting`);
+      onError(error.message || (jobToEdit ? 'Failed to update job posting' : 'Failed to create job posting'));
     } finally {
       setLoading(false);
     }
   };
 
+  const modalTitle = jobToEdit ? "Edit Job Posting" : "Create Job Posting";
+  const submitButtonText = jobToEdit ? "Update Job Posting" : "Create Job Posting";
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={job ? "Edit Job Posting" : "Create Job Posting"} maxWidth="max-w-4xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth="max-w-4xl">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -160,7 +172,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
             <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
             <select
               value={formData.employment_type}
-              onChange={(e) => setFormData({ ...formData, employment_type: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, employment_type: e.target.value as any })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
             >
               <option value="full_time">Full Time</option>
@@ -207,11 +219,13 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
             >
               <option value="draft">Draft</option>
               <option value="published">Published</option>
+              <option value="closed">Closed</option> {/* Added for editing purposes */}
+              <option value="cancelled">Cancelled</option> {/* Added for editing purposes */}
             </select>
           </div>
         </div>
@@ -252,11 +266,10 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
             disabled={loading}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
           >
-            {loading ? (job ? 'Updating...' : 'Creating...') : (job ? 'Update Job Posting' : 'Create Job Posting')}
+            {loading ? (jobToEdit ? 'Updating...' : 'Creating...') : submitButtonText}
           </button>
         </div>
       </form>
     </Modal>
   );
 }
-
