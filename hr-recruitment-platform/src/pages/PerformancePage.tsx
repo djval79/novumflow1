@@ -26,6 +26,13 @@ import { format } from 'date-fns';
 import Modal from '@/components/Modal';
 import Toast from '@/components/Toast';
 import PerformanceReports from '@/components/PerformanceReports';
+import AddReviewTypeModal from '@/components/AddReviewTypeModal';
+import CreateReviewModal from '@/components/CreateReviewModal';
+import AddGoalModal from '@/components/AddGoalModal';
+import AddKPIModal from '@/components/AddKPIModal';
+import AddCriteriaModal from '@/components/AddCriteriaModal';
+import RateModal from '@/components/RateModal';
+import ViewReviewModal from '@/components/ViewReviewModal';
 
 type TabType = 'reviews' | 'goals' | 'kpis' | 'settings' | 'reports';
 
@@ -825,7 +832,86 @@ export default function PerformancePage() {
         />
       )}
 
-      {/* Modals will be added in separate components */}
+      {/* Modals */}
+      <AddReviewTypeModal
+        isOpen={showAddReviewTypeModal}
+        onClose={() => setShowAddReviewTypeModal(false)}
+        onSuccess={() => {
+          loadSupportingData();
+          setToast({ message: 'Review type added successfully', type: 'success' });
+        }}
+        onError={(msg) => setToast({ message: msg, type: 'error' })}
+      />
+
+      <CreateReviewModal
+        isOpen={showCreateReviewModal}
+        onClose={() => setShowCreateReviewModal(false)}
+        onSuccess={() => {
+          loadData();
+          setToast({ message: 'Review created successfully', type: 'success' });
+        }}
+        onError={(msg) => setToast({ message: msg, type: 'error' })}
+      />
+
+      <AddGoalModal
+        isOpen={showAddGoalModal}
+        onClose={() => setShowAddGoalModal(false)}
+        onSuccess={() => {
+          loadData();
+          setToast({ message: 'Goal added successfully', type: 'success' });
+        }}
+        onError={(msg) => setToast({ message: msg, type: 'error' })}
+      />
+
+      <AddKPIModal
+        isOpen={showAddKPIModal}
+        onClose={() => setShowAddKPIModal(false)}
+        onSuccess={() => {
+          loadData();
+          setToast({ message: 'KPI target added successfully', type: 'success' });
+        }}
+        onError={(msg) => setToast({ message: msg, type: 'error' })}
+      />
+
+      {selectedItem && (
+        <>
+          <AddCriteriaModal
+            isOpen={showAddCriteriaModal}
+            onClose={() => {
+              setShowAddCriteriaModal(false);
+              setSelectedItem(null);
+            }}
+            onSuccess={() => {
+              setToast({ message: 'Criteria added successfully', type: 'success' });
+            }}
+            onError={(msg) => setToast({ message: msg, type: 'error' })}
+            reviewType={selectedItem}
+          />
+
+          <RateModal
+            isOpen={showRateModal}
+            onClose={() => {
+              setShowRateModal(false);
+              setSelectedItem(null);
+            }}
+            onSuccess={() => {
+              loadData();
+              setToast({ message: 'Rating submitted successfully', type: 'success' });
+            }}
+            onError={(msg) => setToast({ message: msg, type: 'error' })}
+            review={selectedItem}
+          />
+
+          <ViewReviewModal
+            isOpen={showViewReviewModal}
+            onClose={() => {
+              setShowViewReviewModal(false);
+              setSelectedItem(null);
+            }}
+            review={selectedItem}
+          />
+        </>
+      )}
     </div>
   );
 }

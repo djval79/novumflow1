@@ -186,6 +186,11 @@ serve(async (req) => {
         } else if (action === 'create') {
             // ... implementation for create
             result = { success: true }
+        } else if (action === 'auto_schedule') {
+            // Placeholder for auto-schedule logic
+            // In a real implementation, this would find employees without reviews for the current period
+            // and create them based on active review types.
+            result = { success: true, count: 0, message: "Auto-scheduling logic placeholder executed." }
         }
 
         return new Response(JSON.stringify(result), {

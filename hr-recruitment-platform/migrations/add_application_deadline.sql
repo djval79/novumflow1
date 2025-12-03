@@ -1,0 +1,1 @@
+ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS application_deadline TIMESTAMP WITH TIME ZONE;
