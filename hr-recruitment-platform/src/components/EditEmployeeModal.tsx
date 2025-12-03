@@ -15,11 +15,11 @@ interface EditEmployeeModalProps {
 }
 
 export default function EditEmployeeModal({ isOpen, onClose, onSuccess, onError, employee }: EditEmployeeModalProps) {
-  const [formData, setFormData] = useState(employee);
+  const [formData, setFormData] = useState(employee || {});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setFormData(employee);
+    setFormData(employee || {});
   }, [employee]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -56,43 +56,43 @@ export default function EditEmployeeModal({ isOpen, onClose, onSuccess, onError,
             <Label htmlFor="first_name" className="text-right">
               First Name
             </Label>
-            <Input id="first_name" value={formData.first_name || ''} onChange={handleChange} className="col-span-3" />
+            <Input id="first_name" value={formData?.first_name || ''} onChange={handleChange} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="last_name" className="text-right">
               Last Name
             </Label>
-            <Input id="last_name" value={formData.last_name || ''} onChange={handleChange} className="col-span-3" />
+            <Input id="last_name" value={formData?.last_name || ''} onChange={handleChange} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="email" className="text-right">
               Email
             </Label>
-            <Input id="email" type="email" value={formData.email || ''} onChange={handleChange} className="col-span-3" />
+            <Input id="email" type="email" value={formData?.email || ''} onChange={handleChange} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">
               Phone
             </Label>
-            <Input id="phone" value={formData.phone || ''} onChange={handleChange} className="col-span-3" />
+            <Input id="phone" value={formData?.phone || ''} onChange={handleChange} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="department" className="text-right">
               Department
             </Label>
-            <Input id="department" value={formData.department || ''} onChange={handleChange} className="col-span-3" />
+            <Input id="department" value={formData?.department || ''} onChange={handleChange} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="position" className="text-right">
               Position
             </Label>
-            <Input id="position" value={formData.position || ''} onChange={handleChange} className="col-span-3" />
+            <Input id="position" value={formData?.position || ''} onChange={handleChange} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="status" className="text-right">
               Status
             </Label>
-            <Select onValueChange={(value) => handleSelectChange(value, 'status')} value={formData.status}>
+            <Select onValueChange={(value) => handleSelectChange(value, 'status')} value={formData?.status}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a status" />
               </SelectTrigger>
