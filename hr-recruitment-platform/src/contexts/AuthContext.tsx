@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           console.error('Error loading user:', error.message);
           // If refresh token is invalid, clear session and user
-          if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
+          if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token') || error.message.includes('Auth session missing!')) {
             await supabase.auth.signOut();
             setUser(null);
             setProfile(null);
