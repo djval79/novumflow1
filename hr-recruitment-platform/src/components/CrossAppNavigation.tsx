@@ -55,16 +55,14 @@ export default function CrossAppNavigation({ app }: CrossAppNavigationProps) {
 
 // Quick link component for use in headers/navbars
 export function QuickAppSwitcher() {
-    const { currentTenant, canAccessCareFlow, canAccessNovumFlow } = useTenant();
+    const { currentTenant, canAccessCareFlow } = useTenant();
 
     if (!currentTenant) return null;
 
-    const isNovumFlow = window.location.port === '5173' || window.location.hostname.includes('novumflow');
-    const targetApp = isNovumFlow ? 'careflow' : 'novumflow';
-    const targetUrl = isNovumFlow ? CAREFLOW_URL : NOVUMFLOW_URL;
-    const canAccess = isNovumFlow ? canAccessCareFlow : canAccessNovumFlow;
+    // Since this is the HR Platform (NovumFlow), we always link to Careflow
+    const targetUrl = CAREFLOW_URL;
 
-    if (!canAccess) return null;
+    if (!canAccessCareFlow) return null;
 
     const handleNavigate = () => {
         const url = `${targetUrl}?tenant=${currentTenant.id}`;
@@ -77,17 +75,10 @@ export function QuickAppSwitcher() {
                 onClick={handleNavigate}
                 className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm"
             >
-                {isNovumFlow ? (
-                    <>
-                        <Heart className="w-4 h-4" />
-                        <span>Open CareFlow</span>
-                    </>
-                ) : (
-                    <>
-                        <Users className="w-4 h-4" />
-                        <span>Open NovumFlow</span>
-                    </>
-                )}
+                <>
+                    <Heart className="w-4 h-4" />
+                    <span>Open CareFlow</span>
+                </>
                 <ExternalLink className="w-3.5 h-3.5" />
             </button>
         </div>
@@ -96,16 +87,14 @@ export function QuickAppSwitcher() {
 
 // Compact version for mobile or sidebars
 export function CompactAppSwitcher() {
-    const { currentTenant, canAccessCareFlow, canAccessNovumFlow } = useTenant();
+    const { currentTenant, canAccessCareFlow } = useTenant();
 
     if (!currentTenant) return null;
 
-    const isNovumFlow = window.location.port === '5173' || window.location.hostname.includes('novumflow');
-    const targetApp = isNovumFlow ? 'careflow' : 'novumflow';
-    const targetUrl = isNovumFlow ? CAREFLOW_URL : NOVUMFLOW_URL;
-    const canAccess = isNovumFlow ? canAccessCareFlow : canAccessNovumFlow;
+    // Since this is the HR Platform (NovumFlow), we always link to Careflow
+    const targetUrl = CAREFLOW_URL;
 
-    if (!canAccess) return null;
+    if (!canAccessCareFlow) return null;
 
     const handleNavigate = () => {
         const url = `${targetUrl}?tenant=${currentTenant.id}`;
@@ -116,13 +105,9 @@ export function CompactAppSwitcher() {
         <button
             onClick={handleNavigate}
             className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm"
-            title={isNovumFlow ? 'Open CareFlow' : 'Open NovumFlow'}
+            title="Open CareFlow"
         >
-            {isNovumFlow ? (
-                <Heart className="w-5 h-5" />
-            ) : (
-                <Users className="w-5 h-5" />
-            )}
+            <Heart className="w-5 h-5" />
         </button>
     );
 }

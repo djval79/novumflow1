@@ -153,18 +153,28 @@ export const tenantService = {
 
     /** Update an existing tenant */
     async updateTenant(tenantId: string, updates: Partial<Tenant>): Promise<boolean> {
-        const { error } = await supabase
+        console.log('TenantService.updateTenant called:', { tenantId, updates });
+
+        const { data, error } = await supabase
             .from('tenants')
             .update({
-                ...updates,
-                updated_at: new Date().toISOString()
+                ...updates
             })
-            .eq('id', tenantId);
+            .eq('id', tenantId)
+            .select();
 
         if (error) {
-            console.error('Error updating tenant:', error);
+            console.error('Error updating tenant:', {
+                error,
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+            });
             return false;
         }
+
+        console.log('Tenant updated successfully:', data);
         return true;
     },
 };

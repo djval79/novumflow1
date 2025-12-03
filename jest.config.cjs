@@ -38,7 +38,7 @@ const config = {
 
   // The glob patterns Jest uses to detect test files
   testMatch: [
-    "<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}"
+    "**/*/src/**/*.{spec,test}.{js,jsx,ts,tsx}"
   ],
 
   // An array of regexp pattern strings that are matched against all test paths before executing the test

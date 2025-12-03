@@ -161,25 +161,60 @@ export default function TenantManagementPage() {
 
     async function handleUpdateTenant() {
         if (!selectedTenant) return;
-        setSaving(true);
-        const success = await tenantService.updateTenant(selectedTenant.id, {
-            name: formData.name,
-            domain: formData.domain || null,
-            subscription_tier: formData.subscription_tier,
-            subscription_price: parseFloat(formData.subscription_price) || undefined,
-            currency: formData.currency,
-            subscription_interval: formData.subscription_interval,
-            max_users: parseInt(formData.max_users) || 10
+
+        console.log('Updating tenant:', {
+            tenantId: selectedTenant.id,
+            oldName: selectedTenant.name,
+            newName: formData.name,
+            updates: {
+                name: formData.name,
+                domain: formData.domain || null,
+                subscription_tier: formData.subscription_tier,
+                subscription_price: parseFloat(formData.subscription_price) || undefined,
+                currency: formData.currency,
+                subscription_interval: formData.subscription_interval,
+                max_users: parseInt(formData.max_users) || 10
+            }
         });
 
-        if (success) {
-            setToast({ message: 'Tenant updated successfully', type: 'success' });
-            await loadData();
-            setEditMode(false);
-        } else {
-            setToast({ message: 'Failed to update tenant', type: 'error' });
+        setSaving(true);
+        try {
+            const success = await tenantService.updateTenant(selectedTenant.id, {
+                name: formData.name,
+                domain: formData.domain || null,
+                subscription_tier: formData.subscription_tier,
+                subscription_price: parseFloat(formData.subscription_price) || undefined,
+                currency: formData.currency,
+                subscription_interval: formData.subscription_interval,
+                max_users: parseInt(formData.max_users) || 10
+            });
+
+            if (success) {
+                console.log('Tenant update successful, reloading data...');
+                setToast({ message: 'Tenant updated successfully', type: 'success' });
+
+                // Reload all data to ensure we have the latest
+                await loadData();
+
+                // Find and set the updated tenant as selected
+                const updatedTenants = await tenantService.getAllTenants();
+                const updated = updatedTenants.find(t => t.id === selectedTenant.id);
+                if (updated) {
+                    console.log('Updated tenant data:', updated);
+                    setSelectedTenant(updated);
+                }
+
+                setEditMode(false);
+            } else {
+                console.error('Tenant update failed - service returned false');
+                setToast({ message: 'Failed to update tenant. Please check permissions.', type: 'error' });
+            }
+        } catch (error) {
+            console.error('Error updating tenant:', error);
+            setToast({ message: 'An error occurred while updating tenant', type: 'error' });
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     }
 
     // Check if user is super admin
