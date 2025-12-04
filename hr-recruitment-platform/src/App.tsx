@@ -90,6 +90,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+import RecruitmentDashboardPage from './pages/RecruitmentDashboardPage';
 import TenantSignupPage from './pages/TenantSignupPage';
 import AdminPortalPage from './pages/AdminPortalPage';
 
@@ -143,6 +144,7 @@ function App() {
               <Route path="dashboard" element={<FeatureRoute feature="dashboard"><DashboardPage /></FeatureRoute>} />
               <Route path="hr" element={<FeatureRoute feature="hr_module"><HRModulePage /></FeatureRoute>} />
               <Route path="recruitment" element={<FeatureRoute feature="recruitment"><RecruitmentPage /></FeatureRoute>} />
+              <Route path="recruitment-dashboard" element={<FeatureRoute feature="recruitment"><RecruitmentDashboardPage /></FeatureRoute>} />
               <Route path="performance" element={<FeatureRoute feature="performance"><PerformancePage /></FeatureRoute>} />
               <Route path="integrations" element={<FeatureRoute feature="integrations"><IntegrationsPage /></FeatureRoute>} />
               <Route path="documents" element={<FeatureRoute feature="documents"><DocumentsPage /></FeatureRoute>} />

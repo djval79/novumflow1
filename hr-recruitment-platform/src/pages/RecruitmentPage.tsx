@@ -610,13 +610,13 @@ export default function RecruitmentPage() {
                             <select
                               value={job.status}
                               onChange={(e) => updateJobStatus(job.id, e.target.value)}
-                              className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${job.status === 'published' ? 'bg-green-100 text-green-800' :
+                              className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${job.status === 'active' ? 'bg-green-100 text-green-800' :
                                 job.status === 'closed' ? 'bg-red-100 text-red-800' :
                                   'bg-yellow-100 text-yellow-800'
                                 }`}
                             >
                               <option value="draft">Draft</option>
-                              <option value="published">Published</option>
+                              <option value="active">Published</option>
                               <option value="closed">Closed</option>
                               <option value="cancelled">Cancelled</option>
                             </select>

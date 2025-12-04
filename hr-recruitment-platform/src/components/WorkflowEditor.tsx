@@ -438,22 +438,63 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                                         />
                                     </div>
                                 )}
-                                {editingAutomation.action_type === 'ai_interview' && (
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Interview Config</label>
-                                        <textarea
-                                            value={JSON.stringify(editingAutomation.action_config, null, 2)}
-                                            onChange={(e) => {
-                                                try {
-                                                    const config = JSON.parse(e.target.value);
-                                                    setEditingAutomation({ ...editingAutomation, action_config: config });
-                                                } catch (err) {
-                                                    // Allow typing invalid JSON temporarily
-                                                }
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono h-24"
-                                            placeholder="{}"
-                                        />
+                                {editingAutomation.action_type === 'schedule_interview' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Interview Type</label>
+                                            <select
+                                                value={editingAutomation.action_config.interview_type || ''}
+                                                onChange={(e) => setEditingAutomation({
+                                                    ...editingAutomation,
+                                                    action_config: { ...editingAutomation.action_config, interview_type: e.target.value }
+                                                })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                            >
+                                                <option value="">Select Type</option>
+                                                <option value="phone">Phone</option>
+                                                <option value="video">Video</option>
+                                                <option value="on-site">On-site</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                                            <input
+                                                type="number"
+                                                value={editingAutomation.action_config.duration || ''}
+                                                onChange={(e) => setEditingAutomation({
+                                                    ...editingAutomation,
+                                                    action_config: { ...editingAutomation.action_config, duration: parseInt(e.target.value) || 0 }
+                                                })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                                placeholder="e.g., 30"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Interviewer Role</label>
+                                            <input
+                                                type="text"
+                                                value={editingAutomation.action_config.interviewer_role || ''}
+                                                onChange={(e) => setEditingAutomation({
+                                                    ...editingAutomation,
+                                                    action_config: { ...editingAutomation.action_config, interviewer_role: e.target.value }
+                                                })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                                placeholder="e.g., Hiring Manager"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Invitation Email Template ID</label>
+                                            <input
+                                                type="text"
+                                                value={editingAutomation.action_config.template_id || ''}
+                                                onChange={(e) => setEditingAutomation({
+                                                    ...editingAutomation,
+                                                    action_config: { ...editingAutomation.action_config, template_id: e.target.value }
+                                                })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                                placeholder="e.g., interview_invite_template"
+                                            />
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -480,10 +521,12 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                                         <div className="flex items-center">
                                             <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${auto.action_type === 'send_email' ? 'bg-blue-100 text-blue-600' :
                                                 auto.action_type === 'ai_interview' ? 'bg-purple-100 text-purple-600' :
+                                                auto.action_type === 'schedule_interview' ? 'bg-green-100 text-green-600' :
                                                     'bg-gray-100 text-gray-600'
                                                 }`}>
                                                 {auto.action_type === 'send_email' ? <Mail className="w-4 h-4" /> :
-                                                    auto.action_type === 'ai_interview' ? <Bot className="w-4 h-4" /> :
+                                                auto.action_type === 'ai_interview' ? <Bot className="w-4 h-4" /> :
+                                                auto.action_type === 'schedule_interview' ? <Calendar className="w-4 h-4" /> :
                                                         <Settings className="w-4 h-4" />}
                                             </div>
                                             <div>

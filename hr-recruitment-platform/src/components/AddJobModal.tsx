@@ -68,6 +68,22 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         throw new Error('No active session');
       }
 
+      // Fetch default workflow if creating new job or if job has no workflow
+      let workflowId = job?.workflow_id;
+      if (!workflowId) {
+        const { data: defaultWorkflows } = await supabase
+          .from('recruitment_workflows')
+          .select('id')
+          .eq('is_default', true)
+          .limit(1);
+
+        if (defaultWorkflows && defaultWorkflows.length > 0) {
+          workflowId = defaultWorkflows[0].id;
+        }
+      }
+      
+      console.log('Using Workflow ID:', workflowId);
+
       const salaryRange = formData.salary_range_min && formData.salary_range_max
         ? `${formData.salary_range_min} - ${formData.salary_range_max}`
         : formData.salary_range_min || formData.salary_range_max || null;
@@ -82,7 +98,8 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         salary_range: salaryRange,
         status: formData.status,
         application_deadline: formData.application_deadline || null,
-        created_by: user?.id
+        created_by: user?.id,
+        workflow_id: workflowId
       };
 
       let error;
@@ -221,7 +238,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
             >
               <option value="draft">Draft</option>
-              <option value="published">Published</option>
+              <option value="active">Published</option>
             </select>
           </div>
         </div>

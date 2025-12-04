@@ -44,6 +44,7 @@ export default function AppLayout() {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, feature: 'dashboard' },
     { name: 'HR Module', href: '/hr', icon: Users, feature: 'hr_module' },
     { name: 'Recruitment', href: '/recruitment', icon: Briefcase, feature: 'recruitment' },
+    { name: 'Recruitment Dashboard', href: '/recruitment-dashboard', icon: Briefcase, feature: 'recruitment' },
     { name: 'Performance', href: '/performance', icon: TrendingUp, feature: 'performance' },
     { name: 'Integrations', href: '/integrations', icon: Zap, feature: 'integrations' },
     { name: 'Documents', href: '/documents', icon: FolderOpen, feature: 'documents' },
