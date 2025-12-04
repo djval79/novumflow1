@@ -82,6 +82,7 @@ export default function FormsPage() {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [editingForm, setEditingForm] = useState<FormTemplate | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [categoryFilter, setCategoryFilter] = useState<FormCategory | 'all'>('all');
 
     // New form state
     const [newFormName, setNewFormName] = useState('');
@@ -229,6 +230,11 @@ export default function FormsPage() {
         }
     }
 
+    // Filter forms by category
+    const filteredForms = categoryFilter === 'all'
+        ? forms
+        : forms.filter(f => f.category === categoryFilter);
+
     return (
         <div>
             <div className="mb-8">
@@ -260,6 +266,27 @@ export default function FormsPage() {
                 </nav>
             </div>
 
+            {/* Category Filter */}
+            {activeTab === 'all' && !editingForm && (
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Category</label>
+                    <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value as FormCategory | 'all')}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                        <option value="all">All Categories</option>
+                        <option value="recruitment">Recruitment</option>
+                        <option value="hr">HR</option>
+                        <option value="compliance">Compliance</option>
+                        <option value="operations">Operations</option>
+                        <option value="training">Training</option>
+                        <option value="clinical">Clinical</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+            )}
+
             {/* Content */}
             {activeTab === 'all' && (
                 <div>
@@ -282,7 +309,7 @@ export default function FormsPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {forms.map((form) => (
+                            {filteredForms.map((form) => (
                                 <div key={form.id} className="bg-white rounded-lg shadow border border-gray-200 p-6">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
@@ -323,11 +350,11 @@ export default function FormsPage() {
                                 </div>
                             ))}
 
-                            {forms.length === 0 && !loading && (
+                            {filteredForms.length === 0 && !loading && (
                                 <div className="col-span-full text-center py-12">
                                     <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No forms yet</h3>
-                                    <p className="mt-1 text-sm text-gray-500">Get started by creating a new form.</p>
+                                    <h3 className="mt-2 text-sm font-medium text-gray-900">{categoryFilter === 'all' ? 'No forms yet' : `No ${categoryFilter} forms yet`}</h3>
+                                    <p className="mt-1 text-sm text-gray-500">{categoryFilter === 'all' ? 'Get started by creating a new form.' : `Create a ${categoryFilter} form to get started.`}</p>
                                     <button
                                         onClick={() => setActiveTab('create')}
                                         className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"

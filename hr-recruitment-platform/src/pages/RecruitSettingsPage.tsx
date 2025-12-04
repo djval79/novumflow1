@@ -51,6 +51,7 @@ export default function RecruitSettingsPage() {
     const { data, error } = await supabase
       .from('form_templates')
       .select('*')
+      .eq('category', 'recruitment')  // Only show recruitment forms
       .order('created_at', { ascending: false });
 
     if (data) {
