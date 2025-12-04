@@ -71,6 +71,8 @@ export const tenantService = {
             is_enabled: true,
             enabled_by: adminUserId,
             enabled_at: new Date().toISOString(),
+        }, {
+            onConflict: 'tenant_id,feature_id'  // Specify which columns to use for conflict resolution
         });
         if (error) {
             console.error('Error enabling feature:', error);
