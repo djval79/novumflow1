@@ -80,20 +80,14 @@ export default function DashboardPage() {
         .eq('is_current_version', true);
 
       // Get today's attendance for current tenant
-      const today = new Date().toISOString().split('T')[0];
-      const { count: attendanceCount } = await supabase
-        .from('attendance_records')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id)
-        .eq('date', today)
-        .eq('status', 'present');
+      // NOTE: attendance_records table doesn't have tenant_id column yet
+      // TODO: Add tenant_id column to attendance_records table
+      const attendanceCount = 0; // Disabled until table has tenant_id
 
       // Get pending leave requests for current tenant
-      const { count: leaveCount } = await supabase
-        .from('leave_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id)
-        .eq('status', 'pending');
+      // NOTE: leave_requests table doesn't have tenant_id column yet
+      // TODO: Add tenant_id column to leave_requests table
+      const leaveCount = 0; // Disabled until table has tenant_id
 
       // Get recent audit logs for current tenant
       const { data: logs } = await supabase
