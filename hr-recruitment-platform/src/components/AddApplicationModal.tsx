@@ -16,6 +16,8 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState('');
+  const [selectedJobId, setSelectedJobId] = useState('');
+  const [availableJobs, setAvailableJobs] = useState<any[]>([]);
   const [formSchema, setFormSchema] = useState<FormField[]>([]);
   const [basicInfo, setBasicInfo] = useState({
     applicant_first_name: '',
@@ -27,8 +29,21 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
   useEffect(() => {
     if (isOpen) {
       loadFormSchema();
+      loadAvailableJobs();
     }
   }, [isOpen]);
+
+  async function loadAvailableJobs() {
+    const { data } = await supabase
+      .from('job_postings')
+      .select('id, job_title, status')
+      .in('status', ['draft', 'active'])
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setAvailableJobs(data);
+    }
+  }
 
   async function loadFormSchema() {
     // Load the active form template.
@@ -79,6 +94,7 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
     try {
       // 1. Prepare Payload
       const payload: any = {
+        job_posting_id: selectedJobId || null,
         position: selectedPosition,
         applicant_first_name: basicInfo.applicant_first_name,
         applicant_last_name: basicInfo.applicant_last_name,
@@ -177,6 +193,23 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add New Application" maxWidth="max-w-3xl">
       <div className="space-y-6">
+        {/* Job Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Job Posting</label>
+          <select
+            value={selectedJobId}
+            onChange={(e) => setSelectedJobId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+          >
+            <option value="">No specific job (general application)</option>
+            {availableJobs.map(job => (
+              <option key={job.id} value={job.id}>
+                {job.job_title} ({job.status})
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Position Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Position Applied For *</label>

@@ -4,6 +4,11 @@ import path from 'path';
 test.describe('Recruitment Flow', () => {
     test.beforeEach(async ({ page }) => {
         page.on('console', msg => console.log(`BROWSER LOG: ${msg.text()}`));
+        page.on('request', request => {
+            if (request.url().includes('supabase.co')) {
+                console.log('SUPABASE REQUEST:', request.url());
+            }
+        });
     });
 
     test('Full Recruitment Lifecycle', async ({ page }) => {
@@ -20,7 +25,7 @@ test.describe('Recruitment Flow', () => {
         await page.getByRole('button', { name: 'Sign in' }).click();
 
         // Wait for dashboard or redirection
-        await expect(page.getByText('Dashboard')).toBeVisible({ timeout: 15000 });
+        await expect(page.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible({ timeout: 15000 });
 
         // 2. Post a Job
         await page.goto('https://bgffggjfgcfnjgcj.vercel.app/recruitment');
@@ -67,6 +72,9 @@ test.describe('Recruitment Flow', () => {
         // Wait for application modal to be visible
         await expect(page.getByRole('heading', { name: 'Add New Application' })).toBeVisible({ timeout: 10000 });
 
+        // Select the job we just created
+        await page.locator('div').filter({ hasText: 'Job Posting' }).last().locator('select').selectOption({ label: new RegExp(jobTitle) });
+
         // Fill Application Form
         await page.locator('div').filter({ hasText: 'Position Applied For' }).last().locator('select').selectOption('Other');
 
@@ -82,6 +90,14 @@ test.describe('Recruitment Flow', () => {
         // 3. Interview Process (Move through stages)
         // Find the row with the applicant
         const row = page.getByRole('row', { name: `${applicantFirstName} ${applicantLastName}` });
+
+        // Debug: Print row content
+        const rowText = await row.textContent();
+        console.log('ROW CONTENT:', rowText);
+
+        if (await row.getByText('No workflow').isVisible()) {
+            console.log('ERROR: Application has "No workflow"');
+        }
 
         // Move to Screening
         await row.getByRole('combobox').selectOption({ label: 'Screening' });
