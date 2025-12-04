@@ -156,7 +156,7 @@ export default function DashboardPage() {
     { name: 'Pending Leave Requests', value: stats.pendingLeaveRequests, icon: Calendar },
   ];
 
-  if (loading) {
+  if (loading || !currentTenant) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
