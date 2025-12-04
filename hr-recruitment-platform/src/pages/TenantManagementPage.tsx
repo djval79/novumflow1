@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenant } from '@/contexts/TenantContext';
 import { tenantService, Tenant, Feature } from '@/lib/services/TenantService';
 import { Building2, Check, X, Loader2, Shield, Save, CheckCircle2, Clock } from 'lucide-react';
 import Toast from '@/components/Toast';
@@ -8,6 +9,7 @@ import { onboardingService, TenantOnboarding } from '@/lib/services/OnboardingSe
 
 export default function TenantManagementPage() {
     const { user, profile } = useAuth();
+    const { refreshTenants } = useTenant();
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [features, setFeatures] = useState<Feature[]>([]);
     const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
@@ -195,6 +197,9 @@ export default function TenantManagementPage() {
 
                 // Reload all data to ensure we have the latest
                 await loadData();
+
+                // Refresh TenantContext to update banner
+                await refreshTenants();
 
                 // Find and set the updated tenant as selected
                 const updatedTenants = await tenantService.getAllTenants();
