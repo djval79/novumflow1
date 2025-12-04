@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { 
-  Users, 
-  Briefcase, 
-  Calendar, 
+import { useTenant } from '@/contexts/TenantContext';
+import {
+  Users,
+  Briefcase,
+  Calendar,
   AlertTriangle,
   TrendingUp,
   Clock,
@@ -23,6 +24,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
+  const { currentTenant } = useTenant();
   const [stats, setStats] = useState<DashboardStats>({
     totalEmployees: 0,
     activeJobs: 0,
@@ -35,58 +37,69 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (currentTenant) {
+      loadDashboardData();
+    }
+  }, [currentTenant]);
 
   async function loadDashboardData() {
+    if (!currentTenant) return;
+
     try {
-      // Get total employees
+      // Get total employees for current tenant
       const { count: employeeCount } = await supabase
         .from('employees')
         .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id)
         .eq('status', 'active');
 
-      // Get active job postings
+      // Get active job postings for current tenant
       const { count: jobCount } = await supabase
         .from('job_postings')
         .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id)
         .eq('status', 'published');
 
-      // Get pending applications
+      // Get pending applications for current tenant
       const { count: appCount } = await supabase
         .from('applications')
         .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id)
         .in('status', ['applied', 'screening', 'interview_scheduled']);
 
-      // Get upcoming document expiries (next 30 days)
+      // Get upcoming document expiries for current tenant (next 30 days)
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-      
+
       const { count: expiryCount } = await supabase
         .from('documents')
         .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id)
         .not('expiry_date', 'is', null)
         .lte('expiry_date', thirtyDaysFromNow.toISOString().split('T')[0])
         .eq('is_current_version', true);
 
-      // Get today's attendance
+      // Get today's attendance for current tenant
       const today = new Date().toISOString().split('T')[0];
       const { count: attendanceCount } = await supabase
         .from('attendance_records')
         .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id)
         .eq('date', today)
         .eq('status', 'present');
 
-      // Get pending leave requests
+      // Get pending leave requests for current tenant
       const { count: leaveCount } = await supabase
         .from('leave_requests')
         .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id)
         .eq('status', 'pending');
 
-      // Get recent audit logs for activity feed
+      // Get recent audit logs for current tenant
       const { data: logs } = await supabase
         .from('audit_logs')
         .select('*')
+        .eq('tenant_id', currentTenant.id)
         .order('timestamp', { ascending: false })
         .limit(10);
 
@@ -108,31 +121,31 @@ export default function DashboardPage() {
   }
 
   const statCards = [
-    { 
-      name: 'Total Employees', 
-      value: stats.totalEmployees, 
-      icon: Users, 
+    {
+      name: 'Total Employees',
+      value: stats.totalEmployees,
+      icon: Users,
       color: 'bg-blue-500',
       change: '+12%'
     },
-    { 
-      name: 'Active Job Postings', 
-      value: stats.activeJobs, 
-      icon: Briefcase, 
+    {
+      name: 'Active Job Postings',
+      value: stats.activeJobs,
+      icon: Briefcase,
       color: 'bg-green-500',
       change: '+5%'
     },
-    { 
-      name: 'Pending Applications', 
-      value: stats.pendingApplications, 
-      icon: FileText, 
+    {
+      name: 'Pending Applications',
+      value: stats.pendingApplications,
+      icon: FileText,
       color: 'bg-purple-500',
       change: '+23%'
     },
-    { 
-      name: 'Document Expiries', 
-      value: stats.upcomingExpiries, 
-      icon: AlertTriangle, 
+    {
+      name: 'Document Expiries',
+      value: stats.upcomingExpiries,
+      icon: AlertTriangle,
       color: 'bg-orange-500',
       change: 'Next 30 days'
     },
@@ -199,7 +212,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-gray-900">Recent Activities</h2>
           <Clock className="w-5 h-5 text-gray-400" />
         </div>
-        
+
         <div className="space-y-4">
           {recentActivities.length > 0 ? (
             recentActivities.map((activity) => (
@@ -218,7 +231,7 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-      
+
       {/* Admin Privilege Setup */}
       <AdminPrivilegeSetup />
     </div>
