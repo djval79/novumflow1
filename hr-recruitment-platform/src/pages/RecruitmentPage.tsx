@@ -178,6 +178,8 @@ export default function RecruitmentPage() {
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [workflowStages, setWorkflowStages] = useState<any[]>([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>('all');
+  const [selectedJobId, setSelectedJobId] = useState<string>('all');
+  const [selectedStageId, setSelectedStageId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAddJobModal, setShowAddJobModal] = useState(false);
@@ -475,8 +477,10 @@ export default function RecruitmentPage() {
       .includes(searchTerm.toLowerCase());
 
     const matchesWorkflow = selectedWorkflowId === 'all' || app.job_postings?.workflow_id === selectedWorkflowId;
+    const matchesJob = selectedJobId === 'all' || app.job_id === selectedJobId;
+    const matchesStage = selectedStageId === 'all' || app.current_stage_id === selectedStageId;
 
-    return matchesSearch && matchesWorkflow;
+    return matchesSearch && matchesWorkflow && matchesJob && matchesStage;
   });
 
   // Get stages for the selected workflow (for Board View)
@@ -531,6 +535,34 @@ export default function RecruitmentPage() {
                 <option value="all">All Workflows</option>
                 {workflows.map(wf => (
                   <option key={wf.id} value={wf.id}>{wf.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Job Filter */}
+            <div className="flex items-center space-x-2">
+              <select
+                value={selectedJobId}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                className="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 max-w-[150px]"
+              >
+                <option value="all">All Jobs</option>
+                {jobs.map(job => (
+                  <option key={job.id} value={job.id}>{job.job_title}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Stage Filter */}
+            <div className="flex items-center space-x-2">
+              <select
+                value={selectedStageId}
+                onChange={(e) => setSelectedStageId(e.target.value)}
+                className="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 max-w-[150px]"
+              >
+                <option value="all">All Stages</option>
+                {workflowStages.map(stage => (
+                  <option key={stage.id} value={stage.id}>{stage.name}</option>
                 ))}
               </select>
             </div>

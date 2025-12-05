@@ -72,8 +72,17 @@ test.describe('Recruitment Flow', () => {
         // Wait for application modal to be visible
         await expect(page.getByRole('heading', { name: 'Add New Application' })).toBeVisible({ timeout: 10000 });
 
-        // Select the job we just created
-        await page.locator('div').filter({ hasText: 'Job Posting' }).last().locator('select').selectOption({ label: new RegExp(jobTitle) });
+        // Select the job we just created (it will be the first option after "No specific job")
+        const jobOptions = await page.locator('div').filter({ hasText: 'Job Posting' }).last().locator('select option').allTextContents();
+        console.log('Available job options:', jobOptions);
+        const jobOption = jobOptions.find(opt => opt.includes(jobTitle));
+        console.log('Selected job option:', jobOption);
+        if (jobOption) {
+            await page.locator('div').filter({ hasText: 'Job Posting' }).last().locator('select').selectOption({ label: jobOption });
+            console.log('Job selected successfully');
+        } else {
+            console.log('ERROR: Could not find job option matching:', jobTitle);
+        }
 
         // Fill Application Form
         await page.locator('div').filter({ hasText: 'Position Applied For' }).last().locator('select').selectOption('Other');
