@@ -15,24 +15,15 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('password-reset-request', {
-        body: {
-          email,
-          ipAddress: 'unknown',
-          userAgent: navigator.userAgent,
-        },
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (invokeError) {
-        throw invokeError;
+      if (resetError) {
+        throw resetError;
       }
 
       setSuccess(true);
-      
-      // Show reset link for testing (in production, this would only be sent via email)
-      if (data?.data?.resetLink) {
-        console.log('Password reset link:', data.data.resetLink);
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to send reset email. Please try again.');
     } finally {
@@ -49,7 +40,7 @@ export default function ForgotPasswordPage() {
               <Building2 className="w-10 h-10 text-white" />
             </div>
           </div>
-          
+
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Reset Password</h1>
           <p className="text-center text-gray-600 mb-8">
             Enter your email address and we'll send you instructions to reset your password
@@ -105,7 +96,7 @@ export default function ForgotPasswordPage() {
             Back to Login
           </Link>
         </div>
-        
+
         <p className="mt-8 text-center text-xs text-gray-600">
           HR & Recruitment Management Platform
         </p>

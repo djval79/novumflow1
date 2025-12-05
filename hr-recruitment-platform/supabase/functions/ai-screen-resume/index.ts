@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai";
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.13.0";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -91,7 +91,7 @@ serve(async (req) => {
 
         // 4. Call Google Generative AI API (Gemini)
         const genAI = new GoogleGenerativeAI(googleApiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = await response.text();
