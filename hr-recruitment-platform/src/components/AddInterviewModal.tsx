@@ -89,6 +89,7 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError,
         application_id: formData.application_id,
         interview_type: formData.interview_type,
         scheduled_date: scheduledDateTime,
+        scheduled_time: formData.scheduled_time, // Add scheduled_time column
         location: formData.location,
         notes: formData.interviewer_notes,
         status: formData.status,
