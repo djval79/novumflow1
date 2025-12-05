@@ -124,9 +124,10 @@ serve(async (req) => {
 
     } catch (error: any) {
         console.error('Edge function error:', error);
+        // Return 200 so client sees the error message in data
         return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
+            status: 200,
         });
     }
 });

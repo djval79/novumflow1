@@ -365,8 +365,8 @@ export default function RecruitmentPage() {
       });
 
       if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
 
-      setToast({ message: 'AI screening completed successfully!', type: 'success' });
       setToast({ message: 'AI screening completed successfully!', type: 'success' });
       loadData(); // Refresh the application data to show the new score and summary
     } catch (error: any) {
