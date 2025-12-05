@@ -60,12 +60,22 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError,
   }, [interview, isOpen]);
 
   async function loadApplications() {
-    const { data } = await supabase
-      .from('applications')
-      .select('id, applicant_first_name, applicant_last_name, applicant_email, job_posting_id, status')
-      .in('status', ['shortlisted', 'screening', 'interview_scheduled'])
-      .order('applied_at', { ascending: false });
-    setApplications(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('id, applicant_first_name, applicant_last_name, applicant_email, job_posting_id, status')
+        .in('status', ['applied', 'shortlisted', 'screening', 'interview_scheduled'])
+        .order('applied_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading applications:', error);
+      }
+
+      setApplications(data || []);
+    } catch (err) {
+      console.error('Failed to load applications:', err);
+      setApplications([]);
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
