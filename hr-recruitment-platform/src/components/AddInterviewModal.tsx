@@ -62,7 +62,7 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError,
   async function loadApplications() {
     const { data } = await supabase
       .from('applications')
-      .select('id, applicant_first_name, applicant_last_name, email, job_posting_id, status')
+      .select('id, applicant_first_name, applicant_last_name, applicant_email, job_posting_id, status')
       .in('status', ['shortlisted', 'screening', 'interview_scheduled'])
       .order('applied_at', { ascending: false });
     setApplications(data || []);
@@ -120,11 +120,11 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError,
 
         // Send interview invitation email
         const selectedApp = applications.find(a => a.id === formData.application_id);
-        if (selectedApp?.email) {
+        if (selectedApp?.applicant_email) {
           await supabase.functions.invoke('send-interview-invite', {
             body: {
               candidateName: `${selectedApp.applicant_first_name} ${selectedApp.applicant_last_name}`,
-              candidateEmail: selectedApp.email,
+              candidateEmail: selectedApp.applicant_email,
               interviewType: formData.interview_type,
               scheduledDate: formData.scheduled_date,
               scheduledTime: formData.scheduled_time,
