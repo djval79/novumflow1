@@ -59,9 +59,11 @@ export default function LettersPage() {
     }
   }
 
-  function handleSuccess() {
+  async function handleSuccess() {
     setToast({ message: 'Template created successfully!', type: 'success' });
-    loadData();
+    // Small delay to ensure database has committed the changes
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await loadData();
   }
 
   function handleError(message: string) {
@@ -120,8 +122,8 @@ export default function LettersPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               {tab.label}
@@ -249,9 +251,9 @@ export default function LettersPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${letter.status === 'sent' ? 'bg-green-100 text-green-800' :
-                                letter.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                                  letter.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                    'bg-yellow-100 text-yellow-800'
+                              letter.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                                letter.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
                               }`}>
                               {letter.status}
                             </span>

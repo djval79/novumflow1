@@ -425,9 +425,11 @@ export default function RecruitmentPage() {
     }
   }
 
-  function handleSuccess() {
+  async function handleSuccess() {
     setToast({ message: (selectedJob || selectedInterview) ? 'Item updated successfully!' : 'Item created successfully!', type: 'success' });
-    loadData();
+    // Small delay to ensure database has committed the changes
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await loadData();
   }
 
   function handleError(message: string) {

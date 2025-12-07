@@ -3,16 +3,29 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedCarePlan, Shift, StaffMember, ProgressLog, CareGoal, Medication, FormTemplate, GeneratedQuiz, IncidentAnalysis, CandidateAnalysis, EnquiryAnalysis, DocumentAnalysis, OfficeTask, AssetAnalysis, ReceiptAnalysis, MarketPrediction, ActivitySuggestion, SecurityAnalysis, SentimentSummary, AppNotification, MealPlan, StockPrediction } from "../types";
 
 // Initialize the client with the API key from the environment
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Only initialize if API key is available to prevent crashes
+const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
+// Helper to check if AI is available
+const checkAI = () => {
+  if (!ai) {
+    console.warn('Gemini API key not set. AI features are disabled.');
+    return false;
+  }
+  return true;
+};
 
 export const generateCarePlanAI = async (
   clientDetails: string,
   medicalHistory: string
 ): Promise<GeneratedCarePlan | null> => {
+  if (!checkAI()) return null;
+
   try {
     const modelId = 'gemini-2.5-flash'; // Using 2.5 Flash for speed and structure
 
-    const response = await ai.models.generateContent({
+    const response = await ai!.models.generateContent({
       model: modelId,
       contents: `Create a detailed care plan and risk assessment for a care home or home help client.
       

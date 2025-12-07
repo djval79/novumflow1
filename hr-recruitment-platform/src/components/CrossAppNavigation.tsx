@@ -3,7 +3,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { ExternalLink, Heart, Users } from 'lucide-react';
 
 // Configuration
-const CAREFLOW_URL = import.meta.env.VITE_CAREFLOW_URL || 'http://localhost:3000';
+const CAREFLOW_URL = import.meta.env.VITE_CAREFLOW_URL || 'http://localhost:5174';
 const NOVUMFLOW_URL = import.meta.env.VITE_NOVUMFLOW_URL || 'http://localhost:5173';
 
 interface CrossAppNavigationProps {

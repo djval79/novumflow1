@@ -147,9 +147,11 @@ export default function HRModulePage() {
     }
   }
 
-  function handleSuccess() {
+  async function handleSuccess() {
     setToast({ message: 'Item created successfully!', type: 'success' });
-    loadData();
+    // Small delay to ensure database has committed the changes
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await loadData();
   }
 
   function handleError(message: string) {
