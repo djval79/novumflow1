@@ -1,5 +1,12 @@
 {
-    "installCommand": "npm install",
-    "buildCommand": "npm run build",
-    "framework": "vite"
+  "installCommand": "cd hr-recruitment-platform && npm install --legacy-peer-deps",
+  "buildCommand": "cd hr-recruitment-platform && npm run build",
+  "outputDirectory": "hr-recruitment-platform/dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
