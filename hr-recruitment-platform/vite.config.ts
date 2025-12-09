@@ -16,7 +16,7 @@ export default defineConfig({
       includeProps: true,
     }),
     VitePWA({
-      disable: !isProd, // Disable in development to prevent caching issues
+      disable: true, // Disabled to prevent ServiceWorker registration errors
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {

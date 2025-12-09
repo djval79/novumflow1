@@ -282,10 +282,61 @@ export default function RecruitmentPage() {
       .eq('id', appId);
 
     if (!error) {
-      // No need to reload data immediately if optimistic update worked, 
-      // but good to ensure consistency eventually.
-      // loadData(); 
       setToast({ message: 'Application stage updated', type: 'success' });
+
+      // Check for automations
+      try {
+        const { data: automations } = await supabase
+          .from('stage_automations')
+          .select('*')
+          .eq('stage_id', stageId)
+          .eq('is_active', true)
+          .eq('trigger_event', 'on_enter');
+
+        if (automations && automations.length > 0) {
+          // Log trigger events to automation service
+          const automationLogs = automations.map(auto => ({
+            rule_id: auto.id, // Using stage_automation id as rule_id
+            trigger_event: 'stage_change',
+            execution_status: 'pending',
+            created_by: user?.id, // Ensure we track who triggered it
+            trigger_data: {
+              action_type: auto.action_type,
+              action_config: auto.action_config,
+              application_id: appId,
+              stage_id: stageId,
+              automation_name: auto.name
+            }
+          }));
+
+          const { error: logError } = await supabase
+            .from('automation_execution_logs')
+            .insert(automationLogs);
+
+          if (logError) {
+            console.error('Failed to schedule automations:', logError);
+            setToast({ message: 'Stage updated, but failed to trigger automations', type: 'warning' });
+          } else {
+            // Notify user
+            const actionNames = automations.map(a => a.action_type.replace('_', ' ')).join(', ');
+            // Special handling for interview scheduling - might still want the modal fallback if not fully auto
+            automations.forEach(auto => {
+              if (auto.action_type === 'schedule_interview') {
+                // Start the flow or let the service handle it? 
+                // Service handles creation, but maybe we want to hint user?
+              }
+            });
+
+            setToast({
+              message: `Stage updated. Scheduled actions: ${actionNames}`,
+              type: 'success'
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error executing automations:', err);
+      }
+
     } else {
       setToast({ message: 'Failed to update stage', type: 'error' });
       loadData(); // Revert on error

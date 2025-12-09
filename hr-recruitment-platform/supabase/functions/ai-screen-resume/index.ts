@@ -7,6 +7,36 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Retry function with exponential backoff
+async function retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelayMs: number = 2000
+): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error: any) {
+            lastError = error;
+            const isRateLimited = error.message?.includes('429') ||
+                error.message?.includes('quota') ||
+                error.message?.includes('Too Many Requests');
+
+            if (!isRateLimited || attempt === maxRetries - 1) {
+                throw error;
+            }
+
+            const delayMs = baseDelayMs * Math.pow(2, attempt);
+            console.log(`Rate limited. Retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+
+    throw lastError;
+}
+
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
@@ -89,18 +119,46 @@ serve(async (req) => {
             RETURN ONLY JSON. DO NOT USE MARKDOWN BLOCK.
         `;
 
-        // 4. Call Google Generative AI API (Gemini)
+        // 4. Call Google Generative AI API (Gemini) with retry logic
         const genAI = new GoogleGenerativeAI(googleApiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = await response.text();
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
 
-        console.log('Gemini response:', text);
+        let aiResponse: { score: number; summary: string };
 
-        // Clean up JSON (remove markdown code blocks if present)
-        const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        const aiResponse = JSON.parse(jsonString);
+        try {
+            const result = await retryWithBackoff(async () => {
+                return await model.generateContent(prompt);
+            }, 3, 2000);
+
+            const response = await result.response;
+            const text = await response.text();
+
+            console.log('Gemini response:', text);
+
+            // Clean up JSON (remove markdown code blocks if present)
+            const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            aiResponse = JSON.parse(jsonString);
+        } catch (aiError: any) {
+            console.error('AI API error:', aiError);
+
+            // Check if it's a quota error
+            const isQuotaError = aiError.message?.includes('429') ||
+                aiError.message?.includes('quota') ||
+                aiError.message?.includes('Too Many Requests');
+
+            if (isQuotaError) {
+                return new Response(JSON.stringify({
+                    error: 'AI service quota exceeded. Please try again later or contact your administrator to upgrade the API plan.',
+                    quota_exceeded: true,
+                    retry_suggested: true
+                }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 200,
+                });
+            }
+
+            throw aiError;
+        }
 
         // 5. Update application with AI score and summary
         const { data: updatedApplication, error: updateError } = await supabase

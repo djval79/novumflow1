@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const supabaseUrl = "https://niikshfoecitimepiifo.supabase.co";
-export const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paWtzaGZvZWNpdGltZXBpaWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNTIyMTUsImV4cCI6MjA3ODYyODIxNX0.4KzLoUez4xQ1_h-vpx1dOa1PrzvAbi65UC4Mf7JQAfc";
+export const supabaseUrl = "http://127.0.0.1:54321";
+export const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvY2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODcyODU1MDUsImV4cCI6MTk5NTg2MTUwNX0.MnK0aK8YqK8YqK8YqK8YqK8YqK8YqK8YqK8YqK8YqK8"; // Standard local anon key
 
 // Create Supabase client with cache-busting headers
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
