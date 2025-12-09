@@ -77,8 +77,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Session Timeout Logic (30 minutes)
+    const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+    const ACTIVITY_THROTTLE = 5 * 60 * 1000; // 5 minutes (throttle DB updates)
+    let lastActivityTime = Date.now();
+    let lastDbUpdate = Date.now();
+    let activityTimer: NodeJS.Timeout;
+
+    function updateActivity() {
+      const now = Date.now();
+      lastActivityTime = now;
+
+      // Optional: Update DB session every 5 minutes
+      if (user && now - lastDbUpdate > ACTIVITY_THROTTLE) {
+        lastDbUpdate = now;
+        // Fire and forget update to user_sessions
+        // We need the session ID or token to update the specific session
+        // For now, we rely on client-side timeout as primary
+      }
+    }
+
+    function checkInactivity() {
+      const now = Date.now();
+      if (user && now - lastActivityTime > INACTIVITY_LIMIT) {
+        console.log('User inactive for 30 minutes, signing out...');
+        signOut();
+        alert('You have been signed out due to inactivity.');
+      }
+    }
+
+    if (user) {
+      // Add event listeners
+      window.addEventListener('mousemove', updateActivity);
+      window.addEventListener('keydown', updateActivity);
+      window.addEventListener('click', updateActivity);
+      window.addEventListener('scroll', updateActivity);
+
+      // Check inactivity every minute
+      activityTimer = setInterval(checkInactivity, 60 * 1000);
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      if (activityTimer) clearInterval(activityTimer);
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('scroll', updateActivity);
+    };
+  }, [user]);
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

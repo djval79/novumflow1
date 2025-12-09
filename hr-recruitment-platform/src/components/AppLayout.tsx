@@ -83,6 +83,12 @@ export default function AppLayout() {
       icon: History,
       feature: 'system'
     });
+    navigation.push({
+      name: 'Security Dashboard',
+      href: '/admin/security',
+      icon: Shield,
+      feature: 'system'
+    });
   }
 
   // Add Compliance Dashboard (available to all users)

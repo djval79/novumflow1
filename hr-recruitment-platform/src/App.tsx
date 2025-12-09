@@ -92,6 +92,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 import TenantSignupPage from './pages/TenantSignupPage';
 import AdminPortalPage from './pages/AdminPortalPage';
+import AdminSecurityDashboard from './pages/AdminSecurityDashboard';
 
 
 function App() {
@@ -159,6 +160,7 @@ function App() {
               <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
               <Route path="audit-logs" element={<AuditLogPage />} />
               <Route path="admin" element={<AdminPortalPage />} />
+              <Route path="admin/security" element={<AdminSecurityDashboard />} />
             </Route>
 
             {/* Standalone Protected Routes (No App Layout) */}
@@ -187,8 +189,7 @@ function App() {
               }
             />
 
-            {/* Public Landing Page */}
-            <Route path="/" element={<LandingPage />} />
+            {/* Landing Page - currently shadowed by protected root */}{/* <Route path="/" element={<LandingPage />} /> */}
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
