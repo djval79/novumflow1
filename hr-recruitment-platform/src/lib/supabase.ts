@@ -1,15 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Environment-based configuration
-const isDevelopment = import.meta.env.VITE_ENVIRONMENT === 'development';
+const isDevelopment = import.meta.env.MODE === 'development';
+const isProduction = import.meta.env.MODE === 'production';
 
-export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://niikshfoecitimepiifo.supabase.co";
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paWtzaGZvZWNpdGltZXBpaWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNTIyMTUsImV4cCI6MjA3ODYyODIxNX0.4KzLoUez4xQ1_h-vpx1dOa1PrzvAbi65UC4Mf7JQAfc";
+// SECURITY: Enforce environment variables - no fallback credentials
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('🔗 Supabase Configuration:');
-console.log('📍 URL:', supabaseUrl);
-console.log('🔑 Key:', supabaseAnonKey.substring(0, 20) + '...');
-console.log('🏗️ Environment:', import.meta.env.VITE_ENVIRONMENT);
+// Validate required configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    '❌ Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.'
+  );
+}
+
+// Development-only logging (removed in production)
+if (isDevelopment) {
+  console.log('🔗 Supabase Configuration:');
+  console.log('📍 URL:', supabaseUrl);
+  console.log('🔑 Key:', supabaseAnonKey.substring(0, 20) + '...');
+  console.log('🏗️ Environment:', import.meta.env.MODE);
+}
 
 // Create Supabase client with optimized configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -75,7 +87,9 @@ export const isValidSupabaseUrl = (url: string): boolean => {
 export const getCurrentUser = async () => {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) {
-    console.error('Error getting current user:', error);
+    if (isDevelopment) {
+      console.error('Error getting current user:', error);
+    }
     return null;
   }
   return user;
@@ -92,14 +106,16 @@ export const getCurrentUserProfile = async () => {
     .single();
 
   if (error) {
-    console.error('Error getting user profile:', error);
+    if (isDevelopment) {
+      console.error('Error getting user profile:', error);
+    }
     return null;
   }
 
   return profile as UserProfile;
 };
 
-// Connection test
+// Connection test (development only)
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     const { data, error } = await supabase
@@ -108,19 +124,25 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
       .limit(1);
 
     if (error) {
-      console.error('❌ Supabase connection test failed:', error);
+      if (isDevelopment) {
+        console.error('❌ Supabase connection test failed:', error);
+      }
       return false;
     }
 
-    console.log('✅ Supabase connection successful');
+    if (isDevelopment) {
+      console.log('✅ Supabase connection successful');
+    }
     return true;
   } catch (error) {
-    console.error('❌ Supabase connection error:', error);
+    if (isDevelopment) {
+      console.error('❌ Supabase connection error:', error);
+    }
     return false;
   }
 };
 
-// Initialize connection test in development
+// Initialize connection test in development only
 if (isDevelopment) {
   testSupabaseConnection();
 }
