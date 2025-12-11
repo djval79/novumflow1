@@ -3,6 +3,8 @@ import { automationService } from '@/lib/services/AutomationService';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
+import { QueryProvider } from './contexts/QueryProvider';
+import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import AppLayout from './components/AppLayout';
 import FeatureRoute from './components/FeatureRoute';
 import LoginPage from './pages/LoginPage';
@@ -104,9 +106,11 @@ function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <TenantProvider>
-        <BrowserRouter>
+    <QueryProvider>
+      <AuthProvider>
+        <TenantProvider>
+          <BrowserRouter>
+            <PWAUpdateNotification />
           <Routes>
             {/* Public Routes */}
             <Route
@@ -194,9 +198,10 @@ function App() {
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
-      </TenantProvider>
-    </AuthProvider>
+          </BrowserRouter>
+        </TenantProvider>
+      </AuthProvider>
+    </QueryProvider>
   );
 }
 
