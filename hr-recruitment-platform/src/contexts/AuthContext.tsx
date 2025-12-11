@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, UserProfile } from '@/lib/supabase';
+import ServiceUnavailablePage from '@/pages/ServiceUnavailablePage';
 
 interface AuthContextType {
   user: User | null;
@@ -17,39 +18,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isServiceUnavailable, setIsServiceUnavailable] = useState(false);
 
+  // Effect 1: Initialize Auth (Run once)
   useEffect(() => {
     async function loadUser() {
+      console.log('🔄 AuthContext: loadUser() started');
       setLoading(true);
       try {
+        console.log('⏳ AuthContext: Calling supabase.auth.getUser()...');
         const { data: { user }, error } = await supabase.auth.getUser();
+        console.log('📨 AuthContext: getUser() result:', { user: user?.id, error });
 
         if (error) {
-          console.error('Error loading user:', error.message);
-          // If refresh token is invalid, clear session and user
+          console.error('❌ AuthContext: Error loading user:', error.message, error);
+
+          // Check for Service Unavailable (503)
+          if (
+            (error as any).status === 503 ||
+            (error as any).status === 500 ||
+            error.message.includes('Service Unavailable') ||
+            error.message.includes('upstream connect error') ||
+            error.message.includes('Failed to fetch')
+          ) {
+            console.error('🚨 Service Unavailable: Supabase backend is down.');
+            setIsServiceUnavailable(true);
+            setLoading(false);
+            return;
+          }
+
+          // If refresh token is invalid
           if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token') || error.message.includes('Auth session missing!')) {
             await supabase.auth.signOut();
             setUser(null);
             setProfile(null);
             return;
           }
+        } else {
+          setIsServiceUnavailable(false);
         }
 
         setUser(user);
 
         if (user) {
-          const { data: profileData } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('users_profiles')
             .select('*')
             .eq('user_id', user.id)
             .maybeSingle();
 
+          if (profileError && (
+            (profileError as any).status === 503 ||
+            profileError.message.includes('Service Unavailable') ||
+            profileError.message.includes('upstream connect error') ||
+            profileError.message.includes('Failed to fetch')
+          )) {
+            console.error('🚨 Service Unavailable: Supabase backend is down (Profile Load).');
+            setIsServiceUnavailable(true);
+            setLoading(false);
+            return;
+          }
+
           setProfile(profileData);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Unexpected error loading user:', err);
-        setUser(null);
-        setProfile(null);
+        if (
+          err.message?.includes('Failed to fetch') ||
+          err.message?.includes('NetworkError') ||
+          err.status === 503
+        ) {
+          setIsServiceUnavailable(true);
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -57,11 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadUser();
 
-    // Set up auth listener - KEEP SIMPLE, avoid async operations
+    // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
 
-      // Load profile synchronously after state change
       if (session?.user) {
         const userId = session.user.id;
         supabase
@@ -69,14 +111,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .eq('user_id', userId)
           .maybeSingle()
-          .then(({ data }) => {
-            setProfile(data);
+          .then(({ data, error }) => {
+            if (error && (
+              (error as any).status === 503 ||
+              error.message.includes('Service Unavailable') ||
+              error.message.includes('Failed to fetch')
+            )) {
+              setIsServiceUnavailable(true);
+            } else {
+              setProfile(data);
+            }
           });
       } else {
         setProfile(null);
       }
     });
 
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // Empty dependency array: Run once
+
+  // Effect 2: Inactivity Timers (Run on user change)
+  useEffect(() => {
     // Session Timeout Logic (30 minutes)
     const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
     const ACTIVITY_THROTTLE = 5 * 60 * 1000; // 5 minutes (throttle DB updates)
@@ -87,13 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     function updateActivity() {
       const now = Date.now();
       lastActivityTime = now;
-
-      // Optional: Update DB session every 5 minutes
       if (user && now - lastDbUpdate > ACTIVITY_THROTTLE) {
         lastDbUpdate = now;
-        // Fire and forget update to user_sessions
-        // We need the session ID or token to update the specific session
-        // For now, we rely on client-side timeout as primary
       }
     }
 
@@ -118,14 +170,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
-      subscription.unsubscribe();
       if (activityTimer) clearInterval(activityTimer);
       window.removeEventListener('mousemove', updateActivity);
       window.removeEventListener('keydown', updateActivity);
       window.removeEventListener('click', updateActivity);
       window.removeEventListener('scroll', updateActivity);
     };
-  }, [user]);
+  }, [user]); // Run when user changes
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -157,6 +208,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut();
+  }
+
+  if (isServiceUnavailable) {
+    return <ServiceUnavailablePage />;
   }
 
   return (
