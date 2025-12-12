@@ -8,7 +8,7 @@ import { queryKeys, invalidateQueries } from '@/lib/queryClient';
 import { handleError, createError } from '@/lib/errorHandler';
 import { log } from '@/lib/logger';
 
-interface JobPosting {
+export interface JobPosting {
   id: string;
   job_title: string;
   job_code?: string;
@@ -23,7 +23,7 @@ interface JobPosting {
   [key: string]: any;
 }
 
-interface JobFilters {
+export interface JobFilters {
   department?: string;
   status?: string;
   employment_type?: string;

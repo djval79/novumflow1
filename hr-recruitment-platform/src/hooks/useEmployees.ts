@@ -10,7 +10,7 @@ import { queryKeys, invalidateQueries } from '@/lib/queryClient';
 import { handleError, createError } from '@/lib/errorHandler';
 import { log } from '@/lib/logger';
 
-interface Employee {
+export interface Employee {
   id: string;
   employee_number: string;
   first_name: string;
@@ -25,7 +25,7 @@ interface Employee {
   [key: string]: any;
 }
 
-interface EmployeeFilters {
+export interface EmployeeFilters {
   department?: string;
   status?: string;
   search?: string;
