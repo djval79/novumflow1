@@ -20,6 +20,7 @@ interface LogContext {
   action?: string;
   userId?: string;
   metadata?: Record<string, any>;
+  [key: string]: any; // Allow additional properties
 }
 
 class Logger {
