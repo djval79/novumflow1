@@ -1430,7 +1430,7 @@ INSERT INTO compliance_sync_log (
 ) VALUES 
     ('51000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001',
      'novumflow', 'careflow', 'PERSON_FULL',
-     'a1000000-0000-0000-0000-000000000004', 'cf-a1000000-0000-0000-0000-000000000004', 'compliance_person',
+     'a1000000-0000-0000-0000-000000000004', 'cfa10000-0000-0000-0000-000000000004', 'compliance_person',
      'COMPLETED', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day',
      '{"full_name": "James Wilson", "job_title": "Team Leader", "compliance_score": 95, "documents_synced": 5}'::jsonb);
 
@@ -1444,19 +1444,19 @@ INSERT INTO compliance_audit_log (
     user_id, user_email, user_role,
     old_values, new_values
 ) VALUES 
-    ('al1000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001',
+    ('a1100000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001',
      'DOCUMENT_VERIFIED', 'compliance_document', 'd1000000-0000-0000-0000-000000000014',
      null, 'hr.admin@company.com', 'HR_ADMIN',
      '{"status": "UPLOADED"}'::jsonb,
      '{"status": "VERIFIED", "verified_at": "2024-11-14T10:30:00Z"}'::jsonb),
     
-    ('al1000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001',
+    ('a1100000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001',
      'STAGE_PROGRESSION', 'compliance_person', 'a1000000-0000-0000-0000-000000000003',
      null, 'system@novumflow.com', 'SYSTEM',
      '{"current_stage": "PRE_EMPLOYMENT"}'::jsonb,
      '{"current_stage": "ONBOARDING", "reason": "Offer accepted"}'::jsonb),
     
-    ('al1000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001',
+    ('a1100000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001',
      'DOCUMENT_EXPIRED', 'compliance_document', 'd1000000-0000-0000-0000-000000000011',
      null, 'system@novumflow.com', 'SYSTEM',
      '{"status": "VERIFIED"}'::jsonb,
