@@ -81,12 +81,15 @@ export {
   // Goals
   usePerformanceGoals,
   useAllPerformanceGoals,
+  useAllPerformanceGoals as usePerformanceGoalsAll, // Alias for components
   useCreateGoal,
   useUpdateGoal,
   useUpdateGoalProgress,
   useDeleteGoal,
+  useDeleteGoal as useDeletePerformanceGoal, // Alias for components
   // KPIs
   useKPIs,
+  useKPIs as useKPIDefinitions, // Alias for components
   useEmployeeKPIs,
 } from './usePerformance';
 export type { 
@@ -95,6 +98,23 @@ export type {
   ReviewFilters, 
   GoalFilters 
 } from './usePerformance';
+
+// KPI Definition type alias for components
+export type KPIDefinition = {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  measurement_unit?: string;
+  calculation_method?: string;
+  target_value?: number;
+  default_target?: number;
+  is_active?: boolean;
+  [key: string]: any;
+};
+
+// Create useDeleteKPIDefinition as an alias for now (not actually deleting KPIs in most cases)
+export { useKPIs as useDeleteKPIDefinition } from './usePerformance';
 
 // Document hooks
 export {
