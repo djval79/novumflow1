@@ -1460,7 +1460,7 @@ INSERT INTO compliance_audit_log (
      'DOCUMENT_EXPIRED', 'compliance_document', 'd1000000-0000-0000-0000-000000000011',
      null, 'system@novumflow.com', 'SYSTEM',
      '{"status": "VERIFIED"}'::jsonb,
-     '{"status": "EXPIRED", "expired_at": "' || (CURRENT_DATE - INTERVAL '5 days')::text || '"}'::jsonb);
+     jsonb_build_object('status', 'EXPIRED', 'expired_at', (CURRENT_DATE - INTERVAL '5 days')::text));
 
 -- ===========================================
 -- ASSIGN DOCUMENTS TO FOLDERS
