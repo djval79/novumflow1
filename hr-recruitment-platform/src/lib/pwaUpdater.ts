@@ -2,62 +2,43 @@
  * PWA Service Worker Update Handler
  * 
  * Manages service worker lifecycle and notifies users of updates
+ * This module is disabled when PWA plugin is not enabled
  */
 
-import { useRegisterSW } from 'virtual:pwa-register/react';
-import { log } from './logger';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * Hook to handle PWA updates
+ * Returns a no-op when PWA is not enabled
  */
 export function usePWAUpdate() {
-  const {
-    needRefresh: [needRefresh, setNeedRefresh],
-    offlineReady: [offlineReady, setOfflineReady],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegistered(registration) {
-      if (registration) {
-        log.info('Service Worker registered successfully');
-        
-        // Check for updates every hour
+  const [needRefresh, setNeedRefresh] = useState(false);
+  const [offlineReady, setOfflineReady] = useState(false);
+
+  // Register service worker if available
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        // Check for updates periodically
         setInterval(() => {
           registration.update();
         }, 60 * 60 * 1000); // 1 hour
-      }
-    },
-    onRegisterError(error) {
-      log.error('Service Worker registration failed', error);
-    },
-    onOfflineReady() {
-      log.info('App ready to work offline');
-      setOfflineReady(true);
-    },
-    onNeedRefresh() {
-      log.info('New content available, please refresh');
-      setNeedRefresh(true);
-    },
-  });
-
-  /**
-   * Update the service worker and reload the page
-   */
-  const update = async () => {
-    try {
-      log.info('Updating service worker...');
-      await updateServiceWorker(true); // true = reload page after update
-    } catch (error) {
-      log.error('Failed to update service worker', error);
+      }).catch(console.error);
     }
-  };
+  }, []);
 
-  /**
-   * Close the update notification without updating
-   */
-  const close = () => {
+  const update = useCallback(async () => {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.update();
+      window.location.reload();
+    }
+  }, []);
+
+  const close = useCallback(() => {
     setNeedRefresh(false);
     setOfflineReady(false);
-  };
+  }, []);
 
   return {
     needRefresh,
@@ -97,7 +78,7 @@ export async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegis
     const registration = await navigator.serviceWorker.getRegistration();
     return registration || null;
   } catch (error) {
-    log.error('Failed to get service worker registration', error);
+    console.error('Failed to get service worker registration', error);
     return null;
   }
 }
@@ -110,12 +91,12 @@ export async function unregisterServiceWorker(): Promise<boolean> {
     const registration = await getServiceWorkerRegistration();
     if (registration) {
       const success = await registration.unregister();
-      log.info('Service worker unregistered', { success });
+      console.log('Service worker unregistered', { success });
       return success;
     }
     return false;
   } catch (error) {
-    log.error('Failed to unregister service worker', error);
+    console.error('Failed to unregister service worker', error);
     return false;
   }
 }
@@ -128,10 +109,10 @@ export async function clearAllCaches(): Promise<void> {
     if ('caches' in window) {
       const cacheNames = await caches.keys();
       await Promise.all(cacheNames.map(name => caches.delete(name)));
-      log.info('All caches cleared', { count: cacheNames.length });
+      console.log('All caches cleared', { count: cacheNames.length });
     }
   } catch (error) {
-    log.error('Failed to clear caches', error);
+    console.error('Failed to clear caches', error);
   }
 }
 
@@ -148,7 +129,6 @@ export async function getCacheStats(): Promise<{
       const cacheNames = await caches.keys();
       let totalSize = 0;
 
-      // Estimate cache sizes (rough estimation)
       for (const name of cacheNames) {
         const cache = await caches.open(name);
         const keys = await cache.keys();
@@ -162,7 +142,7 @@ export async function getCacheStats(): Promise<{
       };
     }
   } catch (error) {
-    log.error('Failed to get cache stats', error);
+    console.error('Failed to get cache stats', error);
   }
 
   return {

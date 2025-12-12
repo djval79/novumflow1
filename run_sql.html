@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase SQL Runner</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .status { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #cce5ff; color: #004085; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 5px; }
+        button:disabled { background: #ccc; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; max-height: 400px; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Supabase SQL Runner</h1>
+    <p>Click the button below to run the compliance schema SQL on your Supabase database.</p>
+    
+    <button id="runBtn" onclick="runSQL()">Run Compliance SQL</button>
+    
+    <div id="output"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://niikshfoecitimepiifo.supabase.co';
+        const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paWtzaGZvZWNpdGltZXBpaWZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzA1MjIxNSwiZXhwIjoyMDc4NjI4MjE1fQ.sPu18Bb90PKUL_rTDLK6MPvgpS1FfduWq4H0xoNWlA8';
+        
+        function log(msg, type = 'info') {
+            document.getElementById('output').innerHTML += `<div class="status ${type}">${msg}</div>`;
+        }
+
+        async function runSQL() {
+            const btn = document.getElementById('runBtn');
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+            document.getElementById('output').innerHTML = '';
+            
+            log('📡 Fetching SQL file from GitHub...');
+            
+            try {
+                // Fetch SQL from GitHub
+                const sqlResp = await fetch('https://raw.githubusercontent.com/djval79/novumflow1/genspark_ai_developer/COMPLIANCE_DEPLOY_COMPLETE.sql');
+                const sql = await sqlResp.text();
+                log(`✅ SQL loaded: ${sql.length} characters`);
+                
+                // Unfortunately Supabase JS client doesn't support raw SQL DDL
+                // We need to use the database connection directly
+                log('⚠️ Supabase JS SDK cannot run DDL statements (CREATE TABLE, etc.)', 'error');
+                log(`
+                    <h3>📋 Please follow these steps:</h3>
+                    <ol>
+                        <li>Open <a href="https://supabase.com/dashboard/project/niikshfoecitimepiifo/sql/new" target="_blank">Supabase SQL Editor</a></li>
+                        <li>Copy the SQL below</li>
+                        <li>Paste it in the SQL Editor</li>
+                        <li>Click "Run"</li>
+                    </ol>
+                `, 'info');
+                
+                log(`<details><summary>Click to show SQL (${sql.length} chars)</summary><pre>${sql.replace(/</g, '&lt;')}</pre></details>`);
+                
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Run Compliance SQL';
+        }
+    </script>
+</body>
+</html>

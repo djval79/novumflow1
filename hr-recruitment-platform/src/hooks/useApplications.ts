@@ -8,7 +8,7 @@ import { queryKeys, invalidateQueries } from '@/lib/queryClient';
 import { handleError, createError } from '@/lib/errorHandler';
 import { log } from '@/lib/logger';
 
-interface Application {
+export interface Application {
   id: string;
   job_posting_id: string;
   applicant_first_name: string;

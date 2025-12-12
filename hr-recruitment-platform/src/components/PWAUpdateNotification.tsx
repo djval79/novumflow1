@@ -7,7 +7,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { usePWAUpdate } from '@/lib/pwaUpdater';
-import { log } from '@/lib/logger';
 
 export function PWAUpdateNotification() {
   const { needRefresh, offlineReady, update, close } = usePWAUpdate();
@@ -19,21 +18,21 @@ export function PWAUpdateNotification() {
       
       // Log the event
       if (needRefresh) {
-        log.info('PWA update available');
+        console.log('PWA update available');
       }
       if (offlineReady) {
-        log.info('PWA offline ready');
+        console.log('PWA offline ready');
       }
     }
   }, [needRefresh, offlineReady]);
 
   const handleUpdate = async () => {
-    log.track('pwa_update_clicked');
+    console.log('pwa_update_clicked');
     await update();
   };
 
   const handleClose = () => {
-    log.track('pwa_notification_dismissed');
+    console.log('pwa_notification_dismissed');
     setIsVisible(false);
     close();
   };
