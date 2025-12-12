@@ -25,6 +25,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function loadUser() {
       console.log('🔄 AuthContext: loadUser() started');
       setLoading(true);
+
+      if (!supabase) {
+        console.error('❌ AuthContext: Supabase client is not initialized (missing config)');
+        setIsServiceUnavailable(true);
+        setLoading(false);
+        return;
+      }
+
       try {
         console.log('⏳ AuthContext: Calling supabase.auth.getUser()...');
         const { data: { user }, error } = await supabase.auth.getUser();
@@ -99,6 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     loadUser();
+
+    if (!supabase) return;
 
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -179,11 +189,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]); // Run when user changes
 
   async function signIn(email: string, password: string) {
+    if (!supabase) return { error: new Error('Supabase client not initialized') };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   }
 
   async function signUp(email: string, password: string, fullName: string, role: string) {
+    if (!supabase) return { error: new Error('Supabase client not initialized') };
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -207,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
+    if (!supabase) return;
     await supabase.auth.signOut();
   }
 
