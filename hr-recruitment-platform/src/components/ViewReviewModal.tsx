@@ -1,12 +1,24 @@
 import React from 'react';
 import Modal from './Modal';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { Star } from 'lucide-react';
 
 interface ViewReviewModalProps {
     isOpen: boolean;
     onClose: () => void;
     review: any;
+}
+
+// Safe date formatter that handles null/undefined/invalid dates
+function formatDate(dateValue: string | Date | null | undefined, formatStr: string = 'MMM d, yyyy'): string {
+    if (!dateValue) return 'N/A';
+    try {
+        const date = typeof dateValue === 'string' ? parseISO(dateValue) : dateValue;
+        if (!isValid(date)) return 'N/A';
+        return format(date, formatStr);
+    } catch {
+        return 'N/A';
+    }
 }
 
 export default function ViewReviewModal({ isOpen, onClose, review }: ViewReviewModalProps) {
@@ -33,15 +45,15 @@ export default function ViewReviewModal({ isOpen, onClose, review }: ViewReviewM
                 <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
                     <div>
                         <h3 className="text-xs font-medium text-gray-500 uppercase">Period Start</h3>
-                        <p className="mt-1 text-sm text-gray-900">{format(new Date(review.review_period_start), 'MMM d, yyyy')}</p>
+                        <p className="mt-1 text-sm text-gray-900">{formatDate(review.review_period_start)}</p>
                     </div>
                     <div>
                         <h3 className="text-xs font-medium text-gray-500 uppercase">Period End</h3>
-                        <p className="mt-1 text-sm text-gray-900">{format(new Date(review.review_period_end), 'MMM d, yyyy')}</p>
+                        <p className="mt-1 text-sm text-gray-900">{formatDate(review.review_period_end)}</p>
                     </div>
                     <div>
                         <h3 className="text-xs font-medium text-gray-500 uppercase">Due Date</h3>
-                        <p className="mt-1 text-sm text-gray-900">{format(new Date(review.review_due_date), 'MMM d, yyyy')}</p>
+                        <p className="mt-1 text-sm text-gray-900">{formatDate(review.review_due_date)}</p>
                     </div>
                 </div>
 
