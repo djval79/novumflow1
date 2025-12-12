@@ -2,50 +2,61 @@ import { createClient } from '@supabase/supabase-js';
 
 // Environment-based configuration
 const isDevelopment = import.meta.env.MODE === 'development';
-const isProduction = import.meta.env.MODE === 'production';
 
 // SECURITY: Enforce environment variables - no fallback credentials
-export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Validate required configuration
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    '❌ Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.'
-  );
-}
+let supabase: ReturnType<typeof createClient> | null = null;
 
-// Development-only logging (removed in production)
-if (isDevelopment) {
-  console.log('🔗 Supabase Configuration:');
-  console.log('📍 URL:', supabaseUrl);
-  console.log('🔑 Key:', supabaseAnonKey.substring(0, 20) + '...');
-  console.log('🏗️ Environment:', import.meta.env.MODE);
-}
-
-// Create Supabase client with optimized configuration
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  global: {
-    headers: {
-      'Cache-Control': isDevelopment ? 'no-cache, no-store, must-revalidate' : 'public, max-age=300',
-      'Pragma': isDevelopment ? 'no-cache' : 'cache',
-      'Expires': isDevelopment ? '0' : '300'
-    }
-  },
-  db: {
-    schema: 'public'
-  },
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
+export function getSupabaseClient() {
+  if (supabase) {
+    return supabase;
   }
-});
+
+  // Validate required configuration
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      '❌ Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.'
+    );
+  }
+
+  // Development-only logging (removed in production)
+  if (isDevelopment) {
+    console.log('🔗 Supabase Configuration:');
+    console.log('📍 URL:', supabaseUrl);
+    console.log('🔑 Key:', supabaseAnonKey.substring(0, 20) + '...');
+    console.log('🏗️ Environment:', import.meta.env.MODE);
+  }
+
+  // Create Supabase client with optimized configuration
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        'Cache-Control': isDevelopment ? 'no-cache, no-store, must-revalidate' : 'public, max-age=300',
+        'Pragma': isDevelopment ? 'no-cache' : 'cache',
+        'Expires': isDevelopment ? '0' : '300'
+      }
+    },
+    db: {
+      schema: 'public'
+    },
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
+    }
+  });
+
+  return supabase;
+}
+
+export const supabase = getSupabaseClient();
 
 export type UserRole = 'admin' | 'hr_manager' | 'recruiter' | 'employee' | 'carer' | 'staff' | 'inspector' | 'super_admin';
 
@@ -85,6 +96,7 @@ export const isValidSupabaseUrl = (url: string): boolean => {
 };
 
 export const getCurrentUser = async () => {
+  const supabase = getSupabaseClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) {
     if (isDevelopment) {
@@ -99,6 +111,7 @@ export const getCurrentUserProfile = async () => {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  const supabase = getSupabaseClient();
   const { data: profile, error } = await supabase
     .from('user_profiles')
     .select('*')
@@ -118,6 +131,7 @@ export const getCurrentUserProfile = async () => {
 // Connection test (development only)
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('user_profiles')
       .select('id')
@@ -141,8 +155,3 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     return false;
   }
 };
-
-// Initialize connection test in development only
-if (isDevelopment) {
-  testSupabaseConnection();
-}

@@ -1,4 +1,4 @@
-# For detailed configuration reference documentation, visit:
+"""# For detailed configuration reference documentation, visit:
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
@@ -169,7 +169,7 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -205,3 +205,11 @@ enabled = true
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
+
+[functions]
+  [functions.send-email]
+    verify_jwt = false
+    import_map = "./supabase/functions/import_map.json"
+    [functions.send-email.env_vars]
+    RESEND_API_KEY = "env(RESEND_API_KEY)"
+""

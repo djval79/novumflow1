@@ -197,6 +197,7 @@ export default function TenantSignupPage() {
                 email: formData.adminEmail,
                 password: formData.adminPassword,
                 options: {
+                    emailRedirectTo: `${window.location.origin}/login`,
                     data: {
                         full_name: formData.adminName,
                         role: 'admin' // Initial role
@@ -282,8 +283,8 @@ export default function TenantSignupPage() {
                                 </div>
                                 {index < STEPS.length - 1 && (
                                     <div
-                                        className={`h-0.5 w-24 mx-4 transition-all ${currentStep > step.id ? 'bg-cyan-600' : 'bg-gray-200'
-                                            }`}
+                                        className={`h-0.5 w-24 mx-4 transition-all ${currentStep > step.id ? 'bg-cyan-600' : 'bg-gray-200'}
+                                            `}
                                     />
                                 )}
                             </React.Fragment>
