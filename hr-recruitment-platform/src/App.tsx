@@ -28,6 +28,7 @@ import IntegrationsPage from './pages/IntegrationsPage';
 import FormsPage from './pages/FormsPage';
 import TenantManagementPage from './pages/TenantManagementPage';
 import ComplianceDashboardPage from './pages/ComplianceDashboardPage';
+import ComplianceHubPage from './pages/ComplianceHubPage';
 import AuditLogPage from './pages/AuditLogPage';
 import PrivacyPage from './pages/PrivacyPage';
 import SupportPage from './pages/SupportPage';
@@ -162,6 +163,7 @@ function App() {
               <Route path="forms" element={<FeatureRoute feature="forms"><FormsPage /></FeatureRoute>} />
               <Route path="tenant-management" element={<TenantManagementPage />} />
               <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
+              <Route path="compliance-hub" element={<ComplianceHubPage />} />
               <Route path="audit-logs" element={<AuditLogPage />} />
               <Route path="admin" element={<AdminPortalPage />} />
               <Route path="admin/security" element={<AdminSecurityDashboard />} />

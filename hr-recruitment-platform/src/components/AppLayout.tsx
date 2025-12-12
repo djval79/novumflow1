@@ -91,11 +91,19 @@ export default function AppLayout() {
     });
   }
 
+  // Add Compliance Hub (comprehensive compliance management)
+  navigation.push({
+    name: 'Compliance Hub',
+    href: '/compliance-hub',
+    icon: ShieldCheck,
+    feature: 'system'
+  });
+
   // Add Compliance Dashboard (available to all users)
   navigation.push({
     name: 'CQC Compliance',
     href: '/compliance-dashboard',
-    icon: ShieldCheck,
+    icon: Shield,
     feature: 'system'
   });
 
