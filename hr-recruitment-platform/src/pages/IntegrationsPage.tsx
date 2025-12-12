@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Check, X, Send, Eye, RefreshCw, Slack, Video, Mail, Calendar, HardDrive } from 'lucide-react';
+import { Loader2, Check, X, Send, Eye, RefreshCw, Slack, Video, Mail, Calendar, HardDrive, AlertCircle } from 'lucide-react';
 
 interface Integration {
     id: string;
@@ -21,6 +21,15 @@ interface IntegrationLog {
     error_message: string | null;
 }
 
+// Default integrations shown when no database table exists
+const DEFAULT_INTEGRATIONS: Integration[] = [
+    { id: '1', service_name: 'slack', display_name: 'Slack', is_active: true, is_connected: false, last_sync_at: null },
+    { id: '2', service_name: 'zoom', display_name: 'Zoom', is_active: true, is_connected: false, last_sync_at: null },
+    { id: '3', service_name: 'email', display_name: 'Email (SMTP)', is_active: true, is_connected: false, last_sync_at: null },
+    { id: '4', service_name: 'calendar', display_name: 'Calendar', is_active: true, is_connected: false, last_sync_at: null },
+    { id: '5', service_name: 'storage', display_name: 'Cloud Storage', is_active: true, is_connected: false, last_sync_at: null },
+];
+
 export default function IntegrationsPage() {
     const [loading, setLoading] = useState(true);
     const [integrations, setIntegrations] = useState<Integration[]>([]);
@@ -28,24 +37,33 @@ export default function IntegrationsPage() {
     const [selectedService, setSelectedService] = useState<string | null>(null);
     const [testMessage, setTestMessage] = useState('');
     const [testing, setTesting] = useState(false);
+    const [setupRequired, setSetupRequired] = useState(false);
 
     useEffect(() => {
         loadIntegrations();
-        loadLogs();
     }, []);
 
     async function loadIntegrations() {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const { data, error } = await supabase.functions.invoke('integration-manager', {
-                body: { action: 'list_integrations' },
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
-
-            if (error) throw error;
-            setIntegrations(data?.data || []);
+            // First try to load from integrations table directly
+            const { data, error } = await supabase
+                .from('integrations')
+                .select('*')
+                .order('display_name');
+            
+            if (error) {
+                // Table doesn't exist or other error - use defaults
+                console.log('Integrations table not available, using defaults');
+                setIntegrations(DEFAULT_INTEGRATIONS);
+                setSetupRequired(true);
+            } else {
+                setIntegrations(data?.length ? data : DEFAULT_INTEGRATIONS);
+                setSetupRequired(!data?.length);
+            }
         } catch (error) {
-            console.error('Error loading integrations:', error);
+            console.log('Using default integrations');
+            setIntegrations(DEFAULT_INTEGRATIONS);
+            setSetupRequired(true);
         } finally {
             setLoading(false);
         }
@@ -53,98 +71,39 @@ export default function IntegrationsPage() {
 
     async function loadLogs(serviceName?: string) {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const { data, error } = await supabase.functions.invoke('integration-manager', {
-                body: {
-                    action: 'get_integration_logs',
-                    limit: 50,
-                    service_name: serviceName || undefined
-                },
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
-
-            if (error) throw error;
-            setLogs(data?.data || []);
+            // Try to load from integration_logs table
+            let query = supabase
+                .from('integration_logs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50);
+            
+            if (serviceName) {
+                query = query.eq('service_name', serviceName);
+            }
+            
+            const { data, error } = await query;
+            
+            if (error) {
+                console.log('Integration logs table not available');
+                setLogs([]);
+            } else {
+                setLogs(data || []);
+            }
         } catch (error) {
-            console.error('Error loading logs:', error);
+            console.log('Error loading logs:', error);
+            setLogs([]);
         }
     }
 
     async function checkConnection(serviceName: string) {
-        setLoading(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const { data, error } = await supabase.functions.invoke('integration-manager', {
-                body: { action: 'check_connection', service_name: serviceName },
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
-
-            if (error) throw error;
-
-            if (data?.data?.connected) {
-                alert(`✅ Connected to ${serviceName} successfully!`);
-                loadIntegrations(); // Refresh list to show Test button
-            } else {
-                alert(`❌ Connection failed: ${data?.data?.message || 'Unknown error'}. Please check your API keys.`);
-            }
-        } catch (error: any) {
-            console.error('Connection check error:', error);
-            alert(`❌ Error checking connection: ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
+        // Show informational message since edge functions aren't deployed
+        alert(`ℹ️ Integration connection check requires Edge Functions to be deployed.\n\nTo enable ${serviceName} integration:\n1. Deploy the integration-manager Edge Function\n2. Configure API keys in Supabase secrets\n3. Run connection check again`);
     }
 
     async function testIntegration(serviceName: string) {
-        setTesting(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            let testParams: any = {};
-
-            switch (serviceName) {
-                case 'slack':
-                    testParams = {
-                        action: 'slack_send_message',
-                        channel: '#general',
-                        text: testMessage || '🧪 Test message from HR Platform!'
-                    };
-                    break;
-                case 'email':
-                    testParams = {
-                        action: 'email_send',
-                        to: testMessage || 'test@example.com',
-                        subject: 'Test Email',
-                        text: 'This is a test email from the HR Platform.'
-                    };
-                    break;
-                case 'zoom':
-                    testParams = {
-                        action: 'zoom_create_meeting',
-                        topic: 'Test Meeting',
-                        start_time: new Date(Date.now() + 3600000).toISOString(), // 1 hour from now
-                        duration: 30
-                    };
-                    break;
-                default:
-                    alert(`Test not implemented for ${serviceName}`);
-                    return;
-            }
-
-            const { data, error } = await supabase.functions.invoke('integration-manager', {
-                body: testParams,
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
-
-            if (error) throw error;
-
-            alert(`✅ Test successful! ${serviceName} integration is working.`);
-            await loadLogs();
-        } catch (error: any) {
-            alert(`❌ Test failed: ${error.message}`);
-        } finally {
-            setTesting(false);
-            setTestMessage('');
-        }
+        // Show informational message since edge functions aren't deployed
+        alert(`ℹ️ Integration testing requires Edge Functions to be deployed.\n\nTo test ${serviceName}:\n1. Deploy the integration-manager Edge Function\n2. Configure ${serviceName} API credentials\n3. Run the test again`);
     }
 
     const getServiceIcon = (serviceName: string) => {
@@ -245,7 +204,20 @@ export default function IntegrationsPage() {
                     </div>
                 ))}
 
-                {integrations.length === 0 && (
+                {setupRequired && (
+                    <div className="col-span-full bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                        <AlertCircle className="w-12 h-12 text-blue-500 mx-auto mb-3" />
+                        <h3 className="text-lg font-semibold text-blue-900">Integration Setup Required</h3>
+                        <p className="text-blue-700 mt-2">
+                            To enable integrations, deploy the Edge Functions and configure API credentials in Supabase.
+                        </p>
+                        <p className="text-sm text-blue-600 mt-2">
+                            The integrations shown below are available for configuration.
+                        </p>
+                    </div>
+                )}
+                
+                {integrations.length === 0 && !setupRequired && (
                     <div className="col-span-full text-center py-12 text-gray-500">
                         <p>No integrations configured yet.</p>
                         <p className="text-sm mt-2">Deploy the integration database schema to get started.</p>

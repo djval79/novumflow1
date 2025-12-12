@@ -1,7 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, AlertTriangle, CheckCircle, Clock, FileText, Download, Plus } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Clock, FileText, Download, Plus, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+
+interface ComplianceSummary {
+  compliance_score: number;
+  total_alerts: number;
+  critical_alerts: number;
+  total_visa_records: number;
+  expiring_visas: number;
+  total_rtw_checks: number;
+  total_persons: number;
+  compliant_persons: number;
+  non_compliant_persons: number;
+}
+
+interface ComplianceAlert {
+  id: string;
+  alert_title: string;
+  alert_message: string;
+  alert_priority: string;
+  due_date: string;
+  is_acknowledged: boolean;
+}
 
 export default function CompliancePage() {
   const { user } = useAuth();
@@ -15,19 +36,102 @@ export default function CompliancePage() {
 
   async function loadComplianceData() {
     try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) return;
-
-      const { data, error } = await supabase.functions.invoke('compliance-dashboard-data', {
-        headers: {
-          Authorization: `Bearer ${session.data.session.access_token}`
-        }
-      });
-
-      if (error) throw error;
-      setDashboardData(data.data);
+      // Load data directly from compliance tables
+      const [personsResult, documentsResult, tasksResult, notificationsResult] = await Promise.all([
+        supabase.from('compliance_persons').select('*'),
+        supabase.from('compliance_documents').select('*, compliance_document_types(*)'),
+        supabase.from('compliance_tasks').select('*').eq('status', 'PENDING'),
+        supabase.from('compliance_notifications').select('*').eq('is_read', false)
+      ]);
+      
+      const persons = personsResult.data || [];
+      const documents = documentsResult.data || [];
+      const tasks = tasksResult.data || [];
+      const notifications = notificationsResult.data || [];
+      
+      // Calculate summary stats
+      const compliantCount = persons.filter(p => p.compliance_status === 'COMPLIANT').length;
+      const nonCompliantCount = persons.filter(p => p.compliance_status === 'NON_COMPLIANT').length;
+      const atRiskCount = persons.filter(p => p.compliance_status === 'AT_RISK').length;
+      
+      // Calculate compliance score
+      const totalPersons = persons.length || 1;
+      const complianceScore = Math.round((compliantCount / totalPersons) * 100);
+      
+      // Get visa documents and check expiring
+      const visaDocuments = documents.filter(d => 
+        d.compliance_document_types?.category === 'HOME_OFFICE' || 
+        d.document_type_id?.includes('visa')
+      );
+      const now = new Date();
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const expiringVisas = visaDocuments.filter(d => {
+        const expiry = new Date(d.expiry_date);
+        return expiry > now && expiry < thirtyDaysFromNow;
+      }).length;
+      
+      // Convert tasks to alerts format
+      const alerts: ComplianceAlert[] = tasks.map(task => ({
+        id: task.id,
+        alert_title: task.title,
+        alert_message: task.description || '',
+        alert_priority: task.urgency?.toLowerCase() || 'medium',
+        due_date: task.due_date,
+        is_acknowledged: false
+      }));
+      
+      // Build dashboard data structure
+      const data = {
+        summary: {
+          compliance_score: complianceScore,
+          total_alerts: tasks.length,
+          critical_alerts: tasks.filter(t => t.urgency === 'CRITICAL').length,
+          total_visa_records: visaDocuments.length,
+          expiring_visas: expiringVisas,
+          total_rtw_checks: documents.filter(d => d.compliance_document_types?.name?.includes('Right to Work')).length,
+          total_persons: totalPersons,
+          compliant_persons: compliantCount,
+          non_compliant_persons: nonCompliantCount
+        },
+        alerts,
+        visa_records: visaDocuments.map(d => ({
+          id: d.id,
+          visa_type: d.compliance_document_types?.name || 'Visa',
+          issue_date: d.issue_date,
+          expiry_date: d.expiry_date,
+          current_status: d.status?.toLowerCase() || 'pending'
+        })),
+        dbs_certificates: documents.filter(d => 
+          d.compliance_document_types?.name?.includes('DBS')
+        ).map(d => ({
+          id: d.id,
+          applicant_name: persons.find(p => p.id === d.person_id)?.full_name || 'Unknown',
+          certificate_type: d.compliance_document_types?.name || 'DBS',
+          issue_date: d.issue_date,
+          status: d.status?.toLowerCase() || 'pending'
+        })),
+        rtw_checks: documents.filter(d => 
+          d.compliance_document_types?.name?.includes('Right to Work')
+        ).map(d => ({
+          id: d.id,
+          check_type: 'initial_check',
+          check_date: d.issue_date,
+          check_method: 'manual_check',
+          check_result: d.status === 'VERIFIED' ? 'pass' : 'pending'
+        }))
+      };
+      
+      setDashboardData(data);
     } catch (error) {
       console.error('Error loading compliance data:', error);
+      // Set empty data structure on error
+      setDashboardData({
+        summary: { compliance_score: 0, total_alerts: 0, critical_alerts: 0, total_visa_records: 0, expiring_visas: 0, total_rtw_checks: 0 },
+        alerts: [],
+        visa_records: [],
+        dbs_certificates: [],
+        rtw_checks: []
+      });
     } finally {
       setLoading(false);
     }
@@ -35,51 +139,24 @@ export default function CompliancePage() {
 
   async function handleAcknowledgeAlert(alertId: string) {
     try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) return;
-
-      await supabase.functions.invoke('compliance-monitoring', {
-        body: {
-          action: 'ACKNOWLEDGE_ALERT',
-          data: { alert_id: alertId }
-        },
-        headers: {
-          Authorization: `Bearer ${session.data.session.access_token}`
-        }
-      });
-
+      // Update the task directly in the database
+      const { error } = await supabase
+        .from('compliance_tasks')
+        .update({ status: 'IN_PROGRESS' })
+        .eq('id', alertId);
+      
+      if (error) throw error;
+      
       loadComplianceData();
     } catch (error) {
       console.error('Error acknowledging alert:', error);
+      alert('Failed to acknowledge alert');
     }
   }
 
   async function handleGenerateAuditPack() {
-    try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) return;
-
-      await supabase.functions.invoke('compliance-monitoring', {
-        body: {
-          action: 'GENERATE_AUDIT_PACK',
-          data: {
-            pack_name: `Audit Pack ${new Date().toLocaleDateString()}`,
-            pack_type: 'compliance_review',
-            date_range_start: new Date(Date.now() - 90*24*60*60*1000).toISOString().split('T')[0],
-            date_range_end: new Date().toISOString().split('T')[0]
-          }
-        },
-        headers: {
-          Authorization: `Bearer ${session.data.session.access_token}`
-        }
-      });
-
-      alert('Audit pack generated successfully!');
-      loadComplianceData();
-    } catch (error) {
-      console.error('Error generating audit pack:', error);
-      alert('Failed to generate audit pack');
-    }
+    // Show informational message - audit pack generation requires edge functions
+    alert('ℹ️ Audit Pack Generation\n\nThis feature requires the compliance-monitoring Edge Function to be deployed.\n\nTo enable:\n1. Deploy the compliance-monitoring Edge Function\n2. Configure audit pack templates\n3. Run audit pack generation again\n\nIn the meantime, you can export data manually from the Compliance Hub.');
   }
 
   if (loading) {
