@@ -7,11 +7,11 @@ const isDevelopment = import.meta.env.MODE === 'development';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-let supabase: ReturnType<typeof createClient> | null = null;
+let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
 export function getSupabaseClient() {
-  if (supabase) {
-    return supabase;
+  if (supabaseInstance) {
+    return supabaseInstance;
   }
 
   // Validate required configuration
@@ -30,7 +30,7 @@ export function getSupabaseClient() {
   }
 
   // Create Supabase client with optimized configuration
-  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
     global: {
       headers: {
         'Cache-Control': isDevelopment ? 'no-cache, no-store, must-revalidate' : 'public, max-age=300',
@@ -53,7 +53,7 @@ export function getSupabaseClient() {
     }
   });
 
-  return supabase;
+  return supabaseInstance;
 }
 
 export const supabase = getSupabaseClient();
