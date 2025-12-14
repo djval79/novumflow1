@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Environment-based configuration
 const isDevelopment = import.meta.env.MODE === 'development';
@@ -7,7 +7,7 @@ const isDevelopment = import.meta.env.MODE === 'development';
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-let supabaseInstance: ReturnType<typeof createClient> | null = null;
+let supabaseInstance: SupabaseClient<any, "public", any> | null = null;
 
 export function getSupabaseClient() {
   if (supabaseInstance) {
@@ -29,7 +29,9 @@ export function getSupabaseClient() {
   }
 
   // Create Supabase client with optimized configuration
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+  // Cast to ensure it's treated as a generic client compatible with missing types
+  // using <any, "public", any> to define Database, SchemaName, and Schema as permissive
+  supabaseInstance = createClient<any, "public", any>(supabaseUrl, supabaseAnonKey, {
     global: {
       headers: {
         'Cache-Control': isDevelopment ? 'no-cache, no-store, must-revalidate' : 'public, max-age=300',
@@ -50,7 +52,7 @@ export function getSupabaseClient() {
         eventsPerSecond: 10
       }
     }
-  });
+  }) as SupabaseClient<any, "public", any>;
 
   return supabaseInstance;
 }
@@ -112,7 +114,7 @@ export const getCurrentUserProfile = async () => {
 
   const supabase = getSupabaseClient();
   const { data: profile, error } = await supabase
-    .from('user_profiles')
+    .from('users_profiles')
     .select('*')
     .eq('user_id', user.id)
     .single();
@@ -132,7 +134,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('users_profiles')
       .select('id')
       .limit(1);
 
