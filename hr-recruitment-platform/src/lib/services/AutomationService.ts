@@ -10,26 +10,37 @@ export class AutomationService {
     }
 
     private startListening() {
+        if (!supabase) {
+            console.warn('⚠️ AutomationService: Supabase client not initialized. Skipping listener.');
+            return;
+        }
+
         console.log('Starting Automation Service listener...');
-        this.subscription = supabase
-            .channel('automation_execution_logs_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'automation_execution_logs',
-                    filter: 'execution_status=eq.pending'
-                },
-                (payload) => {
-                    console.log('New automation log received:', payload);
-                    this.processAutomationLog(payload.new);
-                }
-            )
-            .subscribe();
+        try {
+            this.subscription = supabase
+                .channel('automation_execution_logs_changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'automation_execution_logs',
+                        filter: 'execution_status=eq.pending'
+                    },
+                    (payload) => {
+                        console.log('New automation log received:', payload);
+                        this.processAutomationLog(payload.new);
+                    }
+                )
+                .subscribe();
+        } catch (err) {
+            console.error('❌ AutomationService: Failed to start listener:', err);
+        }
     }
 
     private async processAutomationLog(log: any) {
+        if (!supabase) return;
+
         const { id, trigger_data } = log;
         const { action_type, action_config, application_id } = trigger_data;
 
