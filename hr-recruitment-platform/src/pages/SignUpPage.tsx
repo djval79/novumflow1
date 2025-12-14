@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Building2 } from 'lucide-react';
 
 export default function SignUpPage() {
+  const [searchParams] = useSearchParams();
+  const tenantId = searchParams.get('tenant_id');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -19,8 +22,8 @@ export default function SignUpPage() {
     setError('');
     setLoading(true);
 
-    const { error } = await signUp(email, password, fullName, role);
-    
+    const { error } = await signUp(email, password, fullName, role, tenantId || undefined);
+
     if (error) {
       setError(error.message);
       setLoading(false);
@@ -55,9 +58,18 @@ export default function SignUpPage() {
               <Building2 className="w-10 h-10 text-white" />
             </div>
           </div>
-          
+
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Create Account</h1>
-          <p className="text-center text-gray-600 mb-8">Get started with HR platform</p>
+
+          {tenantId ? (
+            <div className="mb-6 text-center">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Linking to Invited Organization
+              </span>
+            </div>
+          ) : (
+            <p className="text-center text-gray-600 mb-8">Get started with HR platform</p>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">

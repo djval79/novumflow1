@@ -8,7 +8,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string, role: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, role: string, tenantId?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -194,23 +194,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   }
 
-  async function signUp(email: string, password: string, fullName: string, role: string) {
+  async function signUp(email: string, password: string, fullName: string, role: string, tenantId?: string) {
     if (!supabase) return { error: new Error('Supabase client not initialized') };
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName,
+          role: role,
+          tenant_id: tenantId
+        }
+      }
     });
 
     if (authError) return { error: authError };
     if (!authData.user) return { error: new Error('User creation failed') };
 
+    // Note: If you have a Trigger to create profile, this insert might duplicate or fail. 
+    // Ideally, we rely on the Trigger or check existence. 
+    // Assuming manual insert for now based on existing code:
     const { error: profileError } = await supabase
       .from('users_profiles')
-      .insert({
+      .upsert({ // Changed to upsert to handle potential race conditions with triggers
         user_id: authData.user.id,
         email,
         full_name: fullName,
         role,
+        tenant_id: tenantId || null,
         is_active: true,
       });
 
