@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Environment-based configuration
 const isDevelopment = import.meta.env.MODE === 'development';
@@ -31,28 +31,39 @@ export function getSupabaseClient() {
   // Create Supabase client with optimized configuration
   // Cast to ensure it's treated as a generic client compatible with missing types
   // using <any, "public", any> to define Database, SchemaName, and Schema as permissive
-  supabaseInstance = createClient<any, "public", any>(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        'Cache-Control': isDevelopment ? 'no-cache, no-store, must-revalidate' : 'public, max-age=300',
-        'Pragma': isDevelopment ? 'no-cache' : 'cache',
-        'Expires': isDevelopment ? '0' : '300'
+
+  if (typeof createClient === 'undefined') {
+    console.error('❌ Supabase createClient is undefined. Check your dependencies.');
+    return null;
+  }
+
+  try {
+    supabaseInstance = createClient<any, "public", any>(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          'Cache-Control': isDevelopment ? 'no-cache, no-store, must-revalidate' : 'public, max-age=300',
+          'Pragma': isDevelopment ? 'no-cache' : 'cache',
+          'Expires': isDevelopment ? '0' : '300'
+        }
+      },
+      db: {
+        schema: 'public'
+      },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
       }
-    },
-    db: {
-      schema: 'public'
-    },
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 10
-      }
-    }
-  }) as SupabaseClient<any, "public", any>;
+    }) as SupabaseClient<any, "public", any>;
+  } catch (err) {
+    console.error('❌ Failed to initialize Supabase client:', err);
+    return null;
+  }
 
   return supabaseInstance;
 }
@@ -98,6 +109,8 @@ export const isValidSupabaseUrl = (url: string): boolean => {
 
 export const getCurrentUser = async () => {
   const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) {
     if (isDevelopment) {
@@ -113,6 +126,8 @@ export const getCurrentUserProfile = async () => {
   if (!user) return null;
 
   const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
   const { data: profile, error } = await supabase
     .from('users_profiles')
     .select('*')
@@ -133,6 +148,8 @@ export const getCurrentUserProfile = async () => {
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
     const { data, error } = await supabase
       .from('users_profiles')
       .select('id')

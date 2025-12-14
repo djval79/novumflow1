@@ -48,9 +48,10 @@ export default defineConfig({
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
             if (id.includes('react')) return 'vendor';
-            if (id.includes('supabase')) return 'supabase';
-            if (id.includes('recharts')) return 'charts';
+            // Group deeply related libs into vendor-lib to avoid circular chunk dependencies
+            if (id.includes('supabase')) return 'vendor-lib';
             if (id.includes('radix')) return 'ui';
+            if (id.includes('lucide')) return 'ui';
             return 'vendor-lib';
           }
         }
