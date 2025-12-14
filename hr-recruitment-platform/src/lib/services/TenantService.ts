@@ -154,13 +154,14 @@ export const tenantService = {
     },
 
     /** Update an existing tenant */
-    async updateTenant(tenantId: string, updates: Partial<Tenant>): Promise<boolean> {
+    async updateTenant(tenantId: string, updates: Partial<Tenant>): Promise<Tenant | null> {
         console.log('TenantService.updateTenant called:', { tenantId, updates });
 
         const { data, error } = await supabase
             .from('tenants')
             .update({
-                ...updates
+                ...updates,
+                updated_at: new Date().toISOString()
             })
             .eq('id', tenantId)
             .select();
@@ -173,10 +174,10 @@ export const tenantService = {
                 hint: error.hint,
                 code: error.code
             });
-            return false;
+            return null;
         }
 
         console.log('Tenant updated successfully:', data);
-        return true;
+        return data?.[0] || null;
     },
 };

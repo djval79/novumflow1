@@ -181,7 +181,7 @@ export default function TenantManagementPage() {
 
         setSaving(true);
         try {
-            const success = await tenantService.updateTenant(selectedTenant.id, {
+            const updatedTenant = await tenantService.updateTenant(selectedTenant.id, {
                 name: formData.name,
                 domain: formData.domain || null,
                 subscription_tier: formData.subscription_tier,
@@ -191,27 +191,20 @@ export default function TenantManagementPage() {
                 max_users: parseInt(formData.max_users) || 10
             });
 
-            if (success) {
-                console.log('Tenant update successful, reloading data...');
+            if (updatedTenant) {
+                console.log('Tenant update successful:', updatedTenant);
                 setToast({ message: 'Tenant updated successfully', type: 'success' });
 
-                // Reload all data to ensure we have the latest
-                await loadData();
+                // Update local state directly with the returned object
+                setTenants(prev => prev.map(t => t.id === updatedTenant.id ? updatedTenant : t));
+                setSelectedTenant(updatedTenant);
 
-                // Refresh TenantContext to update banner
+                // Refresh context
                 await refreshTenants();
-
-                // Find and set the updated tenant as selected
-                const updatedTenants = await tenantService.getAllTenants();
-                const updated = updatedTenants.find(t => t.id === selectedTenant.id);
-                if (updated) {
-                    console.log('Updated tenant data:', updated);
-                    setSelectedTenant(updated);
-                }
 
                 setEditMode(false);
             } else {
-                console.error('Tenant update failed - service returned false');
+                console.error('Tenant update failed - service returned null');
                 setToast({ message: 'Failed to update tenant. Please check permissions.', type: 'error' });
             }
         } catch (error) {
