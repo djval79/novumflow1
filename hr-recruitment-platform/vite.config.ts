@@ -45,16 +45,8 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'vendor';
-            // Group deeply related libs into vendor-lib to avoid circular chunk dependencies
-            if (id.includes('supabase')) return 'vendor-lib';
-            if (id.includes('radix')) return 'ui';
-            if (id.includes('lucide')) return 'ui';
-            return 'vendor-lib';
-          }
-        }
+        // manualChunks removed to let Vite standard splitting handle dependencies
+        // This fixes the circular dependency and initialization errors in production builds
       }
     }
   },
