@@ -180,4 +180,18 @@ export const tenantService = {
         console.log('Tenant updated successfully:', data);
         return data?.[0] || null;
     },
+
+    /** Delete a tenant */
+    async deleteTenant(tenantId: string): Promise<boolean> {
+        const { error } = await supabase
+            .from('tenants')
+            .delete()
+            .eq('id', tenantId);
+
+        if (error) {
+            console.error('Error deleting tenant:', error);
+            return false;
+        }
+        return true;
+    },
 };

@@ -33,6 +33,24 @@ export default function TenantManagementPage() {
     });
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [onboardingData, setOnboardingData] = useState<Map<string, TenantOnboarding>>(new Map());
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    async function handleDeleteTenant() {
+        if (!selectedTenant) return;
+        setSaving(true);
+        const success = await tenantService.deleteTenant(selectedTenant.id);
+        if (success) {
+            setToast({ message: 'Tenant deleted successfully', type: 'success' });
+            const remaining = tenants.filter(t => t.id !== selectedTenant.id);
+            setTenants(remaining);
+            setSelectedTenant(remaining.length > 0 ? remaining[0] : null);
+            setShowDeleteConfirm(false);
+            setEditMode(false);
+        } else {
+            setToast({ message: 'Failed to delete tenant', type: 'error' });
+        }
+        setSaving(false);
+    }
 
     useEffect(() => {
         loadData();
@@ -565,29 +583,71 @@ export default function TenantManagementPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                        <div className="p-6 border-t border-gray-200 flex justify-between items-center">
+                            <div>
+                                {!showCreateModal && (
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        className="px-4 py-2 border border-red-300 text-red-700 rounded-md text-sm font-medium hover:bg-red-50"
+                                    >
+                                        Delete Tenant
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setShowCreateModal(false);
+                                        setEditMode(false);
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={showCreateModal ? handleCreateTenant : handleUpdateTenant}
+                                    disabled={saving || !formData.name}
+                                    className="px-4 py-2 bg-cyan-600 text-white rounded-md text-sm font-medium hover:bg-cyan-700 disabled:opacity-50"
+                                >
+                                    {saving ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
+                                            {showCreateModal ? 'Creating...' : 'Updating...'}
+                                        </>
+                                    ) : (
+                                        showCreateModal ? 'Create Tenant' : 'Update Tenant'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
+                        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                            <Shield className="h-6 w-6 text-red-600" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Tenant?</h3>
+                        <p className="text-sm text-gray-500 mb-6">
+                            Are you sure you want to delete <strong>{selectedTenant?.name}</strong>? This action cannot be undone and will remove all associated data.
+                        </p>
+                        <div className="flex justify-center space-x-3">
                             <button
-                                onClick={() => {
-                                    setShowCreateModal(false);
-                                    setEditMode(false);
-                                }}
+                                onClick={() => setShowDeleteConfirm(false)}
                                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={showCreateModal ? handleCreateTenant : handleUpdateTenant}
-                                disabled={saving || !formData.name}
-                                className="px-4 py-2 bg-cyan-600 text-white rounded-md text-sm font-medium hover:bg-cyan-700 disabled:opacity-50"
+                                onClick={handleDeleteTenant}
+                                disabled={saving}
+                                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
                             >
-                                {saving ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
-                                        {showCreateModal ? 'Creating...' : 'Updating...'}
-                                    </>
-                                ) : (
-                                    showCreateModal ? 'Create Tenant' : 'Update Tenant'
-                                )}
+                                {saving ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>
                     </div>
