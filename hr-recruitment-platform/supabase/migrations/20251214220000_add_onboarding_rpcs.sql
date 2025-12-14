@@ -1,7 +1,8 @@
 -- Create RPC functions for Tenant Onboarding
 
 -- 1. Check Subdomain Availability
--- Returns true if the subdomain (slug/domain) is not taken
+DROP FUNCTION IF EXISTS public.check_subdomain_availability(text);
+
 CREATE OR REPLACE FUNCTION public.check_subdomain_availability(p_subdomain text)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -19,7 +20,8 @@ END;
 $$;
 
 -- 2. Create Tenant
--- Creates a new tenant and links the owner user to it
+DROP FUNCTION IF EXISTS public.create_tenant(text, text, uuid);
+
 CREATE OR REPLACE FUNCTION public.create_tenant(
   p_name text, 
   p_subdomain text, 
