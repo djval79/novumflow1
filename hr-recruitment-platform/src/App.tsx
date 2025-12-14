@@ -36,6 +36,9 @@ import InspectorDashboard from './pages/InspectorDashboard';
 import StaffPassportPage from './pages/StaffPassportPage';
 import StaffPortalPage from './pages/StaffPortalPage';
 import LandingPage from './pages/LandingPage';
+import TenantSignupPage from './pages/TenantSignupPage';
+import AdminPortalPage from './pages/AdminPortalPage';
+import AdminSecurityDashboard from './pages/AdminSecurityDashboard';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -93,9 +96,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-import TenantSignupPage from './pages/TenantSignupPage';
-import AdminPortalPage from './pages/AdminPortalPage';
-import AdminSecurityDashboard from './pages/AdminSecurityDashboard';
+
 
 
 function App() {
@@ -112,94 +113,94 @@ function App() {
         <TenantProvider>
           <BrowserRouter>
             <PWAUpdateNotification />
-          <Routes>
-            {/* Public Routes */}
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <LoginPage />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <PublicRoute>
-                  <SignUpPage />
-                </PublicRoute>
-              }
-            />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/support" element={<SupportPage />} />
-            <Route path="/tenant/create" element={<TenantSignupPage />} />
+            <Routes>
+              {/* Public Routes */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <PublicRoute>
+                    <SignUpPage />
+                  </PublicRoute>
+                }
+              />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/support" element={<SupportPage />} />
+              <Route path="/tenant/create" element={<TenantSignupPage />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<FeatureRoute feature="dashboard"><DashboardPage /></FeatureRoute>} />
-              <Route path="hr" element={<FeatureRoute feature="hr_module"><HRModulePage /></FeatureRoute>} />
-              <Route path="recruitment" element={<FeatureRoute feature="recruitment"><RecruitmentPage /></FeatureRoute>} />
-              <Route path="performance" element={<FeatureRoute feature="performance"><PerformancePage /></FeatureRoute>} />
-              <Route path="integrations" element={<FeatureRoute feature="integrations"><IntegrationsPage /></FeatureRoute>} />
-              <Route path="documents" element={<FeatureRoute feature="documents"><DocumentsPage /></FeatureRoute>} />
-              <Route path="messaging" element={<FeatureRoute feature="messaging"><MessagingPage /></FeatureRoute>} />
-              <Route path="noticeboard" element={<FeatureRoute feature="noticeboard"><NoticeBoardPage /></FeatureRoute>} />
-              <Route path="compliance" element={<FeatureRoute feature="compliance"><CompliancePage /></FeatureRoute>} />
-              <Route path="biometric" element={<FeatureRoute feature="biometric"><BiometricPage /></FeatureRoute>} />
-              <Route path="automation" element={<FeatureRoute feature="automation"><AutomationPage /></FeatureRoute>} />
-              <Route path="letters" element={<FeatureRoute feature="letters"><LettersPage /></FeatureRoute>} />
-              <Route path="settings" element={<FeatureRoute feature="settings"><SettingsPage /></FeatureRoute>} />
-              <Route path="recruit-settings" element={<FeatureRoute feature="recruit_settings"><RecruitSettingsPage /></FeatureRoute>} />
-              <Route path="forms" element={<FeatureRoute feature="forms"><FormsPage /></FeatureRoute>} />
-              <Route path="tenant-management" element={<TenantManagementPage />} />
-              <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
-              <Route path="compliance-hub" element={<ComplianceHubPage />} />
-              <Route path="audit-logs" element={<AuditLogPage />} />
-              <Route path="admin" element={<AdminPortalPage />} />
-              <Route path="admin/security" element={<AdminSecurityDashboard />} />
-            </Route>
+              {/* Protected Routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<FeatureRoute feature="dashboard"><DashboardPage /></FeatureRoute>} />
+                <Route path="hr" element={<FeatureRoute feature="hr_module"><HRModulePage /></FeatureRoute>} />
+                <Route path="recruitment" element={<FeatureRoute feature="recruitment"><RecruitmentPage /></FeatureRoute>} />
+                <Route path="performance" element={<FeatureRoute feature="performance"><PerformancePage /></FeatureRoute>} />
+                <Route path="integrations" element={<FeatureRoute feature="integrations"><IntegrationsPage /></FeatureRoute>} />
+                <Route path="documents" element={<FeatureRoute feature="documents"><DocumentsPage /></FeatureRoute>} />
+                <Route path="messaging" element={<FeatureRoute feature="messaging"><MessagingPage /></FeatureRoute>} />
+                <Route path="noticeboard" element={<FeatureRoute feature="noticeboard"><NoticeBoardPage /></FeatureRoute>} />
+                <Route path="compliance" element={<FeatureRoute feature="compliance"><CompliancePage /></FeatureRoute>} />
+                <Route path="biometric" element={<FeatureRoute feature="biometric"><BiometricPage /></FeatureRoute>} />
+                <Route path="automation" element={<FeatureRoute feature="automation"><AutomationPage /></FeatureRoute>} />
+                <Route path="letters" element={<FeatureRoute feature="letters"><LettersPage /></FeatureRoute>} />
+                <Route path="settings" element={<FeatureRoute feature="settings"><SettingsPage /></FeatureRoute>} />
+                <Route path="recruit-settings" element={<FeatureRoute feature="recruit_settings"><RecruitSettingsPage /></FeatureRoute>} />
+                <Route path="forms" element={<FeatureRoute feature="forms"><FormsPage /></FeatureRoute>} />
+                <Route path="tenant-management" element={<TenantManagementPage />} />
+                <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
+                <Route path="compliance-hub" element={<ComplianceHubPage />} />
+                <Route path="audit-logs" element={<AuditLogPage />} />
+                <Route path="admin" element={<AdminPortalPage />} />
+                <Route path="admin/security" element={<AdminSecurityDashboard />} />
+              </Route>
 
-            {/* Standalone Protected Routes (No App Layout) */}
-            <Route
-              path="/inspector-mode"
-              element={
-                <ProtectedRoute>
-                  <InspectorDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-passport"
-              element={
-                <ProtectedRoute>
-                  <StaffPassportPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/staff-portal"
-              element={
-                <ProtectedRoute>
-                  <StaffPortalPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Standalone Protected Routes (No App Layout) */}
+              <Route
+                path="/inspector-mode"
+                element={
+                  <ProtectedRoute>
+                    <InspectorDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-passport"
+                element={
+                  <ProtectedRoute>
+                    <StaffPassportPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff-portal"
+                element={
+                  <ProtectedRoute>
+                    <StaffPortalPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Landing Page - currently shadowed by protected root */}{/* <Route path="/" element={<LandingPage />} /> */}
+              {/* Landing Page - currently shadowed by protected root */}{/* <Route path="/" element={<LandingPage />} /> */}
 
-            {/* Catch all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Catch all */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </BrowserRouter>
         </TenantProvider>
       </AuthProvider>
