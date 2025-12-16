@@ -225,12 +225,12 @@ export default function ReportsPage() {
         });
     }
 
-    function exportReport(format: 'csv' | 'excel' | 'pdf') {
+    function exportReport(exportFormat: 'csv' | 'excel' | 'pdf') {
         if (!reportData || !selectedReport) return;
 
-        if (format === 'csv') {
+        if (exportFormat === 'csv') {
             downloadCSV(reportData, selectedReport.columns, selectedReport.name);
-        } else if (format === 'pdf') {
+        } else if (exportFormat === 'pdf') {
             // Generate printable HTML
             const html = `
 <!DOCTYPE html>

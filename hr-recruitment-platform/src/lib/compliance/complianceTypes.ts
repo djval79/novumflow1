@@ -11,14 +11,14 @@
 
 export type ComplianceAuthority = 'HOME_OFFICE' | 'CQC' | 'BOTH' | 'INTERNAL';
 
-export type ComplianceStage = 
+export type ComplianceStage =
   | 'APPLICATION'      // When applying for a position
   | 'PRE_EMPLOYMENT'   // After offer, before start
   | 'ONBOARDING'       // First days/weeks
   | 'ONGOING'          // Throughout employment
   | 'OFFBOARDING';     // When leaving
 
-export type DocumentStatus = 
+export type DocumentStatus =
   | 'PENDING'          // Awaiting upload
   | 'UPLOADED'         // Uploaded, needs verification
   | 'UNDER_REVIEW'     // Being reviewed
@@ -163,7 +163,7 @@ export const CQC_DOCUMENTS = {
     acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
     maxSizeMB: 5,
   },
-  
+
   // Qualifications & Training
   CARE_CERTIFICATE: {
     id: 'care_certificate',
@@ -219,7 +219,7 @@ export const CQC_DOCUMENTS = {
       { id: 'end_of_life', name: 'End of Life Care', renewalMonths: 24 },
     ],
   },
-  
+
   // Health & Fitness
   HEALTH_DECLARATION: {
     id: 'health_declaration',
@@ -259,7 +259,7 @@ export const CQC_DOCUMENTS = {
     acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
     maxSizeMB: 10,
   },
-  
+
   // Professional Registration (for nurses)
   NMC_PIN: {
     id: 'nmc_pin',
@@ -358,7 +358,7 @@ export const SHARED_DOCUMENTS = {
     homeOfficeRelevance: 'Required for sponsored workers',
     cqcRelevance: 'Fit and proper person - full history check',
   },
-  
+
   // Contract & Policies
   SIGNED_CONTRACT: {
     id: 'signed_contract',
@@ -516,7 +516,7 @@ export const ALL_COMPLIANCE_DOCUMENTS = {
   ...INTERNAL_DOCUMENTS,
 } as const;
 
-export type DocumentTypeId = keyof typeof ALL_COMPLIANCE_DOCUMENTS;
+export type DocumentTypeId = typeof ALL_COMPLIANCE_DOCUMENTS[keyof typeof ALL_COMPLIANCE_DOCUMENTS]['id'];
 
 // ============================================
 // FOLDER STRUCTURE
