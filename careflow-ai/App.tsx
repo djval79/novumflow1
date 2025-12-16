@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import Integrations from './pages/Integrations';
 import Login from './pages/Login';
 import AcceptInvite from './pages/AcceptInvite';
+import Onboarding from './pages/Onboarding';
 import FinanceDashboard from './pages/FinanceDashboard';
 import VisitDetails from './pages/VisitDetails';
 import Messages from './pages/Messages';
@@ -73,6 +74,7 @@ const App: React.FC = () => {
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/accept-invite" element={<AcceptInvite />} />
+            <Route path="/onboarding" element={<Onboarding />} />
 
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>

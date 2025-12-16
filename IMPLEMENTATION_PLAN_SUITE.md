@@ -134,6 +134,8 @@ App.tsx                         # Added QuickActions
 - [ ] Test StaffComplianceWidget
 - [ ] Verify cross-app navigation works
 - [ ] Test compliance warnings in CreateShiftModal
+- [ ] ⚠️ Configure VITE_CAREFLOW_URL in NovumFlow Vercel Settings
+- [ ] ⚠️ Configure VITE_NOVUMFLOW_URL in CareFlow Vercel Settings
 
 ---
 

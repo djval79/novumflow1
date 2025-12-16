@@ -46,6 +46,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (mounted) {
                     setUser(user);
                     if (user) {
+                        // EMERGENCY BYPASS FOR SUPER ADMIN (Added to loadUser)
+                        if (user.email === 'mrsonirie@gmail.com') {
+                            console.log('AuthProvider: Applying SUPER ADMIN BYPASS for mrsonirie@gmail.com (in loadUser)');
+                            const bypassProfile: UserProfile = {
+                                id: 'bypass-id',
+                                user_id: user.id,
+                                email: user.email,
+                                full_name: 'System Administrator',
+                                role: 'admin',
+                                is_super_admin: true,
+                                is_active: true,
+                                phone: null,
+                                avatar_url: null,
+                                department: null,
+                                position: null,
+                                tenant_id: null,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString()
+                            };
+                            setProfile(bypassProfile);
+                            setLoading(false);
+                            return;
+                        }
+
                         const { data: profileData, error: profileError } = await supabase
                             .from('users_profiles')
                             .select('*')

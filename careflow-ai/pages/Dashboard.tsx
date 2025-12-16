@@ -123,10 +123,13 @@ const Dashboard: React.FC = () => {
         <div className="bg-slate-100 p-4 rounded-full mb-4">
           <Users size={32} className="text-slate-400" />
         </div>
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Select an Organization</h2>
-        <p className="text-slate-500 max-w-md">
-          Please select an organization from the top menu to view the dashboard.
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Select or Create an Organization</h2>
+        <p className="text-slate-500 max-w-md mb-6">
+          You don't have any organizations yet. Create one to get started.
         </p>
+        <Link to="/onboarding" className="bg-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-700 transition-colors">
+          Create Organization
+        </Link>
       </div>
     );
   }
