@@ -95,11 +95,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
                     setTenants(mappedTenants);
 
-                    // Set current tenant
+                    // Set current tenant (Priority: URL > LocalStorage > First available)
+                    const searchParams = new URLSearchParams(window.location.search);
+                    const urlTenantId = searchParams.get('tenant');
                     const savedTenantId = localStorage.getItem('currentTenantId');
-                    const tenantToSet = savedTenantId
-                        ? mappedTenants.find(t => t.id === savedTenantId)
-                        : mappedTenants[0];
+
+                    const tenantToSet = (urlTenantId && mappedTenants.find(t => t.id === urlTenantId))
+                        || (savedTenantId ? mappedTenants.find(t => t.id === savedTenantId) : null)
+                        || mappedTenants[0];
 
                     if (tenantToSet) {
                         setCurrentTenant(tenantToSet);
@@ -125,10 +128,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
                     setTenants(tenantData || []);
 
+                    const searchParams = new URLSearchParams(window.location.search);
+                    const urlTenantId = searchParams.get('tenant');
                     const savedTenantId = localStorage.getItem('currentTenantId');
-                    const tenantToSet = savedTenantId
-                        ? tenantData?.find(t => t.id === savedTenantId)
-                        : tenantData?.[0];
+
+                    const tenantToSet = (urlTenantId && tenantData?.find(t => t.id === urlTenantId))
+                        || (savedTenantId ? tenantData?.find(t => t.id === savedTenantId) : null)
+                        || tenantData?.[0];
 
                     if (tenantToSet) {
                         setCurrentTenant(tenantToSet);
@@ -158,6 +164,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         loadTenants();
     }, [loadTenants]);
+
+    // Ensure RLS context is set whenever tenant changes
+    useEffect(() => {
+        if (currentTenant) {
+            supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id })
+                .then(({ error }) => {
+                    if (error) console.error('Error enforcing RLS context:', error);
+                    else console.log('RLS Context set to:', currentTenant.id);
+                })
+                .catch(err => console.error('Failed to set RLS context:', err));
+        }
+    }, [currentTenant]);
 
     // Switch to a different tenant
     const switchTenant = useCallback(async (tenantId: string) => {

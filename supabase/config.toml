@@ -1,4 +1,4 @@
-"""# For detailed configuration reference documentation, visit:
+# For detailed configuration reference documentation, visit:
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
@@ -210,6 +210,6 @@ backend = "postgres"
   [functions.send-email]
     verify_jwt = false
     import_map = "./supabase/functions/import_map.json"
-    [functions.send-email.env_vars]
-    RESEND_API_KEY = "env(RESEND_API_KEY)"
-""
+    # [functions.send-email.env_vars]
+    # RESEND_API_KEY = "env(RESEND_API_KEY)"
+

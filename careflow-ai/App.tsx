@@ -43,6 +43,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { TenantProvider } from './context/TenantContext';
 import { UserRole } from './types';
+import QuickActions from './components/QuickActions';
 
 const AppLayout: React.FC = () => {
   return (
@@ -56,9 +57,12 @@ const AppLayout: React.FC = () => {
           </div>
         </main>
       </div>
+      {/* Quick Actions FAB */}
+      <QuickActions />
     </div>
   );
 };
+
 
 const App: React.FC = () => {
   return (

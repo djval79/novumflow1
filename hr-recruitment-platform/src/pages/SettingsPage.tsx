@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { Save, Upload, Building2 } from 'lucide-react';
+import { Save, Upload, Building2, Mail } from 'lucide-react';
+import EmailTemplateEditor from '../components/EmailTemplateEditor';
 
 export default function SettingsPage() {
   const [companySettings, setCompanySettings] = useState<any>(null);
@@ -21,7 +22,7 @@ export default function SettingsPage() {
         .from('company_settings')
         .select('*')
         .maybeSingle();
-      
+
       if (data) {
         setCompanySettings(data);
       }
@@ -90,9 +91,8 @@ export default function SettingsPage() {
       </div>
 
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-        }`}>
+        <div className={`mb-6 p-4 rounded-lg ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+          }`}>
           {message}
         </div>
       )}
@@ -105,7 +105,7 @@ export default function SettingsPage() {
               <Building2 className="w-5 h-5 mr-2" />
               Company Information
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -114,7 +114,7 @@ export default function SettingsPage() {
                 <input
                   type="text"
                   value={companySettings.company_name || ''}
-                  onChange={(e) => setCompanySettings({...companySettings, company_name: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, company_name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -126,7 +126,7 @@ export default function SettingsPage() {
                 <input
                   type="email"
                   value={companySettings.company_email || ''}
-                  onChange={(e) => setCompanySettings({...companySettings, company_email: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, company_email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                 <input
                   type="tel"
                   value={companySettings.company_phone || ''}
-                  onChange={(e) => setCompanySettings({...companySettings, company_phone: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, company_phone: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -150,7 +150,7 @@ export default function SettingsPage() {
                 <input
                   type="url"
                   value={companySettings.company_website || ''}
-                  onChange={(e) => setCompanySettings({...companySettings, company_website: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, company_website: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -161,7 +161,7 @@ export default function SettingsPage() {
                 </label>
                 <textarea
                   value={companySettings.company_address || ''}
-                  onChange={(e) => setCompanySettings({...companySettings, company_address: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, company_address: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
@@ -172,7 +172,7 @@ export default function SettingsPage() {
           {/* Working Hours */}
           <div className="pt-6 border-t border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Working Hours & Policies</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -181,7 +181,7 @@ export default function SettingsPage() {
                 <input
                   type="time"
                   value={companySettings.working_hours_start || ''}
-                  onChange={(e) => setCompanySettings({...companySettings, working_hours_start: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, working_hours_start: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -193,7 +193,7 @@ export default function SettingsPage() {
                 <input
                   type="time"
                   value={companySettings.working_hours_end || ''}
-                  onChange={(e) => setCompanySettings({...companySettings, working_hours_end: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, working_hours_end: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -205,7 +205,7 @@ export default function SettingsPage() {
                 <input
                   type="number"
                   value={companySettings.annual_leave_days || 0}
-                  onChange={(e) => setCompanySettings({...companySettings, annual_leave_days: parseInt(e.target.value)})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, annual_leave_days: parseInt(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                 <input
                   type="number"
                   value={companySettings.sick_leave_days || 0}
-                  onChange={(e) => setCompanySettings({...companySettings, sick_leave_days: parseInt(e.target.value)})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, sick_leave_days: parseInt(e.target.value) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                 <input
                   type="text"
                   value={companySettings.timezone || ''}
-                  onChange={(e) => setCompanySettings({...companySettings, timezone: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, timezone: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                   placeholder="e.g., UTC, America/New_York"
                 />
@@ -241,7 +241,7 @@ export default function SettingsPage() {
                 </label>
                 <select
                   value={companySettings.currency || 'USD'}
-                  onChange={(e) => setCompanySettings({...companySettings, currency: e.target.value})}
+                  onChange={(e) => setCompanySettings({ ...companySettings, currency: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 >
                   <option value="USD">USD</option>
@@ -268,6 +268,11 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Email Templates Section */}
+      <div className="mt-8">
+        <EmailTemplateEditor />
+      </div>
     </div>
   );
 }

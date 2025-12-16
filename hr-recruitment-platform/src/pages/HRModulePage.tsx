@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
-import { Download, User, FileText, Clock, Calendar, BarChart, Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Download, User, FileText, Clock, Calendar, BarChart, Plus, Search, Edit, Trash2, Heart } from 'lucide-react';
 import { callEmployeeCrud } from '@/lib/employeeCrud';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
 import AddEmployeeModal from '@/components/AddEmployeeModal';
 import AddLeaveRequestModal from '@/components/AddLeaveRequestModal';
 import HRAnalyticsDashboard from '@/components/HRAnalyticsDashboard';
 import Toast from '@/components/Toast';
+import SyncToCareFlow, { CompactSyncButton } from '@/components/SyncToCareFlow';
 
 type TabType = 'employees' | 'documents' | 'attendance' | 'leaves' | 'shifts' | 'analytics';
 
@@ -232,13 +233,18 @@ export default function HRModulePage() {
           <p className="mt-1 text-sm text-gray-600">Manage employees, documents, attendance, and more</p>
         </div>
 
-        <button
-          onClick={handleAddNew}
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add New
-        </button>
+        <div className="flex items-center gap-3">
+          {activeTab === 'employees' && (
+            <SyncToCareFlow onSuccess={loadData} />
+          )}
+          <button
+            onClick={handleAddNew}
+            className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add New
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -354,6 +360,7 @@ export default function HRModulePage() {
                             >
                               <FileText className="w-4 h-4" />
                             </button>
+                            <CompactSyncButton employeeId={emp.id} onSuccess={loadData} />
                           </td>
                         </tr>
                       ))

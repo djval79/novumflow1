@@ -22,11 +22,19 @@ import {
   TrendingUp,
   Building2,
   History,
-  ShieldCheck
+  ShieldCheck,
+  Clock,
+  BarChart3,
+  UsersRound,
+  UserPlus,
+  GraduationCap
 } from 'lucide-react';
 
 import TenantSwitcher from './TenantSwitcher';
 import { QuickAppSwitcher } from './CrossAppNavigation';
+import NotificationCenter from './NotificationCenter';
+import GlobalSearch from './GlobalSearch';
+import QuickActions from './QuickActions';
 
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
@@ -45,6 +53,11 @@ export default function AppLayout() {
     { name: 'HR Module', href: '/hr', icon: Users, feature: 'hr_module' },
     { name: 'Recruitment', href: '/recruitment', icon: Briefcase, feature: 'recruitment' },
     { name: 'Performance', href: '/performance', icon: TrendingUp, feature: 'performance' },
+    { name: 'Attendance', href: '/attendance', icon: Clock, feature: 'attendance' },
+    { name: 'Onboarding', href: '/onboarding', icon: UserPlus, feature: 'onboarding' },
+    { name: 'Training', href: '/training', icon: GraduationCap, feature: 'training' },
+    { name: 'Team', href: '/team', icon: UsersRound, feature: 'team' },
+    { name: 'Reports', href: '/reports', icon: BarChart3, feature: 'reports' },
     { name: 'Integrations', href: '/integrations', icon: Zap, feature: 'integrations' },
     { name: 'Documents', href: '/documents', icon: FolderOpen, feature: 'documents' },
     { name: 'Messaging', href: '/messaging', icon: MessageSquare, feature: 'messaging' },
@@ -145,6 +158,12 @@ export default function AppLayout() {
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* Global Search */}
+              <GlobalSearch />
+
+              {/* Notification Center */}
+              <NotificationCenter />
+
               {/* Cross-App Navigation */}
               <QuickAppSwitcher />
 
@@ -226,6 +245,9 @@ export default function AppLayout() {
         </main>
         <BrandedFooter />
       </div>
+
+      {/* Quick Actions FAB */}
+      <QuickActions />
     </div>
   );
 }

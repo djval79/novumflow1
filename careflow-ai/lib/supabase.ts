@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const supabaseUrl = "http://127.0.0.1:54321";
-export const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvY2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODcyODU1MDUsImV4cCI6MTk5NTg2MTUwNX0.MnK0aK8YqK8YqK8YqK8YqK8YqK8YqK8YqK8YqK8YqK8";
+// Use environment variables with fallback to production Supabase (shared with NovumFlow)
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://niikshfoecitimepiifo.supabase.co';
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paWtzaGZvZWNpdGltZXBpaWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNTIyMTUsImV4cCI6MjA3ODYyODIxNX0.4KzLoUez4xQ1_h-vpx1dOa1PrzvAbi65UC4Mf7JQAfc';
+
+// Validate configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('❌ Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -23,3 +29,4 @@ export interface UserProfile {
     created_at: string;
     updated_at: string;
 }
+

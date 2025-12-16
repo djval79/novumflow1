@@ -9,6 +9,7 @@ import { useTenant } from '../context/TenantContext';
 import { UserRole } from '../types';
 import { Link } from 'react-router-dom';
 import { statsService, visitService } from '../services/supabaseService';
+import StaffComplianceWidget from '../components/StaffComplianceWidget';
 
 const visitData = [
   { name: 'Mon', visits: 45, completed: 42 },
@@ -317,31 +318,8 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Compliance Chart */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Compliance Overview</h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={complianceData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={80} tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 14 }} />
-                  <Tooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={30} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-4 space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Staff with expired DBS</span>
-                <span className="font-bold text-red-600">2</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Training due (7 days)</span>
-                <span className="font-bold text-amber-600">5</span>
-              </div>
-            </div>
-          </div>
+          {/* Staff Compliance Widget - NovumFlow Synced */}
+          <StaffComplianceWidget />
         </div>
       )}
 

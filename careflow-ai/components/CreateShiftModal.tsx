@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '@/context/TenantContext';
 import { supabase } from '@/lib/supabase';
-import { X, Calendar, Clock, User, AlertTriangle, Loader2 } from 'lucide-react';
+import { X, Calendar, Clock, User, AlertTriangle, Loader2, ShieldCheck, ShieldAlert } from 'lucide-react';
+import complianceCheckService, { ComplianceStatus } from '@/services/ComplianceCheckService';
 
 interface CreateShiftModalProps {
     isOpen: boolean;
@@ -19,6 +20,7 @@ interface Staff {
     id: string;
     first_name: string;
     last_name: string;
+    compliance?: ComplianceStatus;
 }
 
 export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: CreateShiftModalProps) {
@@ -38,6 +40,8 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+    const [complianceWarning, setComplianceWarning] = useState<string | null>(null);
+    const [staffCompliance, setStaffCompliance] = useState<Map<string, ComplianceStatus>>(new Map());
 
     useEffect(() => {
         if (isOpen && currentTenant) {
@@ -65,6 +69,10 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
             .eq('status', 'active');
 
         setStaffList(staffData || []);
+
+        // Fetch compliance data for all staff
+        const complianceMap = await complianceCheckService.checkAllStaffCompliance(currentTenant.id);
+        setStaffCompliance(complianceMap);
     };
 
     const checkConflicts = async (staffId: string, date: string, start: string, end: string) => {
@@ -97,6 +105,30 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
             setConflictWarning(null);
         }
     }, [formData.staffId, formData.date, formData.startTime, formData.endTime]);
+
+    // Check compliance when staff is selected
+    useEffect(() => {
+        if (formData.staffId && currentTenant) {
+            const compliance = staffCompliance.get(formData.staffId);
+            if (compliance && !compliance.isCompliant) {
+                let warning = 'Warning: This staff member has compliance issues:\n';
+                if (compliance.rtw_status !== 'valid') {
+                    warning += '• Right to Work not verified\n';
+                }
+                if (compliance.dbs_status !== 'valid') {
+                    warning += '• DBS check not current\n';
+                }
+                if (compliance.missingDocuments.length > 0) {
+                    warning += `• Missing: ${compliance.missingDocuments.join(', ')}\n`;
+                }
+                setComplianceWarning(warning.trim());
+            } else {
+                setComplianceWarning(null);
+            }
+        } else {
+            setComplianceWarning(null);
+        }
+    }, [formData.staffId, staffCompliance, currentTenant]);
 
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurrenceData, setRecurrenceData] = useState({
@@ -231,6 +263,16 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                             </div>
                         )}
 
+                        {complianceWarning && (
+                            <div className="p-3 text-sm text-amber-700 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
+                                <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+                                <div>
+                                    <span className="font-medium">Compliance Warning</span>
+                                    <p className="whitespace-pre-line text-xs mt-1">{complianceWarning}</p>
+                                </div>
+                            </div>
+                        )}
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
                             <select
@@ -305,9 +347,23 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white"
                             >
                                 <option value="">Unassigned</option>
-                                {staffList.map(s => (
-                                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-                                ))}
+                                {staffList.map(s => {
+                                    const compliance = staffCompliance.get(s.id);
+                                    const isCompliant = compliance?.isCompliant !== false;
+                                    const complianceLabel = compliance
+                                        ? (isCompliant ? '✓' : '⚠️')
+                                        : '';
+                                    return (
+                                        <option
+                                            key={s.id}
+                                            value={s.id}
+                                            className={!isCompliant ? 'text-amber-600' : ''}
+                                        >
+                                            {complianceLabel} {s.first_name} {s.last_name}
+                                            {compliance && !isCompliant ? ` (${compliance.compliancePercentage}% compliant)` : ''}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         </div>
 

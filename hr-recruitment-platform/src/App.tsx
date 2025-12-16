@@ -39,6 +39,11 @@ import LandingPage from './pages/LandingPage';
 import TenantSignupPage from './pages/TenantSignupPage';
 import AdminPortalPage from './pages/AdminPortalPage';
 import AdminSecurityDashboard from './pages/AdminSecurityDashboard';
+import AttendancePage from './pages/AttendancePage';
+import ReportsPage from './pages/ReportsPage';
+import TeamPage from './pages/TeamPage';
+import OnboardingPage from './pages/OnboardingPage';
+import TrainingPage from './pages/TrainingPage';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -168,6 +173,11 @@ function App() {
                 <Route path="audit-logs" element={<AuditLogPage />} />
                 <Route path="admin" element={<AdminPortalPage />} />
                 <Route path="admin/security" element={<AdminSecurityDashboard />} />
+                <Route path="attendance" element={<AttendancePage />} />
+                <Route path="reports" element={<ReportsPage />} />
+                <Route path="team" element={<TeamPage />} />
+                <Route path="onboarding" element={<OnboardingPage />} />
+                <Route path="training" element={<TrainingPage />} />
               </Route>
 
               {/* Standalone Protected Routes (No App Layout) */}

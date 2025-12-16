@@ -12,6 +12,7 @@ import {
     Plus,
     Calendar
 } from 'lucide-react';
+import { ExportButton } from '@/components/ExportButton';
 
 export default function AuditLogPage() {
     const { currentTenant } = useTenant();
@@ -86,13 +87,19 @@ export default function AuditLogPage() {
                         <Filter className="w-4 h-4" />
                         Filters
                     </button>
-                    <button
-                        onClick={() => {/* TODO: Export */ }}
-                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export
-                    </button>
+                    <ExportButton
+                        data={logs}
+                        filename="audit-logs"
+                        title="Audit Logs Export"
+                        columns={[
+                            { key: 'created_at', label: 'Timestamp' },
+                            { key: 'user_email', label: 'User' },
+                            { key: 'action', label: 'Action' },
+                            { key: 'entity_type', label: 'Entity Type' },
+                            { key: 'entity_name', label: 'Entity Name' },
+                            { key: 'ip_address', label: 'IP Address' },
+                        ]}
+                    />
                 </div>
             </div>
 

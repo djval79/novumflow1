@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import AdminPrivilegeSetup from '../components/AdminPrivilegeSetup';
+import DashboardAnalytics from '../components/DashboardAnalytics';
 
 interface DashboardStats {
   totalEmployees: number;
@@ -224,6 +225,11 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500 text-center py-8">No recent activities</p>
           )}
         </div>
+      </div>
+
+      {/* Analytics Section */}
+      <div className="mt-8">
+        <DashboardAnalytics />
       </div>
 
       {/* Admin Privilege Setup */}

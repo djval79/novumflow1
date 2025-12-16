@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { Wand2, Loader2 } from 'lucide-react';
 
 interface AddJobModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface AddJobModalProps {
 export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }: AddJobModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
   const [formData, setFormData] = useState({
     job_title: '',
     department: '',
@@ -58,6 +60,37 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
     }
   }, [job, isOpen]);
 
+  async function handleGenerateWithAI() {
+    if (!formData.job_title || !formData.department) {
+      onError("Please enter Job Title and Department to generate a description.");
+      return;
+    }
+
+    setGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-job-description', {
+        body: {
+          job_title: formData.job_title,
+          department: formData.department,
+          employment_type: formData.employment_type
+        }
+      });
+
+      if (error) throw error;
+
+      setFormData(prev => ({
+        ...prev,
+        description: data.description || prev.description,
+        requirements: data.requirements || prev.requirements
+      }));
+    } catch (err: any) {
+      console.error(err);
+      onError(err.message || "Failed to generate description");
+    } finally {
+      setGeneratingAI(false);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -81,7 +114,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
           workflowId = defaultWorkflows[0].id;
         }
       }
-      
+
       console.log('Using Workflow ID:', workflowId);
 
       const salaryRange = formData.salary_range_min && formData.salary_range_max
@@ -244,7 +277,22 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Job Description *</label>
+          <div className="flex justify-between items-center mb-1">
+            <label className="block text-sm font-medium text-gray-700">Job Description *</label>
+            <button
+              type="button"
+              onClick={handleGenerateWithAI}
+              disabled={generatingAI}
+              className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium transition disabled:opacity-50"
+            >
+              {generatingAI ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Wand2 className="w-3 h-3" />
+              )}
+              {generatingAI ? 'Generating...' : 'Generate with AI'}
+            </button>
+          </div>
           <textarea
             required
             rows={4}
