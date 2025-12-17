@@ -3,7 +3,7 @@ import { useTenant } from '@/context/TenantContext';
 import { ExternalLink, Heart, Users } from 'lucide-react';
 
 // Configuration
-const CAREFLOW_URL = import.meta.env.VITE_CAREFLOW_URL || 'http://localhost:5174';
+const CAREFLOW_URL = import.meta.env.VITE_CAREFLOW_URL || 'https://careflow-ai.vercel.app';
 const NOVUMFLOW_URL = import.meta.env.VITE_NOVUMFLOW_URL || 'https://hr-recruitment-platform.vercel.app';
 
 interface CrossAppNavigationProps {
@@ -59,7 +59,9 @@ export function QuickAppSwitcher() {
 
     if (!currentTenant) return null;
 
-    const isNovumFlow = window.location.port === '5173' || window.location.hostname.includes('novumflow');
+    const isNovumFlow = window.location.port === '5173' ||
+        window.location.hostname.includes('novumflow') ||
+        window.location.hostname.includes('hr-recruitment-platform');
     const targetApp = isNovumFlow ? 'careflow' : 'novumflow';
     const targetUrl = isNovumFlow ? CAREFLOW_URL : NOVUMFLOW_URL;
     const canAccess = isNovumFlow ? canAccessCareFlow : canAccessNovumFlow;
@@ -100,7 +102,9 @@ export function CompactAppSwitcher() {
 
     if (!currentTenant) return null;
 
-    const isNovumFlow = window.location.port === '5173' || window.location.hostname.includes('novumflow');
+    const isNovumFlow = window.location.port === '5173' ||
+        window.location.hostname.includes('novumflow') ||
+        window.location.hostname.includes('hr-recruitment-platform');
     const targetApp = isNovumFlow ? 'careflow' : 'novumflow';
     const targetUrl = isNovumFlow ? CAREFLOW_URL : NOVUMFLOW_URL;
     const canAccess = isNovumFlow ? canAccessCareFlow : canAccessNovumFlow;

@@ -64,7 +64,8 @@ export function QuickAppSwitcher() {
     // Detect current app based on port or hostname
     const isNovumFlow = typeof window !== 'undefined' && (
         window.location.port === '5173' ||
-        window.location.hostname.includes('novumflow')
+        window.location.hostname.includes('novumflow') ||
+        window.location.hostname.includes('hr-recruitment-platform')
     );
 
     const targetUrl = isNovumFlow ? CAREFLOW_URL : NOVUMFLOW_URL;
@@ -101,7 +102,8 @@ export function CompactAppSwitcher() {
 
     const isNovumFlow = typeof window !== 'undefined' && (
         window.location.port === '5173' ||
-        window.location.hostname.includes('novumflow')
+        window.location.hostname.includes('novumflow') ||
+        window.location.hostname.includes('hr-recruitment-platform')
     );
 
     const targetUrl = isNovumFlow ? CAREFLOW_URL : NOVUMFLOW_URL;
