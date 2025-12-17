@@ -11,6 +11,9 @@ export interface Tenant {
     slug?: string;
     is_active?: boolean;
     max_users?: number;
+    careflow_enabled?: boolean;
+    cardflow_enabled?: boolean; // Legacy/Typo support if needed
+    settings?: Record<string, any>; // JSONB settings column
 }
 
 export interface Feature {

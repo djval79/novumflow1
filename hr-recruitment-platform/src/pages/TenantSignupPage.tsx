@@ -212,7 +212,8 @@ export default function TenantSignupPage() {
             const { data: tenantId, error: tenantError } = await supabase.rpc('create_tenant', {
                 p_name: formData.organizationName,
                 p_subdomain: formData.subdomain,
-                p_owner_user_id: authData.user.id
+                p_owner_user_id: authData.user.id,
+                p_subscription_tier: formData.subscriptionTier
             });
 
             if (tenantError) throw tenantError;

@@ -439,7 +439,7 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading || (!!conflictWarning && !isRecurring)}
+                                disabled={loading || (!!conflictWarning && !isRecurring) || !!complianceWarning}
                                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}

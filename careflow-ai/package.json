@@ -25,5 +25,8 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "rollup": "^4.53.5"
   }
 }

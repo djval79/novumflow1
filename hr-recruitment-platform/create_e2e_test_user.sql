@@ -58,7 +58,11 @@ BEGIN
       true,
       now(),
       now()
-    );
+    )
+    ON CONFLICT (user_id) DO UPDATE SET 
+      full_name = 'E2E Test User',
+      role = 'admin',
+      is_super_admin = true;
 
     RAISE NOTICE 'Test user created successfully with ID: %', test_user_id;
   ELSE

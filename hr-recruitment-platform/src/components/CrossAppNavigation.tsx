@@ -3,8 +3,8 @@ import { useTenant } from '@/contexts/TenantContext';
 import { ExternalLink, Heart, Users } from 'lucide-react';
 
 // Configuration - update these for production
-const CAREFLOW_URL = import.meta.env.VITE_CAREFLOW_URL || 'http://localhost:5174';
-const NOVUMFLOW_URL = import.meta.env.VITE_NOVUMFLOW_URL || 'http://localhost:5173';
+const CAREFLOW_URL = import.meta.env.VITE_CAREFLOW_URL || 'https://careflow-ai.vercel.app';
+const NOVUMFLOW_URL = import.meta.env.VITE_NOVUMFLOW_URL || 'https://hr-recruitment-platform.vercel.app';
 
 interface CrossAppNavigationProps {
     app: 'novumflow' | 'careflow';

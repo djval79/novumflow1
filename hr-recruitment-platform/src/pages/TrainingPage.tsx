@@ -1,6 +1,7 @@
 import React from 'react';
 import TrainingTracker from '@/components/TrainingTracker';
 import GoalsTracker from '@/components/GoalsTracker';
+import DigitalSkillsTracker from '@/components/DigitalSkillsTracker';
 
 export default function TrainingPage() {
     return (
@@ -9,6 +10,9 @@ export default function TrainingPage() {
                 <h1 className="text-3xl font-bold text-gray-900">Training & Development</h1>
                 <p className="mt-1 text-sm text-gray-600">Track your training courses and professional development goals</p>
             </div>
+
+            {/* Digital Skills Section */}
+            <DigitalSkillsTracker />
 
             {/* Training Tracker */}
             <TrainingTracker />

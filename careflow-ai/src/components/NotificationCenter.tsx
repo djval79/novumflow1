@@ -40,7 +40,7 @@ export default function NotificationCenter() {
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
-                table: 'notifications',
+                table: 'careflow_notifications',
                 filter: `user_id=eq.${user?.id}`
             }, (payload) => {
                 setNotifications(prev => [payload.new as Notification, ...prev]);
@@ -67,7 +67,7 @@ export default function NotificationCenter() {
         setLoading(true);
         try {
             const { data, error } = await supabase
-                .from('notifications')
+                .from('careflow_notifications')
                 .select('*')
                 .eq('user_id', user?.id)
                 .order('created_at', { ascending: false })
@@ -141,7 +141,7 @@ export default function NotificationCenter() {
 
         try {
             await supabase
-                .from('notifications')
+                .from('careflow_notifications')
                 .update({ read: true })
                 .eq('id', id);
         } catch (error) {
@@ -154,7 +154,7 @@ export default function NotificationCenter() {
 
         try {
             await supabase
-                .from('notifications')
+                .from('careflow_notifications')
                 .update({ read: true })
                 .eq('user_id', user?.id)
                 .eq('read', false);
@@ -167,7 +167,7 @@ export default function NotificationCenter() {
         setNotifications(prev => prev.filter(n => n.id !== id));
 
         try {
-            await supabase.from('notifications').delete().eq('id', id);
+            await supabase.from('careflow_notifications').delete().eq('id', id);
         } catch (error) {
             console.error('Error deleting notification:', error);
         }
@@ -243,8 +243,8 @@ export default function NotificationCenter() {
                             <button
                                 onClick={() => setFilter('all')}
                                 className={`px-3 py-1 text-xs rounded-lg transition ${filter === 'all'
-                                        ? 'bg-cyan-100 text-cyan-700 font-medium'
-                                        : 'text-slate-500 hover:bg-slate-100'
+                                    ? 'bg-cyan-100 text-cyan-700 font-medium'
+                                    : 'text-slate-500 hover:bg-slate-100'
                                     }`}
                             >
                                 All
@@ -252,8 +252,8 @@ export default function NotificationCenter() {
                             <button
                                 onClick={() => setFilter('unread')}
                                 className={`px-3 py-1 text-xs rounded-lg transition ${filter === 'unread'
-                                        ? 'bg-cyan-100 text-cyan-700 font-medium'
-                                        : 'text-slate-500 hover:bg-slate-100'
+                                    ? 'bg-cyan-100 text-cyan-700 font-medium'
+                                    : 'text-slate-500 hover:bg-slate-100'
                                     }`}
                             >
                                 Unread ({unreadCount})
