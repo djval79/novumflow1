@@ -243,7 +243,13 @@ export default function TenantSignupPage() {
             }
         } catch (err: any) {
             console.error('Signup error:', err);
-            setError(err.message || 'Failed to create organization');
+            if (err.message && err.message.includes('confirmation email')) {
+                setError('Email service is temporarily busy. Your account and organization may have been created—please try logging in, or wait a few minutes and try again.');
+            } else if (err.message && err.message.includes('rate limit')) {
+                setError('Too many attempts. Please wait a few minutes before trying again.');
+            } else {
+                setError(err.message || 'Failed to create organization');
+            }
         } finally {
             setLoading(false);
         }

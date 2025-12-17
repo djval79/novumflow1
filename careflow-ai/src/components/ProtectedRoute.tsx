@@ -68,7 +68,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
 
   // Normalize role for comparison (handle Admin vs admin)
   const userRole = profile?.role?.toLowerCase();
-  const isSuperAdmin = user?.email === 'mrsonirie@gmail.com' || profile?.is_super_admin;
+  const isSuperAdmin = user?.email === 'mrsonirie@gmail.com' || user?.email === 'mrsonirie@msn.com' || profile?.is_super_admin;
 
   if (allowedRoles && userRole && !isSuperAdmin) {
     const hasPermission = allowedRoles.some(role => role.toLowerCase() === userRole);

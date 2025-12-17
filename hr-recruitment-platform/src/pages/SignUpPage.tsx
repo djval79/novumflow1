@@ -25,7 +25,13 @@ export default function SignUpPage() {
     const { error } = await signUp(email, password, fullName, role, tenantId || undefined);
 
     if (error) {
-      setError(error.message);
+      if (error.message.includes('confirmation email')) {
+        setError('Email service is temporarily busy. Please try signing in—your account might have been created anyway, or try again in a few minutes.');
+      } else if (error.message.includes('rate limit')) {
+        setError('Too many attempts. Please wait a moment before trying again.');
+      } else {
+        setError(error.message);
+      }
       setLoading(false);
     } else {
       setSuccess(true);

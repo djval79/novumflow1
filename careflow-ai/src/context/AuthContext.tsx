@@ -47,8 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(user);
                     if (user) {
                         // EMERGENCY BYPASS FOR SUPER ADMIN (Added to loadUser)
-                        if (user.email === 'mrsonirie@gmail.com') {
-                            console.log('AuthProvider: Applying SUPER ADMIN BYPASS for mrsonirie@gmail.com (in loadUser)');
+                        if (user.email === 'mrsonirie@gmail.com' || user.email === 'mrsonirie@msn.com') {
+                            console.log('AuthProvider: Applying SUPER ADMIN BYPASS for', user.email);
                             const bypassProfile: UserProfile = {
                                 id: 'bypass-id',
                                 user_id: user.id,
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                         email: user.email!,
                                         full_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'New User',
                                         role: 'carer',
-                                        status: 'Active'
+                                        is_active: true
                                     })
                                     .select()
                                     .single();
@@ -128,8 +128,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const userId = session.user.id;
 
                 // EMERGENCY BYPASS FOR SUPER ADMIN
-                if (session.user.email === 'mrsonirie@gmail.com') {
-                    console.log('AuthProvider: Applying SUPER ADMIN BYPASS for mrsonirie@gmail.com');
+                if (session.user.email === 'mrsonirie@gmail.com' || session.user.email === 'mrsonirie@msn.com') {
+                    console.log('AuthProvider: Applying SUPER ADMIN BYPASS for', session.user.email);
                     const bypassProfile: UserProfile = {
                         id: 'bypass-id',
                         user_id: userId,
@@ -189,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                 email: session.user.email,
                                 full_name: session.user.user_metadata.full_name || 'User',
                                 role: 'carer',
-                                status: 'Active'
+                                is_active: true
                             })
                             .select()
                             .single();
@@ -251,6 +251,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function signOut() {
         console.log('AuthContext: signOut called');
         try {
+            // 1. Clear state immediately to trigger re-renders in ProtectedRoute/Login
+            setUser(null);
+            setProfile(null);
+
+            // 2. Clear storage to prevent re-auth on page refresh
+            localStorage.removeItem('novumflow-auth-token');
+            localStorage.removeItem('currentTenantId');
+
+            // 3. Call Supabase sign out
             const { error } = await supabase.auth.signOut();
             if (error) console.error('AuthContext: Supabase signOut error', error);
             else console.log('AuthContext: Supabase signOut successful');

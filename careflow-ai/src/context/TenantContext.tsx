@@ -165,16 +165,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         loadTenants();
     }, [loadTenants]);
 
-    // Ensure RLS context is set whenever tenant changes
     useEffect(() => {
-        if (currentTenant) {
-            supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id })
-                .then(({ error }) => {
+        const setRlsContext = async () => {
+            if (currentTenant) {
+                try {
+                    const { error } = await supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id });
                     if (error) console.error('Error enforcing RLS context:', error);
                     else console.log('RLS Context set to:', currentTenant.id);
-                })
-                .catch(err => console.error('Failed to set RLS context:', err));
-        }
+                } catch (err) {
+                    console.error('Failed to set RLS context:', err);
+                }
+            }
+        };
+        setRlsContext();
     }, [currentTenant]);
 
     // Switch to a different tenant
@@ -205,13 +208,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         window.location.reload();
     }, [tenants]);
 
-    // Create new tenant
     const createTenant = useCallback(async (name: string, subdomain: string): Promise<Tenant | null> => {
+        if (!user) {
+            console.error('TenantContext: Cannot create tenant - User not logged in');
+            return null;
+        }
+
         try {
             const { data, error } = await supabase.rpc('create_tenant', {
                 p_name: name,
                 p_subdomain: subdomain,
-                p_owner_user_id: user?.id
+                p_owner_user_id: user.id,
+                p_subscription_tier: 'trial' // Added to match NovumFlow expectations
             });
 
             if (error) throw error;
