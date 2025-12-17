@@ -52,7 +52,19 @@ export function getSupabaseClient() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        storageKey: 'novumflow-auth-token',
+        // Enable cleaning up of checking for shared cookies on subdomains
+        flowType: 'pkce',
+        debug: isDevelopment,
+        //    // CRITICAL: Enable this in production for shared login between subdomains
+        //    // cookieOptions: {
+        //    //   name: 'novumflow-auth-token',
+        //    //   domain: '.novumflow.com', // Replace with your actual production domain
+        //    //   sameSite: 'lax',
+        //    //   secure: true,
+        //    //   maxAge: 60 * 60 * 24 * 365 // 1 year
+        //    // }
       },
       realtime: {
         params: {

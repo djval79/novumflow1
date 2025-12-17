@@ -9,7 +9,23 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error('❌ Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'novumflow-auth-token',
+        // flowType: 'pkce', // React 19 / Vite may need this
+        //    // CRITICAL: Enable this in production for shared login between subdomains
+        //    // cookieOptions: {
+        //    //   name: 'novumflow-auth-token',
+        //    //   domain: '.novumflow.com', // Replace with your actual production domain
+        //    //   sameSite: 'lax',
+        //    //   secure: true,
+        //    //   maxAge: 60 * 60 * 24 * 365
+        //    // }
+    }
+});
 
 export type UserRole = 'admin' | 'hr_manager' | 'recruiter' | 'employee' | 'carer' | 'staff';
 

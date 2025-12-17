@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Users, Building, Activity, Search, Filter, MoreVertical, CheckCircle, XCircle, Edit } from 'lucide-react';
+import { toast } from 'sonner';
 import EditTenantModal from '@/components/admin/EditTenantModal';
 
 interface Tenant {
@@ -73,9 +74,10 @@ export default function AdminPortalPage() {
             // Refresh list
             fetchTenants();
             fetchStats(); // Update stats too
+            toast.success(`Tenant ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
         } catch (err: any) {
             console.error('Error toggling status:', err);
-            alert('Failed to update tenant status');
+            toast.error('Failed to update tenant status');
         }
     };
 
