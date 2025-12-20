@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../context/TenantContext';
 import { X, Plus, Trash2, Save, Pill, Activity, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Medication {
     id: string;
@@ -43,7 +43,7 @@ export default function MedicationManager({ clientId, clientName, onClose }: Med
         setLoading(true);
         try {
             const { data, error } = await supabase
-                .from('medications')
+                .from('careflow_medications')
                 .select('*')
                 .eq('tenant_id', currentTenant!.id)
                 .eq('client_id', clientId)
@@ -53,7 +53,7 @@ export default function MedicationManager({ clientId, clientName, onClose }: Med
             if (error) throw error;
             setMedications(data || []);
         } catch (error) {
-            console.error('Error fetching medications:', error);
+            toast.error('Failed to load medications');
         } finally {
             setLoading(false);
         }
@@ -64,7 +64,7 @@ export default function MedicationManager({ clientId, clientName, onClose }: Med
 
         try {
             const { error } = await supabase
-                .from('medications')
+                .from('careflow_medications')
                 .insert({
                     tenant_id: currentTenant.id,
                     client_id: clientId,
@@ -80,9 +80,9 @@ export default function MedicationManager({ clientId, clientName, onClose }: Med
             await fetchMedications();
             setIsAdding(false);
             setNewMed({ name: '', dosage: '', frequency: 'Morning', route: 'Oral' });
+            toast.success('Medication added successfully');
         } catch (error) {
-            console.error('Error adding medication:', error);
-            alert('Failed to add medication.');
+            toast.error('Failed to add medication');
         }
     };
 
@@ -91,14 +91,15 @@ export default function MedicationManager({ clientId, clientName, onClose }: Med
 
         try {
             const { error } = await supabase
-                .from('medications')
+                .from('careflow_medications')
                 .update({ status: 'Discontinued' })
                 .eq('id', id);
 
             if (error) throw error;
             await fetchMedications();
+            toast.success('Medication discontinued');
         } catch (error) {
-            console.error('Error discontinuing medication:', error);
+            toast.error('Failed to discontinue medication');
         }
     };
 

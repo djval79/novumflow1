@@ -49,9 +49,9 @@ export const visitService = {
         const { data, error } = await supabase
             .from('careflow_visits')
             .select('*, client:careflow_clients(name, address)')
-            .gte('date', new Date().toISOString().split('T')[0])
-            .order('date', { ascending: true })
-            .order('start_time', { ascending: true })
+            .gte('scheduled_date', new Date().toISOString().split('T')[0])
+            .order('scheduled_date', { ascending: true })
+            .order('scheduled_start', { ascending: true }) // Also fixed start_time -> scheduled_start based on schema
             .limit(limit);
 
         if (error) throw error;
@@ -59,8 +59,9 @@ export const visitService = {
             ...v,
             clientId: v.client_id,
             staffId: v.staff_id,
-            startTime: v.start_time,
-            endTime: v.end_time,
+            date: v.scheduled_date,
+            startTime: v.scheduled_start,
+            endTime: v.scheduled_end,
             visitType: v.visit_type,
             clientName: v.client?.name,
         }));
@@ -70,8 +71,8 @@ export const visitService = {
         let query = supabase
             .from('careflow_visits')
             .select('*, client:careflow_clients(name), staff:careflow_staff(full_name)')
-            .gte('date', start)
-            .lte('date', end);
+            .gte('scheduled_date', start)
+            .lte('scheduled_date', end);
 
         if (staffId) {
             query = query.eq('staff_id', staffId);
@@ -84,9 +85,9 @@ export const visitService = {
             id: v.id,
             clientId: v.client_id,
             staffId: v.staff_id,
-            date: v.date,
-            startTime: v.start_time,
-            endTime: v.end_time,
+            date: v.scheduled_date,
+            startTime: v.scheduled_start, // mapped from schema column
+            endTime: v.scheduled_end,     // mapped from schema column
             visitType: v.visit_type,
             status: v.status,
             clientName: v.client?.name,
@@ -107,8 +108,9 @@ export const visitService = {
             ...v,
             clientId: v.client_id,
             staffId: v.staff_id,
-            startTime: v.start_time,
-            endTime: v.end_time,
+            date: v.scheduled_date,
+            startTime: v.scheduled_start,
+            endTime: v.scheduled_end,
             visitType: v.visit_type,
             clientName: v.client?.name
         }));
@@ -117,7 +119,7 @@ export const visitService = {
     async assignStaff(visitId: string, staffId: string, date: string) {
         const { data, error } = await supabase
             .from('careflow_visits')
-            .update({ staff_id: staffId, date: date, status: 'Scheduled' })
+            .update({ staff_id: staffId, scheduled_date: date, status: 'Scheduled' })
             .eq('id', visitId)
             .select()
             .single();
@@ -133,9 +135,9 @@ export const visitService = {
                 tenant_id: visit.tenant_id,
                 client_id: visit.clientId,
                 staff_id: visit.staffId,
-                date: visit.date,
-                start_time: visit.startTime,
-                end_time: visit.endTime,
+                scheduled_date: visit.date,
+                scheduled_start: visit.startTime,
+                scheduled_end: visit.endTime,
                 visit_type: visit.visitType,
                 status: visit.status || 'Scheduled',
                 notes: 'Created via Rostering'
@@ -630,7 +632,7 @@ export const statsService = {
         const { count: visitCount } = await supabase
             .from('careflow_visits')
             .select('*', { count: 'exact', head: true })
-            .eq('date', new Date().toISOString().split('T')[0]);
+            .eq('scheduled_date', new Date().toISOString().split('T')[0]);
 
         const { count: incidentCount } = await supabase
             .from('careflow_incidents')
@@ -981,14 +983,18 @@ export const staffService = {
         if (error) throw error;
         return data.map((e: any) => ({
             id: e.id,
+            userId: e.id, // Add this line to map userId to staff ID
             novumId: e.novumflow_employee_id,
             name: e.full_name,
             role: e.role,
-            status: e.status,
-            phone: e.phone,
-            email: e.email,
+            status: e.status || 'Active',
+            phone: e.phone || '',
+            email: e.email || '',
             avatar: e.full_name?.charAt(0).toUpperCase(),
-            compliance: []
+            compliance: [],
+            skills: e.skills || [],
+            availability: e.availability || 'Full Time',
+            joinedDate: e.created_at || new Date().toISOString()
         }));
     },
 
@@ -1034,7 +1040,7 @@ const mapper = {
         address: c.address,
         careLevel: c.care_level,
         fundingDetails: {
-            source: c.funding_source,
+            source: (c.funding_source || 'Private') as 'Private' | 'Council' | 'NHS',
             ...c.funding_details
         },
         emergencyContact: {

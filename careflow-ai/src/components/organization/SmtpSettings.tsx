@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Save, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTenant } from '@/context/TenantContext';
+import { toast } from 'sonner';
 
 export default function SmtpSettings() {
     const { currentTenant } = useTenant();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const [formData, setFormData] = useState({
         host: '',
@@ -45,7 +45,7 @@ export default function SmtpSettings() {
                 setHasPassword(data.has_password);
             }
         } catch (error) {
-            console.error('Error loading SMTP config:', error);
+            toast.error('Failed to load SMTP configuration');
         } finally {
             setLoading(false);
         }
@@ -54,7 +54,6 @@ export default function SmtpSettings() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        setMessage(null);
 
         try {
             const { error } = await supabase.rpc('save_tenant_smtp_config', {
@@ -68,11 +67,11 @@ export default function SmtpSettings() {
 
             if (error) throw error;
 
-            setMessage({ type: 'success', text: 'Email settings saved successfully' });
+            toast.success('Email settings saved successfully');
             setFormData(prev => ({ ...prev, password: '' })); // Clear password field
             setHasPassword(true);
         } catch (error: any) {
-            setMessage({ type: 'error', text: error.message });
+            toast.error(error.message || 'Failed to save settings');
         } finally {
             setSaving(false);
         }
@@ -90,13 +89,6 @@ export default function SmtpSettings() {
                 </div>
             </div>
 
-            {message && (
-                <div className={`p-4 rounded-lg mb-6 flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                    {message.type === 'success' ? <Check className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                    {message.text}
-                </div>
-            )}
-
             <form onSubmit={handleSave} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -106,7 +98,7 @@ export default function SmtpSettings() {
                             value={formData.host}
                             onChange={e => setFormData({ ...formData, host: e.target.value })}
                             placeholder="smtp.example.com"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
                             required
                         />
                     </div>
@@ -117,7 +109,7 @@ export default function SmtpSettings() {
                             value={formData.port}
                             onChange={e => setFormData({ ...formData, port: parseInt(e.target.value) })}
                             placeholder="587"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
                             required
                         />
                     </div>
@@ -131,14 +123,14 @@ export default function SmtpSettings() {
                             value={formData.user}
                             onChange={e => setFormData({ ...formData, user: e.target.value })}
                             placeholder="user@example.com"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
                             required
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Password
-                            {hasPassword && <span className="text-xs text-green-600 ml-2">(Configured)</span>}
+                            {hasPassword && <span className="text-xs text-green-600 ml-2 font-bold uppercase tracking-wider">(Configured)</span>}
                         </label>
                         <div className="relative">
                             <input
@@ -146,12 +138,12 @@ export default function SmtpSettings() {
                                 value={formData.password}
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                                 placeholder={hasPassword ? "••••••••" : "Enter password"}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10 transition-all font-medium"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-all"
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -166,7 +158,7 @@ export default function SmtpSettings() {
                         value={formData.from_email}
                         onChange={e => setFormData({ ...formData, from_email: e.target.value })}
                         placeholder="notifications@yourdomain.com"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
                         required
                     />
                 </div>
@@ -175,7 +167,7 @@ export default function SmtpSettings() {
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 font-bold"
                     >
                         {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                         Save Settings

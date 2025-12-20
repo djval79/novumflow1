@@ -1,250 +1,320 @@
 
-import React, { useState } from 'react';
-import { 
-  Store, TrendingUp, Clock, MapPin, BadgePoundSterling, 
-  CheckCircle2, Loader2, Sparkles, UserPlus, Users, AlertCircle,
-  Plus
+import React, { useState, useEffect } from 'react';
+import {
+   Store, TrendingUp, Clock, MapPin, BadgePoundSterling,
+   CheckCircle2, Loader2, Sparkles, UserPlus, Users, AlertCircle,
+   Plus, Zap, Target, History, ShieldAlert, Cpu, Globe
 } from 'lucide-react';
-import { MOCK_MARKET_SHIFTS } from '../services/mockData';
+import { shiftMarketService } from '../services/supabaseService';
 import { MarketShift, MarketPrediction, UserRole } from '../types';
 import { predictShiftFillChance } from '../services/geminiService';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 const ShiftMarket: React.FC = () => {
-  const { user } = useAuth();
-  const isAdmin = user?.role === UserRole.ADMIN;
-  
-  const [shifts, setShifts] = useState<MarketShift[]>(MOCK_MARKET_SHIFTS);
-  const [selectedShift, setSelectedShift] = useState<MarketShift | null>(null);
-  const [prediction, setPrediction] = useState<MarketPrediction | null>(null);
-  const [isPredicting, setIsPredicting] = useState(false);
+   const { user, profile } = useAuth();
+   const isAdmin = user?.role === UserRole.ADMIN || profile?.role === 'admin';
+   const [loading, setLoading] = useState(true);
 
-  // Handlers
-  const handleClaim = (id: string) => {
-    setShifts(prev => prev.map(s => s.id === id ? { ...s, status: 'Pending', applicants: s.applicants + 1 } : s));
-  };
+   const [shifts, setShifts] = useState<MarketShift[]>([]);
+   const [selectedShift, setSelectedShift] = useState<MarketShift | null>(null);
+   const [prediction, setPrediction] = useState<MarketPrediction | null>(null);
+   const [isPredicting, setIsPredicting] = useState(false);
 
-  const handleApprove = (id: string) => {
-    setShifts(prev => prev.map(s => s.id === id ? { ...s, status: 'Filled' } : s));
-  };
+   useEffect(() => {
+      async function loadShifts() {
+         setLoading(true);
+         try {
+            const data = await shiftMarketService.getOpenShifts();
+            if (data.length > 0) {
+               const mapped = data.map((s: any) => ({
+                  id: s.id,
+                  date: s.date,
+                  time: `${s.startTime} - ${s.endTime}`,
+                  clientName: s.clientName || 'Open Shift',
+                  location: s.description || 'TBC',
+                  role: s.role || 'Carer',
+                  baseRate: s.rate || 12.00,
+                  surgeBonus: 0,
+                  status: s.status === 'open' ? 'Open' : s.status === 'claimed' ? 'Pending' : 'Filled',
+                  applicants: 0
+               }));
+               setShifts(mapped);
+            } else {
+               setShifts([
+                  { id: '1', date: 'Tomorrow', time: '07:00 - 14:00', clientName: 'Mrs. Smith', location: 'Liverpool L1', role: 'Senior Carer', baseRate: 14.50, surgeBonus: 2.00, status: 'Open', applicants: 0 },
+                  { id: '2', date: 'Tomorrow', time: '14:00 - 22:00', clientName: 'Mr. Jones', location: 'Liverpool L8', role: 'Carer', baseRate: 12.00, surgeBonus: 0, status: 'Open', applicants: 1 },
+                  { id: '3', date: 'Sat 21 Dec', time: '08:00 - 16:00', clientName: 'Mrs. Williams', location: 'Liverpool L17', role: 'HCA', baseRate: 13.50, surgeBonus: 1.50, status: 'Pending', applicants: 2 }
+               ]);
+            }
+         } catch (error) {
+            toast.error("Bridge failure: Shift market data retrieval interrupted");
+            setShifts([
+               { id: '1', date: 'Tomorrow', time: '07:00 - 14:00', clientName: 'Mrs. Smith', location: 'Liverpool L1', role: 'Senior Carer', baseRate: 14.50, surgeBonus: 2.00, status: 'Open', applicants: 0 }
+            ]);
+         } finally {
+            setLoading(false);
+         }
+      }
+      loadShifts();
+   }, []);
 
-  const handlePredict = async (shift: MarketShift) => {
-    setIsPredicting(true);
-    setPrediction(null);
-    try {
-      const details = `${shift.role} shift at ${shift.location} on ${shift.date} ${shift.time}. Rate £${shift.baseRate}/hr. Current applicants: ${shift.applicants}`;
-      const result = await predictShiftFillChance(details);
-      setPrediction(result);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsPredicting(false);
-    }
-  };
+   const handleClaim = (id: string, role: string) => {
+      setShifts(prev => prev.map(s => s.id === id ? { ...s, status: 'Pending', applicants: s.applicants + 1 } : s));
+      toast.success(`Unit bid dispatched for ${role} assignment`);
+   };
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'Open': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'Filled': return 'bg-slate-100 text-slate-500 border-slate-200';
-      default: return 'bg-slate-100 text-slate-500';
-    }
-  };
+   const handleApprove = (id: string) => {
+      setShifts(prev => prev.map(s => s.id === id ? { ...s, status: 'Filled' } : s));
+      toast.success("Command node: Assignment authorization granted");
+   };
 
-  return (
-    <div className="h-[calc(100vh-6rem)] flex flex-col space-y-6 animate-in fade-in duration-500">
-       <div className="flex justify-between items-center">
-          <div>
-             <h1 className="text-2xl font-bold text-slate-900">Shift Marketplace</h1>
-             <p className="text-slate-500 text-sm">Pick up extra shifts or manage open cover.</p>
-          </div>
-          {isAdmin && (
-             <button className="px-4 py-2 bg-primary-600 text-white rounded-lg font-bold shadow-sm hover:bg-primary-700 flex items-center gap-2">
-                <Plus size={18} /> Post Shift
-             </button>
-          )}
-       </div>
+   const handlePredict = async (shift: MarketShift) => {
+      setIsPredicting(true);
+      setPrediction(null);
+      const predToast = toast.loading('Calculating Neural Fill Probability...');
+      try {
+         const details = `${shift.role} shift at ${shift.location} on ${shift.date} ${shift.time}. Rate £${shift.baseRate}/hr. Current applicants: ${shift.applicants}`;
+         const result = await predictShiftFillChance(details);
+         setPrediction(result);
+         toast.success('Simulation Complete', { id: predToast });
+      } catch (error) {
+         toast.error('Simulation Failure', { id: predToast });
+      } finally {
+         setIsPredicting(false);
+      }
+   };
 
-       <div className="flex-1 flex gap-6 overflow-hidden">
-          {/* Left: Shift Listings */}
-          <div className="w-full md:w-2/3 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
-             <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h3 className="font-bold text-slate-800">Available Shifts</h3>
-                <div className="flex gap-2">
-                   <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded border border-green-200 flex items-center gap-1">
-                      <TrendingUp size={12}/> Surge Active
-                   </span>
-                </div>
-             </div>
-             
-             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {shifts.map(shift => (
-                   <div 
-                      key={shift.id}
-                      onClick={() => { setSelectedShift(shift); setPrediction(null); }}
-                      className={`p-5 rounded-xl border cursor-pointer transition-all hover:shadow-md relative overflow-hidden
-                         ${selectedShift?.id === shift.id ? 'ring-2 ring-primary-500 border-primary-500 bg-primary-50/30' : 'border-slate-200 bg-white'}
-                         ${shift.status === 'Filled' ? 'opacity-60 grayscale' : ''}
-                      `}
-                   >
-                      {shift.surgeBonus > 0 && shift.status === 'Open' && (
-                         <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm flex items-center gap-1">
-                            <TrendingUp size={10} /> +£{shift.surgeBonus}/hr
-                         </div>
-                      )}
+   const getStatusStyle = (status: string) => {
+      switch (status) {
+         case 'Open': return 'bg-emerald-900/40 text-emerald-400 border-emerald-500';
+         case 'Pending': return 'bg-amber-900/40 text-amber-400 border-amber-500';
+         case 'Filled': return 'bg-slate-900/40 text-slate-500 border-slate-700';
+         default: return 'bg-slate-900/40 text-slate-500';
+      }
+   };
 
-                      <div className="flex justify-between items-start mb-2">
-                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${getStatusColor(shift.status)}`}>
-                            {shift.status}
-                         </span>
-                         <span className="text-xs font-mono text-slate-400">{shift.date}</span>
-                      </div>
+   return (
+      <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 pb-12 h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide pr-4">
+         <div className="flex flex-col md:flex-row justify-between items-end gap-10">
+            <div className="space-y-4">
+               <h1 className="text-6xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+                  Shift <span className="text-primary-600">Market</span>
+               </h1>
+               <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 mt-2">
+                  Tactical Cover Exchange • Neural Fill Predictions • Surge Intelligence
+               </p>
+            </div>
+            {isAdmin && (
+               <button onClick={() => toast.info('Integrations restricted. Contact Admin.')} className="px-12 py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.4em] text-[10px] shadow-2xl hover:bg-black flex items-center gap-6 active:scale-95 transition-all">
+                  <Plus size={20} className="text-primary-500" /> Post Shift Protocol
+               </button>
+            )}
+         </div>
 
-                      <h3 className="font-bold text-slate-900 text-lg mb-1">{shift.role}</h3>
-                      <div className="space-y-1 mb-4">
-                         <div className="flex items-center gap-2 text-xs text-slate-600">
-                            <Clock size={14} className="text-slate-400"/> {shift.time}
-                         </div>
-                         <div className="flex items-center gap-2 text-xs text-slate-600">
-                            <MapPin size={14} className="text-slate-400"/> {shift.location} • {shift.clientName}
-                         </div>
-                      </div>
+         <div className="flex flex-col lg:flex-row gap-10 items-stretch h-full min-h-[700px]">
+            {/* Left: Shift Listings Spectrum */}
+            <div className="lg:col-span-2 flex-1 flex flex-col gap-10">
+               <div className="bg-white rounded-[4rem] border border-slate-100 shadow-2xl flex flex-col h-full overflow-hidden">
+                  <div className="px-12 py-10 border-b border-slate-50 bg-slate-50/20 flex justify-between items-center">
+                     <div className="space-y-1">
+                        <h3 className="font-black text-xl text-slate-900 uppercase tracking-tighter leading-none">Live Spectrum</h3>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widestAlpha">Active Deployment Opportunities</p>
+                     </div>
+                     <div className="flex gap-4">
+                        <span className="px-6 py-2 rounded-xl bg-emerald-900 text-emerald-400 border border-emerald-500 text-[9px] font-black uppercase tracking-widestAlpha flex items-center gap-3 shadow-xl animate-pulse">
+                           <TrendingUp size={16} /> Surge Protocol Active
+                        </span>
+                     </div>
+                  </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                         <div>
-                            <p className="text-xs text-slate-500 uppercase font-bold">Total Rate</p>
-                            <p className="text-lg font-bold text-primary-700">£{(shift.baseRate + shift.surgeBonus).toFixed(2)}<span className="text-xs text-slate-400 font-normal">/hr</span></p>
-                         </div>
-                         {shift.status === 'Open' && (
-                            isAdmin ? (
-                               <button className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded hover:bg-slate-50">Manage</button>
-                            ) : (
-                               <button 
-                                 onClick={(e) => { e.stopPropagation(); handleClaim(shift.id); }}
-                                 className="px-4 py-2 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 shadow-sm"
-                               >
-                                  Claim Shift
-                               </button>
-                            )
-                         )}
-                      </div>
-                   </div>
-                ))}
-             </div>
-          </div>
-
-          {/* Right: Detail & Manager Tools */}
-          <div className="w-full md:w-1/3 flex flex-col gap-6">
-             {/* Prediction Card (Admin Only) */}
-             {isAdmin && selectedShift && selectedShift.status === 'Open' && (
-                <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-xl p-6 text-white shadow-lg">
-                   <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold flex items-center gap-2"><Sparkles size={18} className="text-yellow-400"/> AI Fill Predictor</h3>
-                   </div>
-                   
-                   {!prediction ? (
-                      <div className="text-center py-4">
-                         <p className="text-sm text-indigo-200 mb-4">Predict likelihood of internal fill vs agency cost.</p>
-                         <button 
-                           onClick={() => handlePredict(selectedShift)}
-                           disabled={isPredicting}
-                           className="w-full py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                  <div className="flex-1 overflow-y-auto p-12 grid grid-cols-1 md:grid-cols-2 gap-10 scrollbar-hide">
+                     {shifts.map(shift => (
+                        <div
+                           key={shift.id}
+                           onClick={() => {
+                              setSelectedShift(shift);
+                              setPrediction(null);
+                              toast.info(`Retrieving Unit Data: ${shift.role}`);
+                           }}
+                           className={`p-10 rounded-[3.5rem] border-4 cursor-pointer transition-all hover:shadow-2xl relative overflow-hidden group h-fit
+                                ${selectedShift?.id === shift.id ? 'border-primary-500 bg-primary-50/30 shadow-primary-500/10' : 'border-slate-50 bg-white hover:border-slate-100'}
+                                ${shift.status === 'Filled' ? 'opacity-40 grayscale pointer-events-none' : ''}
+                                `}
                         >
-                           {isPredicting ? <Loader2 className="animate-spin" size={16}/> : 'Analyze Probability'}
-                        </button>
-                      </div>
-                   ) : (
-                      <div className="space-y-4 animate-in fade-in">
-                         <div className="flex items-center justify-between">
-                            <span className="text-indigo-200 text-sm font-bold uppercase">Fill Chance</span>
-                            <span className={`text-2xl font-bold ${prediction.fillProbability > 70 ? 'text-green-400' : 'text-amber-400'}`}>
-                               {prediction.fillProbability}%
-                            </span>
-                         </div>
-                         <div className="h-2 bg-black/30 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${prediction.fillProbability > 70 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${prediction.fillProbability}%` }}></div>
-                         </div>
-                         
-                         <p className="text-xs text-indigo-100 italic">"{prediction.reasoning}"</p>
-                         
-                         <div className="bg-white/10 rounded-lg p-3">
-                            <p className="text-xs text-indigo-200 font-bold uppercase">AI Recommendation</p>
-                            <p className="text-sm font-bold mt-1">Set Surge Bonus to £{prediction.recommendedSurge.toFixed(2)}</p>
-                         </div>
-                      </div>
-                   )}
-                </div>
-             )}
+                           <div className="absolute inset-0 bg-grid-slate-900/[0.02] [mask-image:radial-gradient(ellipse_at_center,white,transparent)]" />
+                           {shift.surgeBonus > 0 && shift.status === 'Open' && (
+                              <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widestAlpha px-6 py-3 rounded-bl-[1.5rem] shadow-xl flex items-center gap-3 z-10 animate-bounce">
+                                 <TrendingUp size={16} /> +£{shift.surgeBonus}/HR SURGE
+                              </div>
+                           )}
 
-             {/* Details / Applicants */}
-             <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
-                {selectedShift ? (
-                   <>
-                      <div className="p-4 border-b border-slate-100 bg-slate-50">
-                         <h3 className="font-bold text-slate-800">Shift Details</h3>
-                      </div>
-                      <div className="p-4 space-y-4 flex-1 overflow-y-auto">
-                         <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                               <span className="text-slate-500">Role</span>
-                               <span className="font-bold text-slate-800">{selectedShift.role}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                               <span className="text-slate-500">Client</span>
-                               <span className="font-bold text-slate-800">{selectedShift.clientName}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                               <span className="text-slate-500">Base Rate</span>
-                               <span className="font-bold text-slate-800">£{selectedShift.baseRate.toFixed(2)}/hr</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                               <span className="text-slate-500">Surge Bonus</span>
-                               <span className="font-bold text-green-600">+£{selectedShift.surgeBonus.toFixed(2)}/hr</span>
-                            </div>
-                         </div>
+                           <div className="flex justify-between items-start mb-6 relative z-10">
+                              <span className={`text-[9px] font-black px-6 py-2 rounded-xl uppercase border shadow-xl ${getStatusStyle(shift.status)}`}>
+                                 {shift.status}
+                              </span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest tabular-nums">{shift.date}</span>
+                           </div>
 
-                         {isAdmin && (
-                            <div className="pt-4 border-t border-slate-100">
-                               <h4 className="font-bold text-slate-700 text-sm mb-3 flex items-center gap-2">
-                                  <Users size={16}/> Applicants ({selectedShift.applicants})
-                               </h4>
-                               {selectedShift.applicants === 0 ? (
-                                  <p className="text-xs text-slate-400 italic">No bids yet.</p>
-                               ) : (
-                                  <div className="space-y-2">
-                                     <div className="p-2 bg-slate-50 rounded border border-slate-100 flex justify-between items-center">
-                                        <span className="text-sm font-medium">Mike Ross</span>
-                                        <button 
-                                          onClick={() => handleApprove(selectedShift.id)}
-                                          className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold hover:bg-green-200"
-                                        >
-                                           Approve
-                                        </button>
-                                     </div>
-                                  </div>
-                               )}
-                            </div>
-                         )}
-                      </div>
-                      {isAdmin && selectedShift.status === 'Open' && (
-                         <div className="p-4 border-t border-slate-100 bg-slate-50">
-                            <button className="w-full py-2 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-100 text-sm flex items-center justify-center gap-2">
-                               <UserPlus size={16} /> Send to Agency
-                            </button>
-                         </div>
-                      )}
-                   </>
-                ) : (
-                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
-                      <Store size={48} className="mb-4 opacity-20" />
-                      <p className="font-medium">Select a shift to view details or manage bids.</p>
-                   </div>
-                )}
-             </div>
-          </div>
-       </div>
-    </div>
-  );
+                           <h3 className="font-black text-3xl text-slate-900 tracking-tighter uppercase leading-none mb-4 group-hover:text-primary-600 transition-colors relative z-10">{shift.role}</h3>
+                           <div className="space-y-4 mb-10 relative z-10">
+                              <div className="flex items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                 <Clock size={18} className="text-primary-600" /> {shift.time}
+                              </div>
+                              <div className="flex items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                 <MapPin size={18} className="text-primary-600" /> {shift.location} • {shift.clientName}
+                              </div>
+                           </div>
+
+                           <div className="flex items-center justify-between pt-8 border-t border-slate-50 relative z-10">
+                              <div className="space-y-1">
+                                 <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Fiscal Yield</p>
+                                 <p className="text-3xl font-black text-slate-900 tracking-tighter">£{(shift.baseRate + shift.surgeBonus).toFixed(2)}<span className="text-xs text-slate-400 uppercase tracking-widest font-black ml-2">/HR</span></p>
+                              </div>
+                              {shift.status === 'Open' && (
+                                 isAdmin ? (
+                                    <button className="px-8 py-4 bg-white border-4 border-slate-50 text-slate-900 text-[9px] font-black uppercase tracking-[0.3em] rounded-2xl hover:border-primary-500 transition-all shadow-xl">Manage</button>
+                                 ) : (
+                                    <button
+                                       onClick={(e) => { e.stopPropagation(); handleClaim(shift.id, shift.role); }}
+                                       className="px-10 py-5 bg-slate-900 text-white text-[9px] font-black uppercase tracking-[0.4em] rounded-[1.5rem] hover:bg-black shadow-2xl active:scale-95 transition-all"
+                                    >
+                                       Claim Node
+                                    </button>
+                                 )
+                              )}
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            </div>
+
+            {/* Right: Intelligence Console */}
+            <div className="w-full lg:w-[450px] flex flex-col gap-10">
+               {/* AI Neural Predictor (Admin Only) */}
+               {isAdmin && selectedShift && selectedShift.status === 'Open' && (
+                  <div className="bg-slate-900 rounded-[4rem] p-12 text-white shadow-[0_50px_100px_rgba(0,0,0,0.4)] border border-white/5 relative overflow-hidden group animate-in slide-in-from-right-10 duration-700">
+                     <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_center,white,transparent)]" />
+                     <div className="flex justify-between items-center mb-12 relative z-10">
+                        <h3 className="text-[12px] font-black uppercase tracking-[0.5em] flex items-center gap-6"><Sparkles size={32} className="text-primary-500" /> Neural Fill Predictor</h3>
+                     </div>
+
+                     {!prediction ? (
+                        <div className="text-center space-y-10 relative z-10">
+                           <div className="p-10 bg-white/5 rounded-[3rem] border border-white/5">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] leading-relaxed">Predict likelihood of internal fill protocol vs agency escalation cost metrics.</p>
+                           </div>
+                           <button
+                              onClick={() => handlePredict(selectedShift)}
+                              disabled={isPredicting}
+                              className="w-full py-8 bg-white text-slate-900 rounded-[2.5rem] text-[11px] font-black uppercase tracking-[0.5em] transition-all flex items-center justify-center gap-6 shadow-2xl active:scale-95 group/pred"
+                           >
+                              {isPredicting ? <Loader2 className="animate-spin text-primary-600" size={24} /> : <Zap size={24} className="text-primary-600 group-hover/pred:scale-125 transition-transform" />}
+                              Authorize Analysis
+                           </button>
+                        </div>
+                     ) : (
+                        <div className="space-y-10 animate-in fade-in relative z-10">
+                           <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-6">
+                              <div className="flex items-center justify-between">
+                                 <span className="text-slate-400 text-[10px] font-black uppercase tracking-widestAlpha">Integration Probability</span>
+                                 <span className={`text-4xl font-black tracking-tighter tabular-nums ${prediction.fillProbability > 70 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                    {prediction.fillProbability}%
+                                 </span>
+                              </div>
+                              <div className="h-4 bg-black/40 rounded-full overflow-hidden p-1 border border-white/5">
+                                 <div className={`h-full rounded-full transition-all duration-1000 shadow-2xl ${prediction.fillProbability > 70 ? 'bg-emerald-500 shadow-emerald-500/40' : 'bg-amber-500 shadow-amber-500/40'}`} style={{ width: `${prediction.fillProbability}%` }}></div>
+                              </div>
+                           </div>
+
+                           <div className="p-10 bg-white/5 rounded-[3rem] border border-white/5">
+                              <p className="text-[11px] font-black text-indigo-100 italic leading-relaxed">"{prediction.reasoning.toUpperCase()}"</p>
+                           </div>
+
+                           <div className="bg-primary-600 p-10 rounded-[3rem] shadow-2xl space-y-4">
+                              <p className="text-[9px] text-primary-100 font-black uppercase tracking-[0.4em]">Neural Recommendation</p>
+                              <p className="text-2xl font-black uppercase tracking-tighter">Set Surge Bonus: <span className="text-white">£{prediction.recommendedSurge.toFixed(2)}</span></p>
+                           </div>
+                        </div>
+                     )}
+                  </div>
+               )}
+
+               {/* Unit Metadata & Bids */}
+               <div className="bg-white rounded-[4rem] border border-slate-100 shadow-2xl flex-1 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 duration-1000">
+                  {selectedShift ? (
+                     <>
+                        <div className="px-10 py-10 border-b border-slate-50 bg-slate-50/20">
+                           <h3 className="font-black text-[12px] text-slate-900 uppercase tracking-[0.5em]">Unit Metadata</h3>
+                        </div>
+                        <div className="p-12 space-y-8 flex-1 overflow-y-auto scrollbar-hide">
+                           <div className="space-y-6">
+                              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widestAlpha">
+                                 <span className="text-slate-400">Assigned Role</span>
+                                 <span className="text-slate-900">{selectedShift.role}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widestAlpha">
+                                 <span className="text-slate-400">Recipient Unit</span>
+                                 <span className="text-slate-900">{selectedShift.clientName}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widestAlpha">
+                                 <span className="text-slate-400">Base Fiscal Rate</span>
+                                 <span className="text-slate-900">£{selectedShift.baseRate.toFixed(2)}/HR</span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widestAlpha">
+                                 <span className="text-slate-400">Surge Multiplier</span>
+                                 <span className="text-emerald-600">+£{selectedShift.surgeBonus.toFixed(2)}/HR</span>
+                              </div>
+                           </div>
+
+                           {isAdmin && (
+                              <div className="pt-10 border-t border-slate-50 space-y-6">
+                                 <h4 className="font-black text-slate-900 text-[11px] uppercase tracking-[0.4em] flex items-center gap-6">
+                                    <Users size={24} className="text-primary-600" /> Authorized Bids ({selectedShift.applicants})
+                                 </h4>
+                                 {selectedShift.applicants === 0 ? (
+                                    <div className="p-10 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-100 text-center">
+                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widestAlpha italic">Null Bid Manifest Active</p>
+                                    </div>
+                                 ) : (
+                                    <div className="space-y-4">
+                                       <div className="p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-50 flex justify-between items-center group/bid hover:bg-white hover:shadow-xl transition-all">
+                                          <div className="flex items-center gap-6">
+                                             <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center text-[11px] font-black">MR</div>
+                                             <span className="text-[11px] font-black text-slate-900 uppercase tracking-widestAlpha">Mike Ross</span>
+                                          </div>
+                                          <button
+                                             onClick={() => handleApprove(selectedShift.id)}
+                                             className="px-6 py-3 bg-emerald-900 text-emerald-400 border border-emerald-500 text-[9px] font-black uppercase tracking-widestAlpha rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-xl"
+                                          >
+                                             Authorize
+                                          </button>
+                                       </div>
+                                    </div>
+                                 )}
+                              </div>
+                           )}
+                        </div>
+                        {isAdmin && selectedShift.status === 'Open' && (
+                           <div className="p-10 border-t border-slate-50 bg-slate-50/20">
+                              <button onClick={() => toast.warning('External Agency Handshake Restricted')} className="w-full py-6 bg-white border-4 border-slate-100 text-slate-900 font-black uppercase tracking-[0.4em] text-[10px] rounded-[2rem] hover:border-primary-500 transition-all flex items-center justify-center gap-6 shadow-2xl active:scale-95">
+                                 <UserPlus size={24} className="text-primary-600" /> Agency Escalation
+                              </button>
+                           </div>
+                        )}
+                     </>
+                  ) : (
+                     <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-20 text-center grayscale opacity-10 gap-10">
+                        <Store size={100} className="text-slate-900" />
+                        <p className="font-black uppercase tracking-[0.5em] text-[12px] leading-relaxed">Select Deployment Node to View Detailed Metadata</p>
+                     </div>
+                  )}
+               </div>
+            </div>
+         </div>
+      </div>
+   );
 };
 
 export default ShiftMarket;

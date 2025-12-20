@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
    ShieldAlert, AlertTriangle, CheckCircle2, Search, Plus,
-   FileText, Microscope, Sparkles, Loader2, ChevronRight, X
+   FileText, Microscope, Sparkles, Loader2, ChevronRight, X, Brain, Activity, ShieldCheck, History, Landmark
 } from 'lucide-react';
 import { incidentService, clientService, staffService } from '../services/supabaseService';
 import { generateIncidentInvestigation } from '../services/geminiService';
@@ -65,8 +65,9 @@ const IncidentsPage: React.FC = () => {
             setStaff(staffData);
          }
       } catch (error) {
-         console.error('Error loading incidents:', error);
-         toast.error('Failed to load incidents');
+         toast.error('Risk ledger synchronization failure', {
+            description: 'Failed to synchronize incident database.'
+         });
       } finally {
          setIsLoading(false);
       }
@@ -76,6 +77,7 @@ const IncidentsPage: React.FC = () => {
    const handleInvestigate = async () => {
       if (!selectedIncident) return;
       setIsAnalyzing(true);
+      const investigationToast = toast.loading('Initializing Neural Investigation Sequence...');
       try {
          const analysis = await generateIncidentInvestigation(
             selectedIncident.description,
@@ -95,7 +97,7 @@ const IncidentsPage: React.FC = () => {
 
          // Save to DB
          await incidentService.update(selectedIncident.id, {
-            status: 'Resolved' as any, // Cast if needed depending on casing
+            status: 'Resolved' as any,
             rootCause: analysis.rootCause,
             actionsTaken: actionsTaken,
             investigationNotes: nodes
@@ -103,10 +105,12 @@ const IncidentsPage: React.FC = () => {
 
          setIncidents(prev => prev.map(inc => inc.id === updatedIncident.id ? updatedIncident : inc));
          setSelectedIncident(updatedIncident);
-         toast.success('Investigation analysis complete');
+         toast.success('Neural Investigation Complete', {
+            id: investigationToast,
+            description: 'Root cause analysis and prevention strategy identified.'
+         });
       } catch (error) {
-         console.error(error);
-         toast.error('Failed to run investigation');
+         toast.error('Neural Scan Error', { id: investigationToast });
       } finally {
          setIsAnalyzing(false);
       }
@@ -116,6 +120,7 @@ const IncidentsPage: React.FC = () => {
       e.preventDefault();
       if (!currentTenant) return;
 
+      const createToast = toast.loading('Emitting Incident Protocol...');
       try {
          await incidentService.create({
             tenant_id: currentTenant.id,
@@ -126,7 +131,10 @@ const IncidentsPage: React.FC = () => {
             description: formData.description
          });
 
-         toast.success('Incident reported successfully');
+         toast.success('Incident Formalized', {
+            id: createToast,
+            description: 'Protocol successfully recorded in the Risk Ledger.'
+         });
          setIsModalOpen(false);
          setFormData({
             clientId: '',
@@ -137,199 +145,282 @@ const IncidentsPage: React.FC = () => {
          });
          loadData();
       } catch (error) {
-         console.error('Error creating incident:', error);
-         toast.error('Failed to create incident');
+         toast.error('Failed to emit incident protocol', { id: createToast });
       }
    };
 
    const getSeverityColor = (severity: string) => {
       const s = severity?.toLowerCase() || 'low';
       switch (s) {
-         case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-         case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-         case 'medium': return 'bg-amber-100 text-amber-800 border-amber-200';
-         default: return 'bg-blue-100 text-blue-800 border-blue-200';
+         case 'critical': return 'bg-rose-50 text-rose-700 border-rose-100 shadow-[0_0_15px_rgba(244,63,94,0.2)]';
+         case 'high': return 'bg-orange-50 text-orange-700 border-orange-100';
+         case 'medium': return 'bg-amber-50 text-amber-700 border-amber-100';
+         default: return 'bg-indigo-50 text-indigo-700 border-indigo-100';
       }
    };
 
-   if (isLoading) return <div className="flex h-full items-center justify-center"><Loader2 className="animate-spin text-primary-600" size={32} /></div>;
+   if (isLoading) return (
+      <div className="flex flex-col h-full items-center justify-center gap-6 bg-slate-50">
+         <Loader2 className="animate-spin text-primary-600" size={48} />
+         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Loading Risk Core...</p>
+      </div>
+   );
 
    return (
-      <div className="h-[calc(100vh-6rem)] flex flex-col space-y-6 animate-in fade-in duration-500">
-         <div className="flex justify-between items-center">
+      <div className="h-[calc(100vh-6rem)] max-w-7xl mx-auto flex flex-col space-y-10 animate-in fade-in duration-700 pb-10">
+         <div className="flex flex-col md:flex-row justify-between items-end gap-6">
             <div>
-               <h1 className="text-2xl font-bold text-slate-900">Incidents & Risk Management</h1>
-               <p className="text-slate-500 text-sm">Track accidents, safeguarding concerns, and regulatory notifications.</p>
+               <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase">Risk <span className="text-rose-600">Terminal</span></h1>
+               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mt-4">Regulatory Compliance & Safeguarding Oversight</p>
             </div>
-            <button
-               onClick={() => setIsModalOpen(true)}
-               className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold shadow-sm hover:bg-red-700 flex items-center gap-2">
-               <Plus size={18} /> Report Incident
-            </button>
+
+            <div className="flex gap-4">
+               <div className="hidden lg:flex items-center gap-6 p-2 bg-white rounded-[2rem] border border-slate-200 shadow-sm pr-6">
+                  <div className="flex items-center gap-3 ml-4">
+                     <div className="w-3 h-3 bg-rose-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
+                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Critical Vectors</span>
+                     <span className="text-lg font-black text-slate-900 tracking-tight">{incidents.filter(i => i.severity === 'Critical').length}</span>
+                  </div>
+                  <div className="w-px h-8 bg-slate-100"></div>
+                  <div className="flex items-center gap-3">
+                     <Activity size={18} className="text-indigo-500" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Active Audit</span>
+                     <span className="text-lg font-black text-slate-900 tracking-tight">{incidents.filter(i => i.status !== 'Resolved').length}</span>
+                  </div>
+               </div>
+
+               <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-8 py-5 bg-rose-600 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl hover:bg-black transition-all flex items-center gap-4 active:scale-95">
+                  <Plus size={24} /> Report New Incident
+               </button>
+            </div>
          </div>
 
-         <div className="flex-1 flex gap-6 overflow-hidden">
+         <div className="flex-1 flex gap-10 overflow-hidden">
             {/* Left: Incident List */}
-            <div className={`w-full md:w-1/3 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col ${selectedIncident ? 'hidden md:flex' : 'flex'}`}>
-               <div className="p-4 border-b border-slate-100">
+            <div className={`w-full md:w-[400px] bg-white rounded-[3rem] border border-slate-100 shadow-2xl flex flex-col overflow-hidden ${selectedIncident ? 'hidden md:flex' : 'flex'}`}>
+               <div className="p-8 border-b border-slate-50 bg-slate-50/30">
                   <div className="relative">
-                     <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                     <Search className="absolute left-6 top-5 text-slate-400" size={20} />
                      <input
                         type="text"
-                        placeholder="Search incidents..."
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="Search Risk Ledger..."
+                        className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[1.5rem] text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary-500/10 placeholder:text-slate-300 transition-all shadow-sm"
                      />
                   </div>
                </div>
-               <div className="flex-1 overflow-y-auto">
+
+               <div className="flex-1 overflow-y-auto scrollbar-hide py-4">
                   {incidents.length === 0 ? (
-                     <div className="p-8 text-center text-slate-500">No incidents recorded</div>
+                     <div className="p-20 text-center flex flex-col items-center">
+                        <ShieldAlert size={48} className="text-slate-100 mb-6" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Risk Ledger Empty</p>
+                     </div>
                   ) : incidents.map(inc => (
                      <div
                         key={inc.id}
-                        onClick={() => setSelectedIncident(inc)}
-                        className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors
-                        ${selectedIncident?.id === inc.id ? 'bg-red-50/50 border-l-4 border-l-red-500' : 'border-l-4 border-l-transparent'}
+                        onClick={() => {
+                           setSelectedIncident(inc);
+                           toast.info(`Analyzing incident protocol ${inc.id.substring(0, 8)}`);
+                        }}
+                        className={`mx-4 p-6 mb-2 rounded-[2rem] border transition-all cursor-pointer group
+                        ${selectedIncident?.id === inc.id ? 'bg-slate-900 border-slate-900 shadow-2xl scale-[1.02]' : 'bg-white border-transparent hover:bg-slate-50'}
                      `}
                      >
-                        <div className="flex justify-between items-start mb-2">
-                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${getSeverityColor(inc.severity)}`}>
+                        <div className="flex justify-between items-start mb-4">
+                           <span className={`text-[9px] font-black px-3 py-1.5 rounded-xl border uppercase tracking-widest ${getSeverityColor(inc.severity)}`}>
                               {inc.severity}
                            </span>
-                           <span className="text-xs text-slate-400">{new Date(inc.date).toLocaleDateString()}</span>
+                           <span className={`text-[9px] font-black uppercase tracking-widest ${selectedIncident?.id === inc.id ? 'text-slate-500' : 'text-slate-300'}`}>
+                              {new Date(inc.date).toLocaleDateString()}
+                           </span>
                         </div>
-                        <h3 className="font-bold text-slate-900 text-sm mb-1">{inc.type}</h3>
-                        <p className="text-xs text-slate-500 mb-2 truncate">{inc.description}</p>
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                           <span className="font-medium text-slate-600">{inc.clientName}</span>
-                           <span>•</span>
-                           <span>{inc.status}</span>
+                        <h3 className={`font-black text-base uppercase tracking-tight mb-2 ${selectedIncident?.id === inc.id ? 'text-white' : 'text-slate-900'}`}>{inc.type} Incident</h3>
+                        <p className={`text-xs font-bold line-clamp-2 mb-4 ${selectedIncident?.id === inc.id ? 'text-slate-400' : 'text-slate-500'}`}>{inc.description}</p>
+                        <div className="flex items-center gap-3">
+                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[10px] shadow-inner ${selectedIncident?.id === inc.id ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                              {inc.clientName[0]}
+                           </div>
+                           <span className={`text-[10px] font-black uppercase tracking-widest ${selectedIncident?.id === inc.id ? 'text-slate-400' : 'text-slate-500'}`}>{inc.clientName}</span>
                         </div>
                      </div>
                   ))}
                </div>
             </div>
 
-            {/* Right: Detail View */}
-            <div className={`flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col ${selectedIncident ? 'flex' : 'hidden md:flex'}`}>
+            {/* Right: Detail View - Futuristic Terminal */}
+            <div className={`flex-1 bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl flex flex-col overflow-hidden relative ${selectedIncident ? 'flex' : 'hidden md:flex'}`}>
                {selectedIncident ? (
                   <>
-                     {/* Header */}
-                     <div className="p-6 border-b border-slate-100 flex justify-between items-start">
-                        <div>
-                           <div className="flex items-center gap-3 mb-2">
-                              <h2 className="text-xl font-bold text-slate-900">{selectedIncident.type} Incident</h2>
-                              <span className={`text-xs font-bold px-2 py-1 rounded uppercase border ${getSeverityColor(selectedIncident.severity)}`}>
-                                 {selectedIncident.severity} Priority
-                              </span>
+                     {/* Header Terminal */}
+                     <div className="p-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10 bg-slate-50/20 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-rose-600/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+
+                        <div className="relative z-10 flex items-center gap-8">
+                           <div className="w-24 h-24 bg-slate-900 rounded-[2.5rem] flex flex-col items-center justify-center text-white shadow-2xl">
+                              <FileText size={40} className="mb-1" />
                            </div>
-                           <div className="flex gap-4 text-sm text-slate-500">
-                              <span>Client: <strong className="text-slate-800">{selectedIncident.clientName}</strong></span>
-                              <span>Staff: <strong className="text-slate-800">{selectedIncident.staffName}</strong></span>
-                              <span>Date: <strong className="text-slate-800">{new Date(selectedIncident.date).toLocaleString()}</strong></span>
+                           <div>
+                              <div className="flex flex-wrap items-center gap-3 mb-3">
+                                 <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{selectedIncident.type}</h2>
+                                 <span className={`text-[10px] font-black px-4 py-2 rounded-xl uppercase border-2 shadow-lg ${getSeverityColor(selectedIncident.severity)}`}>
+                                    {selectedIncident.severity} Severity Vector
+                                 </span>
+                              </div>
+                              <div className="flex flex-wrap gap-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                 <span className="flex items-center gap-2"><History size={14} className="text-slate-300" /> Identity: <strong className="text-slate-900">{selectedIncident.clientName}</strong></span>
+                                 <span className="flex items-center gap-2">Staff Target: <strong className="text-slate-900">{selectedIncident.staffName}</strong></span>
+                                 <span className="flex items-center gap-2">Epoch: <strong className="text-slate-900 tabular-nums">{new Date(selectedIncident.date).toLocaleString()}</strong></span>
+                              </div>
                            </div>
                         </div>
-                        <button onClick={() => setSelectedIncident(null)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
-                           <X size={20} />
+                        <button
+                           onClick={() => setSelectedIncident(null)}
+                           className="p-4 bg-white hover:bg-rose-50 border border-slate-100 rounded-2xl text-slate-400 hover:text-rose-600 transition-all shadow-sm active:scale-95"
+                        >
+                           <X size={24} />
                         </button>
                      </div>
 
-                     {/* Content */}
-                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                           <h3 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Incident Description</h3>
-                           <p className="text-slate-600 text-sm leading-relaxed">{selectedIncident.description}</p>
+                     {/* Content Hub */}
+                     <div className="flex-1 overflow-y-auto p-12 space-y-12 scrollbar-hide">
+                        <div className="bg-slate-900 p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                           <div className="absolute bottom-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl" />
+                           <h3 className="text-[10px] font-black text-rose-500 mb-6 uppercase tracking-[0.4em] flex items-center gap-3">
+                              <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
+                              Incident Narrative
+                           </h3>
+                           <p className="text-white text-lg font-bold leading-relaxed">{selectedIncident.description}</p>
                         </div>
 
-                        {/* Investigation Section */}
-                        <div>
-                           <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                              <Microscope className="text-primary-600" size={20} /> Investigation Findings
-                           </h3>
+                        {/* Investigation Integrated terminal */}
+                        <div className="space-y-8">
+                           <div className="flex items-center gap-4 mb-2">
+                              <div className="p-3 bg-indigo-50 rounded-2xl">
+                                 <Microscope className="text-indigo-600" size={28} />
+                              </div>
+                              <div>
+                                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Diagnostic Investigation</h3>
+                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Root Cause & Preventive Logic</p>
+                              </div>
+                           </div>
 
                            {selectedIncident.rootCause ? (
-                              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                                    <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded mb-2 inline-block">ROOT CAUSE</span>
-                                    <p className="text-slate-800 text-sm font-medium">{selectedIncident.rootCause}</p>
-                                 </div>
-                                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded mb-2 inline-block">ACTIONS TAKEN</span>
-                                    <p className="text-slate-800 text-sm">{selectedIncident.actionsTaken}</p>
-                                 </div>
-                                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded mb-2 inline-block">NOTES & STRATEGY</span>
-                                    <p className="text-slate-600 text-sm">{selectedIncident.investigationNotes}</p>
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in zoom-in duration-500">
+                                 <div className="bg-white border-2 border-slate-50 rounded-[2rem] p-8 shadow-xl hover:border-indigo-100 transition-colors">
+                                    <div className="flex items-center gap-3 mb-6">
+                                       <div className="p-2 bg-indigo-50 rounded-xl">
+                                          <Landmark size={18} className="text-indigo-600" />
+                                       </div>
+                                       <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em]">Root Cause Logic</span>
+                                    </div>
+                                    <p className="text-slate-900 text-base font-black leading-snug tracking-tight">{selectedIncident.rootCause}</p>
                                  </div>
 
-                                 {selectedIncident.reportedToCQC && (
-                                    <div className="flex items-center gap-2 text-red-600 text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100">
-                                       <AlertTriangle size={16} />
-                                       Reported to CQC/Regulator
+                                 <div className="bg-white border-2 border-slate-50 rounded-[2rem] p-8 shadow-xl hover:border-green-100 transition-colors">
+                                    <div className="flex items-center gap-3 mb-6">
+                                       <div className="p-2 bg-green-50 rounded-xl">
+                                          <ShieldCheck size={18} className="text-green-600" />
+                                       </div>
+                                       <span className="text-[10px] font-black text-green-600 uppercase tracking-[0.3em]">Remediative Action</span>
                                     </div>
-                                 )}
+                                    <p className="text-slate-800 text-sm font-bold leading-relaxed">{selectedIncident.actionsTaken}</p>
+                                 </div>
+
+                                 <div className="bg-slate-900 lg:col-span-2 p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
+                                    <div className="flex items-center gap-3 mb-6">
+                                       <div className="p-2 bg-indigo-600 rounded-xl">
+                                          <Brain size={18} className="text-white" />
+                                       </div>
+                                       <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">AI Strategy & Analytics</span>
+                                    </div>
+                                    <p className="text-white text-sm font-bold leading-relaxed border-l-4 border-indigo-600 pl-8 ml-2">{selectedIncident.investigationNotes}</p>
+
+                                    {selectedIncident.reportedToCQC && (
+                                       <div className="mt-10 flex items-center gap-4 bg-rose-500 p-6 rounded-[1.5rem] shadow-2xl">
+                                          <AlertTriangle size={24} className="text-white animate-bounce" />
+                                          <div>
+                                             <p className="text-white text-[10px] font-black uppercase tracking-[0.2em]">Mandatory Regulatory Notification</p>
+                                             <p className="text-white font-black text-sm uppercase">Formalized with Regulator (CQC/Integrated Care)</p>
+                                          </div>
+                                       </div>
+                                    )}
+                                 </div>
                               </div>
                            ) : (
-                              <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
-                                 <ShieldAlert className="mx-auto text-slate-300 mb-4" size={48} />
-                                 <p className="text-slate-500 mb-6">Investigation pending. No root cause analysis recorded yet.</p>
+                              <div className="text-center py-20 bg-slate-50/50 rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center">
+                                 <ShieldAlert className="text-slate-200 mb-8" size={80} />
+                                 <p className="text-slate-400 font-bold max-w-sm mb-10 text-sm">Diagnostic sequence not yet initialized. Evidence requires neural processing for root cause identification.</p>
                                  <button
                                     onClick={handleInvestigate}
                                     disabled={isAnalyzing}
-                                    className="px-6 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 shadow-lg shadow-purple-900/20 flex items-center gap-2 mx-auto disabled:opacity-70"
+                                    className="px-12 py-6 bg-slate-900 text-white rounded-[1.75rem] font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:bg-indigo-600 transition-all flex items-center gap-4 active:scale-95 group disabled:opacity-30 disabled:cursor-not-allowed"
                                  >
-                                    {isAnalyzing ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                                    {isAnalyzing ? 'Analyzing Evidence...' : 'AI Investigator: Analyze Root Cause'}
+                                    {isAnalyzing ? <Loader2 className="animate-spin" size={24} /> : <Brain className="group-hover:rotate-12 transition-transform" size={24} />}
+                                    {isAnalyzing ? 'Processing Clinical Model...' : 'Trigger AI Neural Diagnostic'}
                                  </button>
                               </div>
                            )}
                         </div>
                      </div>
 
-                     {/* Footer Actions */}
-                     <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
+                     {/* Footer Terminal Actions */}
+                     <div className="p-10 border-t border-slate-50 bg-slate-50/20 flex justify-end gap-6">
                         {selectedIncident.status !== 'Closed' && (
-                           <button className="px-4 py-2 bg-primary-600 text-white font-bold rounded-lg hover:bg-primary-700 text-sm flex items-center gap-2">
-                              <CheckCircle2 size={16} /> Close Case
+                           <button className="px-10 py-5 bg-green-600 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-[1.25rem] hover:bg-black transition-all shadow-xl active:scale-95 flex items-center gap-3">
+                              <CheckCircle2 size={18} /> Finalize Case Archive
                            </button>
                         )}
+                        <button className="px-10 py-5 bg-white border border-slate-200 text-slate-500 font-black uppercase tracking-[0.2em] text-[10px] rounded-[1.25rem] hover:bg-slate-50 transition-all">Download Protocol PDF</button>
                      </div>
                   </>
                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-                     <ShieldAlert size={48} className="mb-4 opacity-20" />
-                     <p className="font-medium">Select an incident to view details</p>
+                  <div className="flex-1 flex flex-col items-center justify-center p-20 text-center">
+                     <div className="w-32 h-32 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-inner">
+                        <Activity size={48} className="text-slate-200" />
+                     </div>
+                     <h2 className="text-2xl font-black text-slate-300 uppercase tracking-tighter">Null Selection</h2>
+                     <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-4 max-w-xs">Select an active incident vector from the risk ledger to initiate analysis</p>
                   </div>
                )}
             </div>
          </div>
 
-         {/* Create Modal */}
+         {/* Futuristic Report Modal */}
          {isModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-               <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                     <h3 className="text-lg font-bold text-slate-900">Report New Incident</h3>
-                     <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full text-slate-500"><X size={20} /></button>
-                  </div>
-                  <form onSubmit={handleCreateIncident} className="p-6 space-y-4">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xl p-6">
+               <div className="bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300 border-none">
+                  <div className="p-12 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Client Involved</label>
-                        <select
-                           required
-                           className="w-full p-2 border border-slate-300 rounded-lg"
-                           value={formData.clientId}
-                           onChange={e => setFormData({ ...formData, clientId: e.target.value })}
-                        >
-                           <option value="">Select Client</option>
-                           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
+                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Incident Protocol</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1 flex items-center gap-2">
+                           <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                           Initiating Regulatory Report Capture
+                        </p>
                      </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                           <label className="block text-sm font-bold text-slate-700 mb-1">Type</label>
+                     <button onClick={() => setIsModalOpen(false)} className="p-4 hover:bg-slate-100 rounded-2xl transition-all shadow-sm"><X size={24} className="text-slate-400" /></button>
+                  </div>
+
+                  <form onSubmit={handleCreateIncident} className="p-12 space-y-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                           <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Clinical Identity Involved</label>
                            <select
-                              className="w-full p-2 border border-slate-300 rounded-lg"
+                              required
+                              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] font-bold text-slate-900 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
+                              value={formData.clientId}
+                              onChange={e => setFormData({ ...formData, clientId: e.target.value })}
+                           >
+                              <option value="">Search Profiles...</option>
+                              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                           </select>
+                        </div>
+                        <div className="space-y-3">
+                           <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Incident Taxonomy</label>
+                           <select
+                              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] font-bold text-slate-900 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
                               value={formData.type}
                               onChange={e => setFormData({ ...formData, type: e.target.value })}
                            >
@@ -341,10 +432,13 @@ const IncidentsPage: React.FC = () => {
                               <option>Other</option>
                            </select>
                         </div>
-                        <div>
-                           <label className="block text-sm font-bold text-slate-700 mb-1">Severity</label>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                           <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Risk Severity Vector</label>
                            <select
-                              className="w-full p-2 border border-slate-300 rounded-lg"
+                              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] font-bold text-slate-900 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
                               value={formData.severity}
                               onChange={e => setFormData({ ...formData, severity: e.target.value })}
                            >
@@ -354,31 +448,44 @@ const IncidentsPage: React.FC = () => {
                               <option>Critical</option>
                            </select>
                         </div>
+                        <div className="space-y-3">
+                           <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Incident Epoch (UTC)</label>
+                           <input
+                              type="datetime-local"
+                              required
+                              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] font-bold text-slate-900 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all tabular-nums"
+                              value={formData.date}
+                              onChange={e => setFormData({ ...formData, date: e.target.value })}
+                           />
+                        </div>
                      </div>
-                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Date & Time</label>
-                        <input
-                           type="datetime-local"
-                           required
-                           className="w-full p-2 border border-slate-300 rounded-lg"
-                           value={formData.date}
-                           onChange={e => setFormData({ ...formData, date: e.target.value })}
-                        />
-                     </div>
-                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
+
+                     <div className="space-y-3">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Clinical Observation Feed</label>
                         <textarea
                            required
                            rows={4}
-                           className="w-full p-2 border border-slate-300 rounded-lg"
-                           placeholder="Describe strictly what was observed / reported..."
+                           className="w-full p-8 bg-slate-50 border border-slate-100 rounded-[2rem] font-bold text-slate-900 placeholder:text-slate-300 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all resize-none shadow-inner"
+                           placeholder="Document exhaustive details of the sequence of events..."
                            value={formData.description}
                            onChange={e => setFormData({ ...formData, description: e.target.value })}
                         ></textarea>
                      </div>
-                     <div className="pt-2 flex justify-end gap-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
-                        <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-sm">Report Incident</button>
+
+                     <div className="pt-6 flex justify-end gap-6">
+                        <button
+                           type="button"
+                           onClick={() => setIsModalOpen(false)}
+                           className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 rounded-[1.5rem] transition-all"
+                        >
+                           Abort Report
+                        </button>
+                        <button
+                           type="submit"
+                           className="px-12 py-5 bg-rose-600 text-white font-black uppercase tracking-[0.3em] text-[10px] rounded-[1.5rem] hover:bg-black shadow-2xl shadow-rose-600/20 active:scale-95 transition-all"
+                        >
+                           Finalize Pulse Emission
+                        </button>
                      </div>
                   </form>
                </div>

@@ -1,17 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '@/context/TenantContext';
 import { supabase } from '@/lib/supabase';
-import { Building2, Save, Check, AlertTriangle, Link as LinkIcon, ShieldCheck, CreditCard, Mail } from 'lucide-react';
+import { Building2, Save, Check, AlertTriangle, Link as LinkIcon, ShieldCheck, CreditCard, Mail, Zap, Target, History, ShieldAlert, Cpu, Globe } from 'lucide-react';
 import StripeConnect from '@/components/organization/StripeConnect';
 import SmtpSettings from '@/components/organization/SmtpSettings';
+import { toast } from 'sonner';
 
 export default function TenantSettings() {
     const { currentTenant, refreshTenants } = useTenant();
     const [activeTab, setActiveTab] = useState<'general' | 'payments' | 'email'>('general');
-    const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [settings, setSettings] = useState<any>({});
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
         if (currentTenant) {
@@ -22,7 +22,7 @@ export default function TenantSettings() {
     const handleSave = async () => {
         if (!currentTenant) return;
         setSaving(true);
-        setMessage(null);
+        const saveToast = toast.loading('Authorizing Lattice Configuration Update...');
 
         try {
             const { error } = await supabase
@@ -32,10 +32,10 @@ export default function TenantSettings() {
 
             if (error) throw error;
 
-            setMessage({ type: 'success', text: 'Settings saved successfully' });
+            toast.success('Lattice Configuration Synchronized', { id: saveToast });
             await refreshTenants();
         } catch (error: any) {
-            setMessage({ type: 'error', text: error.message });
+            toast.error('Synchronization Failure', { id: saveToast });
         } finally {
             setSaving(false);
         }
@@ -49,8 +49,10 @@ export default function TenantSettings() {
             let newDisabled;
             if (isCurrentlyDisabled) {
                 newDisabled = disabledFeatures.filter((f: string) => f !== feature);
+                toast.success(`Feature Protocol Enabled: ${feature.replace(/_/g, ' ').toUpperCase()}`);
             } else {
                 newDisabled = [...disabledFeatures, feature];
+                toast.warning(`Feature Protocol Disabled: ${feature.replace(/_/g, ' ').toUpperCase()}`);
             }
 
             return { ...prev, disabled_features: newDisabled };
@@ -65,216 +67,232 @@ export default function TenantSettings() {
                 enabled
             }
         }));
+        if (enabled) toast.success('NovumFlow Bridge Sequence Initialized');
+        else toast.warning('NovumFlow Bridge Decommissioned');
     };
 
-    if (!currentTenant) return <div>Loading...</div>;
+    if (!currentTenant) return (
+        <div className="h-screen flex items-center justify-center bg-white">
+            <Cpu className="text-primary-600 animate-spin" size={64} />
+        </div>
+    );
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Organization Settings</h1>
-                    <p className="text-gray-500">Manage your organization profile and integrations</p>
+        <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 pb-12 h-[calc(100vh-6.5rem)] overflow-y-auto scrollbar-hide pr-4">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-10">
+                <div className="space-y-4">
+                    <h1 className="text-6xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+                        Lattice <span className="text-primary-600">Config</span>
+                    </h1>
+                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 mt-2">
+                        Organization Profile • Neural Compliance Hub • Global Integration Matrix
+                    </p>
                 </div>
                 {activeTab === 'general' && (
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50"
+                        className="px-12 py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.4em] text-[10px] shadow-2xl hover:bg-black flex items-center gap-6 active:scale-95 transition-all disabled:opacity-30"
                     >
-                        {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Changes
+                        {saving ? <Cpu className="animate-spin text-primary-500" size={20} /> : <Save size={20} className="text-primary-500" />}
+                        Synchronize Config
                     </button>
                 )}
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 mb-6">
+            {/* Navigation Deck */}
+            <div className="flex p-2 bg-white border border-slate-100 rounded-[3rem] w-fit shadow-2xl relative z-50">
                 <button
-                    onClick={() => setActiveTab('general')}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'general'
-                            ? 'border-cyan-600 text-cyan-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
+                    onClick={() => {
+                        setActiveTab('general');
+                        toast.info('Retrieving General & Compliance Spectrum');
+                    }}
+                    className={`px-10 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-[0.4em] transition-all flex items-center gap-4 ${activeTab === 'general' ? 'bg-slate-900 text-white shadow-2xl scale-[1.05]' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}
                 >
-                    General & Compliance
+                    <Building2 size={20} /> Profile & Compliance
                 </button>
                 <button
-                    onClick={() => setActiveTab('payments')}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'payments'
-                            ? 'border-cyan-600 text-cyan-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
+                    onClick={() => {
+                        setActiveTab('payments');
+                        toast.info('Retrieving Fiscal Integration Spectrum');
+                    }}
+                    className={`px-10 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-[0.4em] transition-all flex items-center gap-4 ${activeTab === 'payments' ? 'bg-slate-900 text-white shadow-2xl scale-[1.05]' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}
                 >
-                    Payments
+                    <CreditCard size={20} /> Payments
                 </button>
                 <button
-                    onClick={() => setActiveTab('email')}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'email'
-                            ? 'border-cyan-600 text-cyan-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
+                    onClick={() => {
+                        setActiveTab('email');
+                        toast.info('Retrieving Comms Transmission Spectrum');
+                    }}
+                    className={`px-10 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-[0.4em] transition-all flex items-center gap-4 ${activeTab === 'email' ? 'bg-slate-900 text-white shadow-2xl scale-[1.05]' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}
                 >
-                    Email Settings
+                    <Mail size={20} /> Transmission Settings
                 </button>
             </div>
 
-            {message && activeTab === 'general' && (
-                <div className={`p-4 rounded-lg mb-6 flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                    {message.type === 'success' ? <Check className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
-                    {message.text}
-                </div>
-            )}
-
-            {activeTab === 'general' && (
-                <div className="grid gap-6">
-                    {/* General Profile */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-cyan-50 rounded-lg">
-                                <Building2 className="w-5 h-5 text-cyan-600" />
+            <div className="bg-white rounded-[4rem] border border-slate-100 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-700 min-h-[600px]">
+                {activeTab === 'general' && (
+                    <div className="p-16 space-y-16">
+                        {/* General Profile Metadata */}
+                        <div className="space-y-10 group">
+                            <div className="flex items-center gap-6">
+                                <div className="p-5 bg-slate-900 text-white rounded-[2rem] shadow-2xl transition-transform group-hover:rotate-6">
+                                    <Building2 size={32} className="text-primary-500" />
+                                </div>
+                                <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none">Entity Metadata</h2>
                             </div>
-                            <h2 className="text-lg font-semibold text-gray-900">General Profile</h2>
-                        </div>
 
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
-                                <input
-                                    type="text"
-                                    value={currentTenant.name}
-                                    disabled
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
-                                <div className="flex">
-                                    <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                                        https://
-                                    </span>
+                            <div className="grid md:grid-cols-2 gap-10">
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-4 text-left">Entity Identifier</label>
                                     <input
                                         type="text"
-                                        value={currentTenant.subdomain}
+                                        value={currentTenant.name.toUpperCase()}
                                         disabled
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg bg-gray-50 text-gray-500"
+                                        className="w-full px-8 py-6 bg-slate-50 border-4 border-slate-50 rounded-[2rem] text-[11px] font-black uppercase tracking-widestAlpha text-slate-400 shadow-inner"
                                     />
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* NovumFlow Integration */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-50 rounded-lg">
-                                    <LinkIcon className="w-5 h-5 text-purple-600" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-semibold text-gray-900">NovumFlow Integration</h2>
-                                    <p className="text-sm text-gray-500">Sync staff and compliance data from your HR platform</p>
-                                </div>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={settings.novumflow_integration?.enabled || false}
-                                    onChange={(e) => toggleIntegration(e.target.checked)}
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                            </label>
-                        </div>
-
-                        {settings.novumflow_integration?.enabled && (
-                            <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-                                <h3 className="font-medium text-purple-900 mb-2">Integration Active</h3>
-                                <ul className="space-y-2 text-sm text-purple-700">
-                                    <li className="flex items-center gap-2">
-                                        <Check className="w-4 h-4" />
-                                        Staff hired in NovumFlow will automatically appear in CareFlow
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <Check className="w-4 h-4" />
-                                        Right to Work status is synced and enforced
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <Check className="w-4 h-4" />
-                                        DBS checks are synced and enforced
-                                    </li>
-                                </ul>
-
-                                <div className="mt-4 pt-4 border-t border-purple-200">
-                                    <label className="block text-sm font-medium text-purple-900 mb-2">Webhook URL</label>
-                                    <div className="flex gap-2">
-                                        <code className="flex-1 bg-white px-3 py-2 rounded border border-purple-200 text-xs font-mono">
-                                            https://niikshfoecitimepiifo.supabase.co/functions/v1/sync_employee
-                                        </code>
-                                        <button
-                                            onClick={() => navigator.clipboard.writeText('https://niikshfoecitimepiifo.supabase.co/functions/v1/sync_employee')}
-                                            className="px-3 py-1 text-xs bg-white border border-purple-200 rounded hover:bg-purple-100 text-purple-700"
-                                        >
-                                            Copy
-                                        </button>
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-4 text-left">Subdomain Node</label>
+                                    <div className="relative">
+                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-200 font-black text-[11px]">HTTPS://</div>
+                                        <input
+                                            type="text"
+                                            value={currentTenant.subdomain.toUpperCase()}
+                                            disabled
+                                            className="w-full pl-24 pr-8 py-6 bg-slate-50 border-4 border-slate-50 rounded-[2rem] text-[11px] font-black uppercase tracking-widestAlpha text-slate-400 shadow-inner"
+                                        />
                                     </div>
-                                    <p className="text-xs text-purple-600 mt-1">Add this URL to your NovumFlow Webhook settings.</p>
                                 </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Compliance Settings */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-red-50 rounded-lg">
-                                <ShieldCheck className="w-5 h-5 text-red-600" />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-900">Compliance Enforcement</h2>
-                                <p className="text-sm text-gray-500">Configure strict blocks for non-compliant staff</p>
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                                <div>
-                                    <p className="font-medium text-gray-900">Block Invalid Right to Work</p>
-                                    <p className="text-sm text-gray-500">Prevent assigning visits if Right to Work is missing or expired</p>
+                        {/* NovumFlow Lattice Bridge */}
+                        <div className="p-12 bg-slate-900 rounded-[3.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.3)] border border-white/5 relative overflow-hidden group/bridge">
+                            <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_center,white,transparent)]" />
+                            <div className="flex flex-col md:flex-row items-center justify-between mb-12 relative z-10 gap-10">
+                                <div className="flex items-center gap-8">
+                                    <div className="p-6 bg-white/5 border border-white/10 rounded-[2.5rem] shadow-2xl transition-transform group-hover/bridge:rotate-12">
+                                        <LinkIcon className="w-10 h-10 text-primary-500" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-3xl font-black text-white uppercase tracking-tighter leading-none mb-2">NovumFlow Bridge</h2>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widestAlpha">Neural Synchronization Spectrum for Staff & Compliance</p>
+                                    </div>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
+                                <label className="relative inline-flex items-center cursor-pointer scale-150">
                                     <input
                                         type="checkbox"
                                         className="sr-only peer"
-                                        checked={!settings.disabled_features?.includes('block_rtw')}
-                                        onChange={() => toggleFeature('block_rtw')}
+                                        checked={settings.novumflow_integration?.enabled || false}
+                                        onChange={(e) => toggleIntegration(e.target.checked)}
                                     />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 shadow-2xl"></div>
                                 </label>
                             </div>
 
-                            <div className="flex items-center justify-between py-3">
-                                <div>
-                                    <p className="font-medium text-gray-900">Block Invalid DBS</p>
-                                    <p className="text-sm text-gray-500">Prevent assigning visits if DBS is missing, expired, or flagged</p>
+                            {settings.novumflow_integration?.enabled && (
+                                <div className="space-y-10 animate-in fade-in relative z-10">
+                                    <div className="grid md:grid-cols-3 gap-6">
+                                        <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] space-y-3">
+                                            <Check className="text-emerald-500" size={24} />
+                                            <p className="text-[10px] font-black text-white uppercase tracking-tight leading-relaxed">Auto-Entity Propagation</p>
+                                        </div>
+                                        <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] space-y-3">
+                                            <Check className="text-emerald-500" size={24} />
+                                            <p className="text-[10px] font-black text-white uppercase tracking-tight leading-relaxed">RTW Neural Enforcement</p>
+                                        </div>
+                                        <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] space-y-3">
+                                            <Check className="text-emerald-500" size={24} />
+                                            <p className="text-[10px] font-black text-white uppercase tracking-tight leading-relaxed">DBS Integrity Syncing</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white/5 rounded-[2.5rem] p-10 border border-white/10 space-y-6">
+                                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] ml-4">Global Webhook Transceiver</label>
+                                        <div className="flex gap-4 items-center">
+                                            <code className="flex-1 bg-black/50 px-8 py-5 rounded-2xl border border-white/10 text-[10px] font-mono text-primary-400 overflow-hidden whitespace-nowrap text-ellipsis">
+                                                https://niikshfoecitimepiifo.supabase.co/functions/v1/sync_employee
+                                            </code>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText('https://niikshfoecitimepiifo.supabase.co/functions/v1/sync_employee');
+                                                    toast.success('Webhook Protocol Authenticator Copied');
+                                                }}
+                                                className="px-10 py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widestAlpha hover:bg-slate-200 transition-all shadow-2xl active:scale-95 whitespace-nowrap"
+                                            >
+                                                Copy Node
+                                            </button>
+                                        </div>
+                                        <p className="text-[9px] font-black text-primary-500 uppercase tracking-[0.2em] ml-4 flex items-center gap-3">
+                                            <Globe size={12} /> Inject this transceiver node into NovumFlow Webhook Config.
+                                        </p>
+                                    </div>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={!settings.disabled_features?.includes('block_dbs')}
-                                        onChange={() => toggleFeature('block_dbs')}
-                                    />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-                                </label>
+                            )}
+                        </div>
+
+                        {/* Neural Compliance Enforcement Matrix */}
+                        <div className="space-y-10 group">
+                            <div className="flex items-center gap-6">
+                                <div className="p-5 bg-rose-900 text-white rounded-[2rem] shadow-2xl transition-transform group-hover:rotate-6">
+                                    <ShieldCheck size={32} className="text-rose-400" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Integrity Lockouts</h2>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widestAlpha">Deterministic Blocks for Non-Compliant Entity Deployment</p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-6">
+                                <div className="flex items-center justify-between p-10 bg-slate-50 rounded-[3rem] border-4 border-slate-50 hover:bg-white hover:shadow-2xl transition-all duration-500 group/item">
+                                    <div className="space-y-2">
+                                        <p className="text-xl font-black text-slate-900 uppercase tracking-tight">Lockdown Invalid RTW Assets</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widestAlpha">Prevent mission assignment if Right to Work metadata is null or expired</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer scale-125">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={!settings.disabled_features?.includes('block_rtw')}
+                                            onChange={() => toggleFeature('block_rtw')}
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600 shadow-xl"></div>
+                                    </label>
+                                </div>
+
+                                <div className="flex items-center justify-between p-10 bg-slate-50 rounded-[3rem] border-4 border-slate-50 hover:bg-white hover:shadow-2xl transition-all duration-500 group/item">
+                                    <div className="space-y-2">
+                                        <p className="text-xl font-black text-slate-900 uppercase tracking-tight">Lockdown Invalid DBS Protocol</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widestAlpha">Prevent mission assignment if DBS metadata is missing, expired, or flagged</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer scale-125">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={!settings.disabled_features?.includes('block_dbs')}
+                                            onChange={() => toggleFeature('block_dbs')}
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600 shadow-xl"></div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {activeTab === 'payments' && <StripeConnect />}
-            {activeTab === 'email' && <SmtpSettings />}
+                {activeTab === 'payments' && (
+                    <div className="p-16 animate-in slide-in-from-right-10 duration-700">
+                        <StripeConnect />
+                    </div>
+                )}
+                {activeTab === 'email' && (
+                    <div className="p-16 animate-in slide-in-from-right-10 duration-700">
+                        <SmtpSettings />
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

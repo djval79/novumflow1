@@ -21,8 +21,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initRef = React.useRef(false);
 
     useEffect(() => {
-        console.log('AuthProvider: MOUNTED (Unique Test Log - Version 2)'); // <--- NEW UNIQUE LOG ADDED HERE
-
         // Prevent double initialization
         if (initRef.current) return;
         initRef.current = true;
@@ -32,23 +30,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Global safety timeout to force loading false
         const safetyTimeout = setTimeout(() => {
             if (mounted) {
-                console.warn('AuthProvider: Safety timeout triggered - forcing loading false');
                 setLoading(false);
             }
-        }, 15000); // Increased timeout to 15 seconds
+        }, 15000);
 
         async function loadUser() {
             try {
-                console.log('AuthProvider: Calling getUser()...');
                 const { data: { user }, error: userError } = await supabase.auth.getUser();
-                console.log('AuthProvider: getUser() result:', user?.email, userError);
 
                 if (mounted) {
                     setUser(user);
                     if (user) {
-                        // EMERGENCY BYPASS FOR SUPER ADMIN (Added to loadUser)
+                        // EMERGENCY BYPASS FOR SUPER ADMIN
                         if (user.email === 'mrsonirie@gmail.com' || user.email === 'mrsonirie@msn.com') {
-                            console.log('AuthProvider: Applying SUPER ADMIN BYPASS for', user.email);
                             const bypassProfile: UserProfile = {
                                 id: 'bypass-id',
                                 user_id: user.id,
@@ -78,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                         if (mounted) {
                             if (!profileData && !profileError) {
-                                console.log('AuthProvider: Profile missing (initial load), attempting to auto-create...');
                                 const { data: newProfile, error: createError } = await supabase
                                     .from('users_profiles')
                                     .insert({
@@ -91,12 +84,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     .select()
                                     .single();
 
-                                if (createError) {
-                                    console.error('AuthProvider: Failed to auto-create profile (initial load):', createError);
-                                    setProfile(null);
-                                } else {
-                                    console.log('AuthProvider: Profile auto-created (initial load):', newProfile);
+                                if (!createError) {
                                     setProfile(newProfile);
+                                } else {
+                                    setProfile(null);
                                 }
                             } else {
                                 setProfile(profileData);
@@ -105,12 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
             } catch (error) {
-                console.error('AuthProvider: LoadUser exception:', error);
+                // Silently fail, handled by loading state
             } finally {
                 if (mounted) {
-                    console.log('AuthProvider: loadUser finished, setting loading false');
                     setLoading(false);
-                    clearTimeout(safetyTimeout); // Clear safety timeout if we finished normally
+                    clearTimeout(safetyTimeout);
                 }
             }
         }
@@ -118,8 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loadUser();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            console.log('AuthProvider: Auth State Change:', _event, session?.user?.email);
-
             if (!mounted) return;
 
             setUser(session?.user || null);
@@ -129,7 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 // EMERGENCY BYPASS FOR SUPER ADMIN
                 if (session.user.email === 'mrsonirie@gmail.com' || session.user.email === 'mrsonirie@msn.com') {
-                    console.log('AuthProvider: Applying SUPER ADMIN BYPASS for', session.user.email);
                     const bypassProfile: UserProfile = {
                         id: 'bypass-id',
                         user_id: userId,
@@ -160,29 +147,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 if (mounted) {
                     if (profileError) {
-                        console.error('AuthProvider: Profile Load Error:', profileError);
                         // Retry once after 1 second
                         setTimeout(async () => {
-                            console.log('AuthProvider: Retrying profile fetch...');
-                            const { data: retryData, error: retryError } = await supabase
+                            const { data: retryData } = await supabase
                                 .from('users_profiles')
                                 .select('*')
                                 .eq('user_id', userId)
                                 .maybeSingle();
 
-                            if (retryData) {
-                                console.log('AuthProvider: Profile loaded on retry:', retryData);
-                                if (mounted) setProfile(retryData);
-                            } else {
-                                console.error('AuthProvider: Retry failed:', retryError);
-                                setProfile(null);
-                            }
+                            if (retryData && mounted) setProfile(retryData);
                         }, 1000);
                         setProfile(null);
                     } else if (!profileData) {
-                        console.error('AuthProvider: CRITICAL - Profile missing even after auto-create attempt!');
                         // Try one last desperate auto-create
-                        const { data: lastChance, error: lastError } = await supabase
+                        const { data: lastChance } = await supabase
                             .from('users_profiles')
                             .insert({
                                 user_id: userId,
@@ -194,15 +172,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             .select()
                             .single();
 
-                        if (lastChance) {
-                            console.log('AuthProvider: Profile created on last chance:', lastChance);
-                            setProfile(lastChance);
-                        } else {
-                            console.error('AuthProvider: Last chance failed:', lastError);
-                            setProfile(null);
-                        }
+                        if (lastChance) setProfile(lastChance);
+                        else setProfile(null);
                     } else {
-                        console.log('AuthProvider: Profile Loaded (Auth Change):', profileData);
                         setProfile(profileData);
                     }
                     setLoading(false);
@@ -224,12 +196,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function signIn(email: string, password: string) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) console.error('Supabase Auth Error:', error.message);
         return { error };
     }
 
     async function signUp(email: string, password: string, fullName: string, role: 'admin' | 'carer' = 'carer') {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -240,31 +211,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
-        if (error) console.error('Supabase SignUp Error:', error.message);
-
-        // Profile creation is now handled by a Database Trigger (fix_signup_rls.sql)
-        // We do not need to manually insert here.
-
         return { error };
     }
 
     async function signOut() {
-        console.log('AuthContext: signOut called');
         try {
-            // 1. Clear state immediately to trigger re-renders in ProtectedRoute/Login
             setUser(null);
             setProfile(null);
-
-            // 2. Clear storage to prevent re-auth on page refresh
             localStorage.removeItem('novumflow-auth-token');
             localStorage.removeItem('currentTenantId');
-
-            // 3. Call Supabase sign out
-            const { error } = await supabase.auth.signOut();
-            if (error) console.error('AuthContext: Supabase signOut error', error);
-            else console.log('AuthContext: Supabase signOut successful');
+            await supabase.auth.signOut();
         } catch (err) {
-            console.error('AuthContext: signOut exception', err);
+            // Silently fail
         }
     }
 

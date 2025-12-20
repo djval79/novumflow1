@@ -1,50 +1,69 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import Dashboard from './pages/Dashboard';
-import ShiftManagement from './pages/ShiftManagement';
-import CarePlanning from './pages/CarePlanning';
-import People from './pages/People';
-import Finance from './pages/Finance';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import Integrations from './pages/Integrations';
-import Login from './pages/Login';
-import AcceptInvite from './pages/AcceptInvite';
-import Onboarding from './pages/Onboarding';
-import FinanceDashboard from './pages/FinanceDashboard';
-import VisitDetails from './pages/VisitDetails';
-import Messages from './pages/Messages';
-import StaffPortal from './pages/StaffPortal';
-import RouteOptimizer from './pages/RouteOptimizer';
-import MedicationPage from './pages/Medication';
-import FormsPage from './pages/Forms';
-import TrainingPage from './pages/Training';
-import IncidentsPage from './pages/Incidents';
-import Recruitment from './pages/Recruitment';
-import CRM from './pages/CRM';
-import Telehealth from './pages/Telehealth';
-import Documents from './pages/Documents';
-import Tasks from './pages/Tasks';
-import Help from './pages/Help';
-import Assets from './pages/Assets';
-import Expenses from './pages/Expenses';
-import ShiftMarket from './pages/ShiftMarket';
-import Activities from './pages/Activities';
-import UserManagement from './pages/UserManagement';
-import DataImport from './pages/DataImport';
-import Feedback from './pages/Feedback';
-import Nutrition from './pages/Nutrition';
-import Inventory from './pages/Inventory';
-import MobileSchedule from './pages/MobileSchedule';
-import TenantSettings from './pages/TenantSettings';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { TenantProvider } from './context/TenantContext';
 import { UserRole } from './types';
 import QuickActions from './components/QuickActions';
+import { DashboardSkeleton, Skeleton } from './components/Skeleton';
+import { PWAUpdatePrompt, OfflineBanner, InstallPrompt } from './components/PWAComponents';
+
+// Loading Skeleton for page transitions
+const PageLoader = () => (
+  <DashboardSkeleton />
+);
+
+// Simple centered loader for auth pages
+const AuthPageLoader = () => (
+  <div className="flex items-center justify-center h-screen bg-slate-50">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mx-auto mb-4"></div>
+      <Skeleton variant="text" width={120} height={16} className="mx-auto" />
+    </div>
+  </div>
+);
+
+// Lazy load all pages for code splitting
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const ShiftManagement = React.lazy(() => import('./pages/ShiftManagement'));
+const CarePlanning = React.lazy(() => import('./pages/CarePlanning'));
+const People = React.lazy(() => import('./pages/People'));
+const Finance = React.lazy(() => import('./pages/Finance'));
+const Reports = React.lazy(() => import('./pages/Reports'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const Integrations = React.lazy(() => import('./pages/Integrations'));
+const Login = React.lazy(() => import('./pages/Login'));
+const AcceptInvite = React.lazy(() => import('./pages/AcceptInvite'));
+const Onboarding = React.lazy(() => import('./pages/Onboarding'));
+const FinanceDashboard = React.lazy(() => import('./pages/FinanceDashboard'));
+const VisitDetails = React.lazy(() => import('./pages/VisitDetails'));
+const Messages = React.lazy(() => import('./pages/Messages'));
+const StaffPortal = React.lazy(() => import('./pages/StaffPortal'));
+const RouteOptimizer = React.lazy(() => import('./pages/RouteOptimizer'));
+const MedicationPage = React.lazy(() => import('./pages/Medication'));
+const FormsPage = React.lazy(() => import('./pages/Forms'));
+const TrainingPage = React.lazy(() => import('./pages/Training'));
+const IncidentsPage = React.lazy(() => import('./pages/Incidents'));
+const Recruitment = React.lazy(() => import('./pages/Recruitment'));
+const CRM = React.lazy(() => import('./pages/CRM'));
+const Telehealth = React.lazy(() => import('./pages/Telehealth'));
+const Documents = React.lazy(() => import('./pages/Documents'));
+const Tasks = React.lazy(() => import('./pages/Tasks'));
+const Help = React.lazy(() => import('./pages/Help'));
+const Assets = React.lazy(() => import('./pages/Assets'));
+const Expenses = React.lazy(() => import('./pages/Expenses'));
+const ShiftMarket = React.lazy(() => import('./pages/ShiftMarket'));
+const Activities = React.lazy(() => import('./pages/Activities'));
+const UserManagement = React.lazy(() => import('./pages/UserManagement'));
+const DataImport = React.lazy(() => import('./pages/DataImport'));
+const Feedback = React.lazy(() => import('./pages/Feedback'));
+const Nutrition = React.lazy(() => import('./pages/Nutrition'));
+const Inventory = React.lazy(() => import('./pages/Inventory'));
+const MobileSchedule = React.lazy(() => import('./pages/MobileSchedule'));
+const TenantSettings = React.lazy(() => import('./pages/TenantSettings'));
 
 const AppLayout: React.FC = () => {
   return (
@@ -54,7 +73,9 @@ const AppLayout: React.FC = () => {
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto h-full">
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>
@@ -67,71 +88,78 @@ const AppLayout: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <TenantProvider>
-        <Router>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/accept-invite" element={<AcceptInvite />} />
-            <Route path="/onboarding" element={<Onboarding />} />
+    <>
+      {/* PWA Components */}
+      <OfflineBanner />
+      <PWAUpdatePrompt />
+      <InstallPrompt />
 
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/my-day" element={<MobileSchedule />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/telehealth" element={<Telehealth />} />
-                <Route path="/help" element={<Help />} />
-                <Route path="/activities" element={<Activities />} />
-                <Route path="/nutrition" element={<Nutrition />} />
+      <AuthProvider>
+        <TenantProvider>
+          <Router>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<Suspense fallback={<AuthPageLoader />}><Login /></Suspense>} />
+              <Route path="/accept-invite" element={<Suspense fallback={<AuthPageLoader />}><AcceptInvite /></Suspense>} />
+              <Route path="/onboarding" element={<Suspense fallback={<AuthPageLoader />}><Onboarding /></Suspense>} />
 
-                {/* Admin & Carer Only */}
-                <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CARER]} />}>
-                  <Route path="/rostering" element={<ShiftManagement />} />
-                  <Route path="/shift-market" element={<ShiftMarket />} />
-                  <Route path="/visit/:id" element={<VisitDetails />} />
-                  <Route path="/people" element={<People />} />
-                  <Route path="/finance" element={<FinanceDashboard />} />
-                  <Route path="/staff-hub" element={<StaffPortal />} />
-                  <Route path="/routes" element={<RouteOptimizer />} />
-                  <Route path="/forms" element={<FormsPage />} />
-                  <Route path="/training" element={<TrainingPage />} />
-                  <Route path="/documents" element={<Documents />} />
-                  <Route path="/expenses" element={<Expenses />} />
-                  <Route path="/inventory" element={<Inventory />} />
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/my-day" element={<MobileSchedule />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/telehealth" element={<Telehealth />} />
+                  <Route path="/help" element={<Help />} />
+                  <Route path="/activities" element={<Activities />} />
+                  <Route path="/nutrition" element={<Nutrition />} />
+
+                  {/* Admin & Carer Only */}
+                  <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CARER]} />}>
+                    <Route path="/rostering" element={<ShiftManagement />} />
+                    <Route path="/shift-market" element={<ShiftMarket />} />
+                    <Route path="/visit/:id" element={<VisitDetails />} />
+                    <Route path="/people" element={<People />} />
+                    <Route path="/finance" element={<FinanceDashboard />} />
+                    <Route path="/staff-hub" element={<StaffPortal />} />
+                    <Route path="/routes" element={<RouteOptimizer />} />
+                    <Route path="/forms" element={<FormsPage />} />
+                    <Route path="/training" element={<TrainingPage />} />
+                    <Route path="/documents" element={<Documents />} />
+                    <Route path="/expenses" element={<Expenses />} />
+                    <Route path="/inventory" element={<Inventory />} />
+                  </Route>
+
+                  {/* Admin Only */}
+                  <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>
+                    <Route path="/finance" element={<Finance />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/integrations" element={<Integrations />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/incidents" element={<IncidentsPage />} />
+                    <Route path="/recruitment" element={<Recruitment />} />
+                    <Route path="/crm" element={<CRM />} />
+                    <Route path="/tasks" element={<Tasks />} />
+                    <Route path="/assets" element={<Assets />} />
+                    <Route path="/users" element={<UserManagement />} />
+                    <Route path="/import" element={<DataImport />} />
+                    <Route path="/feedback" element={<Feedback />} />
+                    <Route path="/tenant-settings" element={<TenantSettings />} />
+                  </Route>
+
+                  {/* All Roles (Content differs inside component) */}
+                  <Route path="/care-plans" element={<CarePlanning />} />
+                  <Route path="/medication" element={<MedicationPage />} />
                 </Route>
-
-                {/* Admin Only */}
-                <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>
-                  <Route path="/finance" element={<Finance />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/integrations" element={<Integrations />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/incidents" element={<IncidentsPage />} />
-                  <Route path="/recruitment" element={<Recruitment />} />
-                  <Route path="/crm" element={<CRM />} />
-                  <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/assets" element={<Assets />} />
-                  <Route path="/users" element={<UserManagement />} />
-                  <Route path="/import" element={<DataImport />} />
-                  <Route path="/feedback" element={<Feedback />} />
-                  <Route path="/tenant-settings" element={<TenantSettings />} />
-                </Route>
-
-                {/* All Roles (Content differs inside component) */}
-                <Route path="/care-plans" element={<CarePlanning />} />
-                <Route path="/medication" element={<MedicationPage />} />
               </Route>
-            </Route>
 
-            {/* Catch all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </TenantProvider>
-    </AuthProvider>
+              {/* Catch all */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </TenantProvider>
+      </AuthProvider>
+    </>
   );
 };
 

@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../context/TenantContext';
 import { X, Plus, Trash2, Save, FileText, CheckSquare } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Task {
     id: string;
@@ -61,7 +61,7 @@ export default function CarePlanManager({ clientId, clientName, onClose }: CareP
                 setTasks([]);
             }
         } catch (error) {
-            console.error('Error fetching care plan:', error);
+            toast.error('Failed to fetch care plan');
         } finally {
             setLoading(false);
         }
@@ -100,10 +100,9 @@ export default function CarePlanManager({ clientId, clientName, onClose }: CareP
 
             // Refresh to get ID if it was new
             await fetchCarePlan();
-            alert('Care Plan saved successfully!');
+            toast.success('Care Plan saved successfully!');
         } catch (error) {
-            console.error('Error saving care plan:', error);
-            alert('Failed to save care plan.');
+            toast.error('Failed to save care plan.');
         } finally {
             setSaving(false);
         }

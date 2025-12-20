@@ -1,13 +1,10 @@
-/**
- * Staff Compliance Widget for CareFlow Dashboard
- * Shows compliance status of staff synced from NovumFlow
- */
 
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '@/context/TenantContext';
-import { ShieldCheck, ShieldAlert, ShieldOff, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, ShieldOff, RefreshCw, ExternalLink, AlertTriangle, Zap, Target, History, Shield } from 'lucide-react';
 import complianceCheckService, { ComplianceStatus } from '@/services/ComplianceCheckService';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface StaffMember {
     id: string;
@@ -25,7 +22,6 @@ export default function StaffComplianceWidget() {
     useEffect(() => {
         if (currentTenant) {
             fetchComplianceData();
-            // Check if NovumFlow is enabled
             setNovumFlowEnabled(currentTenant.settings?.novumflow_enabled !== false);
         }
     }, [currentTenant]);
@@ -33,23 +29,30 @@ export default function StaffComplianceWidget() {
     const fetchComplianceData = async () => {
         if (!currentTenant) return;
         setLoading(true);
+        const syncToast = toast.loading('Synchronizing Compliance Lattice...');
 
         try {
-            // Fetch active staff
             const { data: staffData, error: staffError } = await supabase
-                .from('employees')
-                .select('id, first_name, last_name')
+                .from('careflow_staff')
+                .select('id, full_name')
                 .eq('tenant_id', currentTenant.id)
                 .or('status.eq.active,status.eq.Active');
 
             if (staffError) throw staffError;
-            setStaff(staffData || []);
+            setStaff((staffData || []).map((s: any) => {
+                const parts = (s.full_name || '').split(' ');
+                return {
+                    id: s.id,
+                    first_name: parts[0] || '',
+                    last_name: parts.slice(1).join(' ') || ''
+                };
+            }));
 
-            // Fetch compliance data
             const compliance = await complianceCheckService.checkAllStaffCompliance(currentTenant.id);
             setComplianceMap(compliance);
+            toast.success('Lattice Synced', { id: syncToast });
         } catch (error) {
-            console.error('Error fetching compliance data:', error);
+            toast.error('Sync failure', { id: syncToast });
         } finally {
             setLoading(false);
         }
@@ -83,7 +86,7 @@ export default function StaffComplianceWidget() {
             }
         });
 
-        return nonCompliant.slice(0, 5); // Show top 5
+        return nonCompliant.sort((a, b) => a.compliance.compliancePercentage - b.compliance.compliancePercentage).slice(0, 5);
     };
 
     const stats = getComplianceStats();
@@ -95,131 +98,130 @@ export default function StaffComplianceWidget() {
 
     if (loading) {
         return (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-5 bg-gray-200 rounded w-1/3"></div>
-                    <div className="h-20 bg-gray-200 rounded"></div>
+            <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border border-white/5 animate-pulse">
+                <div className="space-y-6">
+                    <div className="h-6 bg-white/5 rounded-xl w-1/2"></div>
+                    <div className="h-32 bg-white/5 rounded-3xl w-full"></div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-slate-900 rounded-[3.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.3)] border border-white/5 overflow-hidden flex flex-col h-full relative group">
+            <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_center,white,transparent)]" />
+
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-cyan-600" />
-                    <h3 className="font-semibold text-gray-900">Staff Compliance</h3>
+            <div className="p-10 border-b border-white/5 flex items-center justify-between relative z-10">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-4">
+                        <ShieldCheck className="w-6 h-6 text-primary-500" />
+                        <h3 className="text-[10px] font-black text-white uppercase tracking-[0.6em]">Neural Guard</h3>
+                    </div>
                     {novumFlowEnabled && (
-                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-                            NovumFlow Synced
+                        <span className="text-[8px] text-primary-500/60 font-black uppercase tracking-widest pl-10">
+                            Satellite Auth Active
                         </span>
                     )}
                 </div>
                 <button
                     onClick={fetchComplianceData}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Refresh"
+                    className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all shadow-xl group-hover:rotate-180 duration-700"
                 >
-                    <RefreshCw className="w-4 h-4 text-gray-400" />
+                    <RefreshCw className="w-5 h-5 text-slate-400" />
                 </button>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 border-b border-gray-100">
-                <div className="p-4 text-center border-r border-gray-100">
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                        <ShieldCheck className="w-4 h-4 text-green-500" />
-                        <span className="text-2xl font-bold text-green-600">{stats.compliant}</span>
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {/* Stats Matrix */}
+                <div className="grid grid-cols-3 border-b border-white/5 relative z-10">
+                    <div className="p-8 text-center border-r border-white/5 group/stat">
+                        <div className="text-4xl font-black text-white tracking-tighter tabular-nums mb-1 group-hover:scale-110 transition-transform">{stats.compliant}</div>
+                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Compliant</p>
                     </div>
-                    <p className="text-xs text-gray-500">Fully Compliant</p>
-                </div>
-                <div className="p-4 text-center border-r border-gray-100">
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                        <ShieldAlert className="w-4 h-4 text-amber-500" />
-                        <span className="text-2xl font-bold text-amber-600">{stats.partial}</span>
+                    <div className="p-8 text-center border-r border-white/5 group/stat">
+                        <div className="text-4xl font-black text-amber-500 tracking-tighter tabular-nums mb-1 group-hover:scale-110 transition-transform">{stats.partial}</div>
+                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widestAlpha">Partial</p>
                     </div>
-                    <p className="text-xs text-gray-500">Partial</p>
-                </div>
-                <div className="p-4 text-center">
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                        <ShieldOff className="w-4 h-4 text-red-500" />
-                        <span className="text-2xl font-bold text-red-600">{stats.nonCompliant}</span>
+                    <div className="p-8 text-center group/stat">
+                        <div className="text-4xl font-black text-rose-500 tracking-tighter tabular-nums mb-1 group-hover:scale-110 transition-transform">{stats.nonCompliant}</div>
+                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Hazard</p>
                     </div>
-                    <p className="text-xs text-gray-500">Non-Compliant</p>
                 </div>
+
+                {/* Progress Spectrometer */}
+                <div className="p-10 border-b border-white/5 relative z-10">
+                    <div className="flex items-center justify-between mb-4">
+                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em]">System Integrity</span>
+                        <span className={`text-xl font-black text-white tracking-tighter tabular-nums ${overallComplianceRate >= 90 ? 'text-primary-500' :
+                            overallComplianceRate >= 70 ? 'text-amber-500' : 'text-rose-500'
+                            }`}>
+                            {overallComplianceRate}%
+                        </span>
+                    </div>
+                    <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 border border-white/5 shadow-inner">
+                        <div
+                            className={`h-full rounded-full transition-all duration-1000 shadow-2xl ${overallComplianceRate >= 90 ? 'bg-primary-600' :
+                                overallComplianceRate >= 70 ? 'bg-amber-500' : 'bg-rose-600'
+                                } shadow-[0_0_20px_rgba(37,99,235,0.4)]`}
+                            style={{ width: `${overallComplianceRate}%` }}
+                        />
+                    </div>
+                </div>
+
+                {/* Attention Required Ledger */}
+                {nonCompliantStaff.length > 0 ? (
+                    <div className="p-10 space-y-8 relative z-10">
+                        <h4 className="text-[10px] font-black text-white uppercase tracking-[0.5em] flex items-center gap-4">
+                            <AlertTriangle className="w-5 h-5 text-rose-500" /> Hazard Manifest
+                        </h4>
+                        <div className="space-y-4">
+                            {nonCompliantStaff.map(({ staff: s, compliance }) => (
+                                <div
+                                    key={s.id}
+                                    className="flex items-center justify-between p-6 bg-white/5 rounded-[2rem] border border-white/5 hover:bg-white/10 transition-all border-l-4 border-l-rose-600 group/item"
+                                >
+                                    <div className="space-y-1">
+                                        <p className="text-base font-black text-white uppercase tracking-tight group-hover/item:text-rose-500 transition-colors">
+                                            {s.first_name} {s.last_name}
+                                        </p>
+                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest truncate max-w-[150px]">
+                                            {compliance.missingDocuments.length > 0
+                                                ? `MISSING: ${compliance.missingDocuments.slice(0, 1).join(', ')}...`
+                                                : compliance.rtw_status !== 'valid'
+                                                    ? 'AUTH FAILURE'
+                                                    : 'NULL COMPLIANCE'
+                                            }
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className={`text-sm font-black text-white tabular-nums ${compliance.compliancePercentage >= 70 ? 'text-amber-500' : 'text-rose-600'
+                                            }`}>
+                                            {compliance.compliancePercentage}%
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-20 text-center flex flex-col items-center gap-6 grayscale opacity-20">
+                        <Shield className="w-20 h-20 text-slate-400" />
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em]">Shields Nominal</p>
+                    </div>
+                )}
             </div>
 
-            {/* Compliance Rate Bar */}
-            <div className="px-6 py-4 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Overall Compliance Rate</span>
-                    <span className={`text-sm font-semibold ${overallComplianceRate >= 90 ? 'text-green-600' :
-                        overallComplianceRate >= 70 ? 'text-amber-600' : 'text-red-600'
-                        }`}>
-                        {overallComplianceRate}%
-                    </span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                        className={`h-full rounded-full transition-all ${overallComplianceRate >= 90 ? 'bg-green-500' :
-                            overallComplianceRate >= 70 ? 'bg-amber-500' : 'bg-red-500'
-                            }`}
-                        style={{ width: `${overallComplianceRate}%` }}
-                    />
-                </div>
-            </div>
-
-            {/* Non-compliant Staff List */}
-            {nonCompliantStaff.length > 0 && (
-                <div className="px-6 py-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-500" />
-                        Attention Required
-                    </h4>
-                    <div className="space-y-2">
-                        {nonCompliantStaff.map(({ staff: s, compliance }) => (
-                            <div
-                                key={s.id}
-                                className="flex items-center justify-between p-2 bg-amber-50 rounded-lg border border-amber-100"
-                            >
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {s.first_name} {s.last_name}
-                                    </p>
-                                    <p className="text-xs text-amber-600">
-                                        {compliance.missingDocuments.length > 0
-                                            ? `Missing: ${compliance.missingDocuments.slice(0, 2).join(', ')}`
-                                            : compliance.rtw_status !== 'valid'
-                                                ? 'RTW not verified'
-                                                : 'Compliance issues'
-                                        }
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <span className={`text-sm font-semibold ${compliance.compliancePercentage >= 70 ? 'text-amber-600' : 'text-red-600'
-                                        }`}>
-                                        {compliance.compliancePercentage}%
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* NovumFlow Link */}
+            {/* NovumFlow Bridge */}
             {novumFlowEnabled && (
-                <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+                <div className="p-8 bg-black/40 border-t border-white/5 relative z-20">
                     <a
                         href={`${window.location.origin.replace('5174', '5173')}/compliance`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                        className="text-[10px] text-primary-500 hover:text-white flex items-center justify-center gap-4 font-black uppercase tracking-[0.4em] transition-all"
                     >
-                        <ExternalLink className="w-3 h-3" />
-                        Manage compliance in NovumFlow
+                        <ExternalLink size={16} /> Link Satellite Command
                     </a>
                 </div>
             )}

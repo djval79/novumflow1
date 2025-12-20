@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="20" fill="#0ea5e9"/>
+  <g transform="translate(100, 100)">
+    <!-- Heart icon representing care -->
+    <path d="M156 312c-87-75-156-123-156-174C0 93 40 53 85 53c31 0 61 20 71 48 10-28 40-48 71-48 45 0 85 40 85 85 0 51-69 99-156 174z" fill="white" transform="translate(18, 20) scale(0.9)"/>
+    <!-- AI sparkle -->
+    <circle cx="250" cy="50" r="15" fill="white" opacity="0.8"/>
+    <circle cx="280" cy="80" r="8" fill="white" opacity="0.6"/>
+    <circle cx="260" cy="110" r="6" fill="white" opacity="0.4"/>
+  </g>
+  <text x="256" y="420" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">CareFlow</text>
+</svg>

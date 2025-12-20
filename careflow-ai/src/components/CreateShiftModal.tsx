@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '@/context/TenantContext';
 import { supabase } from '@/lib/supabase';
-import { X, Calendar, Clock, User, AlertTriangle, Loader2, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { X, Calendar, Clock, AlertTriangle, Loader2, ShieldAlert } from 'lucide-react';
 import complianceCheckService, { ComplianceStatus } from '@/services/ComplianceCheckService';
+import { toast } from 'sonner';
 
 interface CreateShiftModalProps {
     isOpen: boolean;
@@ -38,7 +39,6 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
     });
 
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [conflictWarning, setConflictWarning] = useState<string | null>(null);
     const [complianceWarning, setComplianceWarning] = useState<string | null>(null);
     const [staffCompliance, setStaffCompliance] = useState<Map<string, ComplianceStatus>>(new Map());
@@ -52,27 +52,39 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
     const fetchOptions = async () => {
         if (!currentTenant) return;
 
-        // Fetch Clients
-        const { data: clientsData } = await supabase
-            .from('clients')
-            .select('id, name')
-            .eq('tenant_id', currentTenant.id)
-            .eq('status', 'Active');
+        try {
+            // Fetch Clients
+            const { data: clientsData } = await supabase
+                .from('careflow_clients')
+                .select('id, name')
+                .eq('tenant_id', currentTenant.id);
+            // .eq('status', 'Active'); // Removed status check for now as it might differ
 
-        setClients(clientsData || []);
+            setClients(clientsData || []);
 
-        // Fetch Staff
-        const { data: staffData } = await supabase
-            .from('employees')
-            .select('id, first_name, last_name')
-            .eq('tenant_id', currentTenant.id)
-            .eq('status', 'active');
+            // Fetch Staff - using careflow_staff table
+            const { data: staffData } = await supabase
+                .from('careflow_staff')
+                .select('id, full_name')
+                .eq('tenant_id', currentTenant.id)
+                .eq('status', 'Active');
 
-        setStaffList(staffData || []);
+            if (staffData) {
+                setStaffList(staffData.map((s: any) => ({
+                    id: s.id,
+                    first_name: s.full_name?.split(' ')[0] || '',
+                    last_name: s.full_name?.split(' ').slice(1).join(' ') || '',
+                })));
+            } else {
+                setStaffList([]);
+            }
 
-        // Fetch compliance data for all staff
-        const complianceMap = await complianceCheckService.checkAllStaffCompliance(currentTenant.id);
-        setStaffCompliance(complianceMap);
+            // Fetch compliance data for all staff
+            const complianceMap = await complianceCheckService.checkAllStaffCompliance(currentTenant.id);
+            setStaffCompliance(complianceMap);
+        } catch (error) {
+            toast.error('Failed to load form options');
+        }
     };
 
     const checkConflicts = async (staffId: string, date: string, start: string, end: string) => {
@@ -92,6 +104,7 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
 
         if (data && data.length > 0) {
             setConflictWarning(`Staff member has ${data.length} conflicting shift(s) at this time.`);
+            toast.warning('Staff scheduling conflict detected');
         } else {
             setConflictWarning(null);
         }
@@ -151,7 +164,6 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
         if (!currentTenant) return;
 
         setLoading(true);
-        setError(null);
 
         try {
             if (isRecurring) {
@@ -186,24 +198,26 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                     p_generation_end_date: generationEndDate.toISOString().split('T')[0]
                 });
 
-                if (genError) console.error('Generation warning:', genError); // Don't block success
+                if (genError) console.warn('Generation warning:', genError); // Don't block success
 
+                toast.success('Recurring schedule created successfully');
             } else {
                 // Normal Single Visit Insert
                 const { error: insertError } = await supabase
-                    .from('visits')
+                    .from('careflow_visits')
                     .insert({
                         tenant_id: currentTenant.id,
                         client_id: formData.clientId,
                         staff_id: formData.staffId || null,
-                        date: formData.date,
-                        start_time: formData.startTime,
-                        end_time: formData.endTime,
+                        scheduled_date: formData.date,
+                        scheduled_start: formData.startTime,
+                        scheduled_end: formData.endTime,
                         visit_type: formData.visitType,
                         status: 'Scheduled'
                     });
 
                 if (insertError) throw insertError;
+                toast.success('Shift created successfully');
             }
 
             onShiftCreated();
@@ -221,12 +235,8 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
             setRecurrenceData({ frequency: 'Weekly', daysOfWeek: [], endDate: '' });
 
         } catch (err: any) {
-            console.error('Create shift error:', err);
-            if (err.message?.includes('Compliance Block')) {
-                setError(err.message);
-            } else {
-                setError(err.message || 'Failed to create shift.');
-            }
+            const msg = err.message || 'Failed to create shift.';
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -235,51 +245,44 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50 sticky top-0 z-10">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-cyan-600" />
                         Create New Shift
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <div className="p-6">
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
-                            <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100 flex items-start gap-2">
-                                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                                <span>{error}</span>
-                            </div>
-                        )}
-
+                <div className="p-6 overflow-y-auto">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {conflictWarning && !isRecurring && (
-                            <div className="p-3 text-sm text-orange-600 bg-orange-50 rounded-lg border border-orange-100 flex items-start gap-2">
+                            <div className="p-3 text-sm text-orange-700 bg-orange-50 rounded-xl border border-orange-200 flex items-start gap-2 animate-in slide-in-from-top-1">
                                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                                <span>{conflictWarning}</span>
+                                <span className="font-medium">{conflictWarning}</span>
                             </div>
                         )}
 
                         {complianceWarning && (
-                            <div className="p-3 text-sm text-amber-700 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
+                            <div className="p-3 text-sm text-amber-800 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-2 animate-in slide-in-from-top-1">
                                 <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
                                 <div>
-                                    <span className="font-medium">Compliance Warning</span>
-                                    <p className="whitespace-pre-line text-xs mt-1">{complianceWarning}</p>
+                                    <span className="font-bold">Compliance Warning</span>
+                                    <p className="whitespace-pre-line text-xs mt-1 font-medium">{complianceWarning}</p>
                                 </div>
                             </div>
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Client</label>
                             <select
                                 required
                                 value={formData.clientId}
                                 onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white"
+                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all font-medium"
                             >
                                 <option value="">Select a client...</option>
                                 {clients.map(c => (
@@ -290,21 +293,21 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date (Start)</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Date</label>
                                 <input
                                     type="date"
                                     required
                                     value={formData.date}
                                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all font-medium"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Type</label>
                                 <select
                                     value={formData.visitType}
                                     onChange={(e) => setFormData({ ...formData, visitType: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all font-medium"
                                 >
                                     <option>Personal Care</option>
                                     <option>Domestic</option>
@@ -316,35 +319,35 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Start Time</label>
                                 <input
                                     type="time"
                                     required
                                     value={formData.startTime}
                                     onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all font-medium"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">End Time</label>
                                 <input
                                     type="time"
                                     required
                                     value={formData.endTime}
                                     onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all font-medium"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Assign Staff <span className="text-gray-400 font-normal">(Optional)</span>
+                            <label className="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                                Assign Staff <span className="text-gray-400 font-normal normal-case">(Optional)</span>
                             </label>
                             <select
                                 value={formData.staffId}
                                 onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white"
+                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all font-medium"
                             >
                                 <option value="">Unassigned</option>
                                 {staffList.map(s => {
@@ -368,26 +371,25 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                         </div>
 
                         {/* Recurrence Toggle */}
-                        <div className="pt-2 border-t border-gray-100">
-                            <div className="flex items-center gap-2 mb-3">
+                        <div className="pt-4 border-t border-gray-100">
+                            <label className="flex items-center gap-3 cursor-pointer group p-2 hover:bg-gray-50 rounded-lg transition-colors">
                                 <input
                                     type="checkbox"
-                                    id="recurring"
                                     checked={isRecurring}
                                     onChange={(e) => setIsRecurring(e.target.checked)}
-                                    className="w-4 h-4 text-cyan-600 rounded border-gray-300 focus:ring-cyan-500"
+                                    className="w-5 h-5 text-cyan-600 rounded-lg border-gray-300 focus:ring-cyan-500 transition-all cursor-pointer"
                                 />
-                                <label htmlFor="recurring" className="text-sm font-medium text-gray-900">Repeat this shift?</label>
-                            </div>
+                                <span className="text-sm font-bold text-gray-900 group-hover:text-cyan-700 transition-colors">Repeat this shift?</span>
+                            </label>
 
                             {isRecurring && (
-                                <div className="bg-slate-50 p-4 rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2">
+                                <div className="mt-4 bg-slate-50/80 p-5 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Frequency</label>
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Frequency</label>
                                         <select
                                             value={recurrenceData.frequency}
                                             onChange={(e) => setRecurrenceData({ ...recurrenceData, frequency: e.target.value })}
-                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl font-bold bg-white focus:ring-2 focus:ring-cyan-500 transition-all"
                                         >
                                             <option>Weekly</option>
                                             <option>BiWeekly</option>
@@ -396,8 +398,8 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Days</label>
-                                        <div className="flex gap-2">
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 text-center">Days</label>
+                                        <div className="flex justify-between">
                                             {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
                                                 const dayNum = i + 1;
                                                 const isSelected = recurrenceData.daysOfWeek.includes(dayNum);
@@ -406,8 +408,10 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                                                         key={i}
                                                         type="button"
                                                         onClick={() => toggleDay(dayNum)}
-                                                        className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center transition-colors
-                                                            ${isSelected ? 'bg-cyan-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                                        className={`w-9 h-9 rounded-xl text-xs font-black flex items-center justify-center transition-all
+                                                            ${isSelected
+                                                                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-200 scale-110'
+                                                                : 'bg-white border border-gray-200 text-gray-500 hover:border-cyan-300'}`}
                                                     >
                                                         {day}
                                                     </button>
@@ -417,32 +421,32 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">End Date (Optional)</label>
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">End Date (Optional)</label>
                                         <input
                                             type="date"
                                             value={recurrenceData.endDate}
                                             onChange={(e) => setRecurrenceData({ ...recurrenceData, endDate: e.target.value })}
-                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl font-bold bg-white focus:ring-2 focus:ring-cyan-500 transition-all"
                                         />
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="pt-4 flex justify-end gap-3">
+                        <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                className="px-6 py-2 text-sm font-bold text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading || (!!conflictWarning && !isRecurring) || !!complianceWarning}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-8 py-2 text-sm font-bold text-white bg-slate-900 hover:bg-black rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group active:scale-95"
                             >
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4 group-hover:rotate-12 transition-transform" />}
                                 {isRecurring ? 'Create Schedule' : 'Create Shift'}
                             </button>
                         </div>

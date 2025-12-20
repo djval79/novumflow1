@@ -1,231 +1,283 @@
 
-import React, { useState } from 'react';
-import { 
-  Search, Send, Paperclip, MoreVertical, Sparkles, Loader2, 
-  User, Clock, ArrowLeft 
+import React, { useState, useEffect } from 'react';
+import {
+   Search, Send, Paperclip, MoreVertical, Sparkles, Loader2,
+   User, Clock, ArrowLeft, Activity, ShieldCheck, Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Conversation, UserRole } from '../types';
-import { MOCK_CONVERSATIONS } from '../services/mockData';
 import { generateSmartReplies } from '../services/geminiService';
+import { toast } from 'sonner';
+
+// Default demo conversations for when no real data exists
+const DEFAULT_CONVERSATIONS: Conversation[] = [
+   {
+      id: '1',
+      participants: ['Care Coordinator', 'You'],
+      subject: 'Shift Change Request',
+      category: 'Scheduling',
+      lastMessage: 'Hi, can you cover the morning shift tomorrow?',
+      lastMessageTime: '2 hours ago',
+      unreadCount: 1,
+      messages: [
+         { id: 'm1', senderId: 'coord', senderName: 'Care Coordinator', role: 'Coordinator' as any, timestamp: '2 hours ago', content: 'Hi, can you cover the morning shift tomorrow?', isRead: false }
+      ]
+   },
+   {
+      id: '2',
+      participants: ['HR Team', 'You'],
+      subject: 'Training Reminder',
+      category: 'General',
+      lastMessage: 'Your fire safety refresher is due next week.',
+      lastMessageTime: 'Yesterday',
+      unreadCount: 0,
+      messages: [
+         { id: 'm2', senderId: 'hr', senderName: 'HR Team', role: 'Admin' as any, timestamp: 'Yesterday', content: 'Your fire safety refresher is due next week.', isRead: true }
+      ]
+   }
+];
 
 const Messages: React.FC = () => {
-  const { user } = useAuth();
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
-  const [newMessage, setNewMessage] = useState('');
-  const [smartReplies, setSmartReplies] = useState<string[]>([]);
-  const [isGeneratingReplies, setIsGeneratingReplies] = useState(false);
+   const { user, profile } = useAuth();
+   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+   const [conversations, setConversations] = useState<Conversation[]>(DEFAULT_CONVERSATIONS);
+   const [newMessage, setNewMessage] = useState('');
+   const [smartReplies, setSmartReplies] = useState<string[]>([]);
+   const [isGeneratingReplies, setIsGeneratingReplies] = useState(false);
 
-  const activeConversation = conversations.find(c => c.id === activeConversationId);
-  const otherParticipant = activeConversation?.participants.find(p => p !== user?.name) || 'User';
+   const userName = profile?.full_name || user?.email?.split('@')[0] || 'You';
+   const activeConversation = conversations.find(c => c.id === activeConversationId);
+   const otherParticipant = activeConversation?.participants.filter(p => p !== userName).join(', ') || 'Protocol Target';
 
-  // Handlers
-  const handleSendMessage = (text: string) => {
-    if (!text.trim() || !activeConversationId || !user) return;
+   // Handlers
+   const handleSendMessage = (text: string) => {
+      if (!text.trim() || !activeConversationId || !user) return;
 
-    const newMsg = {
-      id: `m${Date.now()}`,
-      senderId: user.id,
-      senderName: user.name,
-      role: user.role,
-      timestamp: 'Just now',
-      content: text,
-      isRead: true
-    };
+      const newMsg = {
+         id: `m${Date.now()}`,
+         senderId: user.id,
+         senderName: userName,
+         role: (profile?.role || UserRole.CARER) as UserRole,
+         timestamp: 'Just now',
+         content: text,
+         isRead: true
+      };
 
-    setConversations(prev => prev.map(c => {
-      if (c.id === activeConversationId) {
-        return {
-          ...c,
-          messages: [...c.messages, newMsg],
-          lastMessage: text,
-          lastMessageTime: 'Just now',
-          unreadCount: 0
-        };
+      setConversations(prev => prev.map(c => {
+         if (c.id === activeConversationId) {
+            return {
+               ...c,
+               messages: [...c.messages, newMsg],
+               lastMessage: text,
+               lastMessageTime: 'Just now',
+               unreadCount: 0
+            };
+         }
+         return c;
+      }));
+
+      setNewMessage('');
+      setSmartReplies([]);
+      toast.success('Transmission Sent', {
+         description: 'Secure communication packet dispatched to participant matrix.'
+      });
+   };
+
+   const handleGenerateAIReplies = async () => {
+      if (!activeConversation) return;
+      setIsGeneratingReplies(true);
+      const replyToast = toast.loading('Initializing neural reply synthesis...');
+
+      const history = activeConversation.messages.slice(-3).map(m => `${m.senderName}: ${m.content}`).join('\n');
+
+      try {
+         const replies = await generateSmartReplies(history);
+         setSmartReplies(replies);
+         toast.success('Smart Reply Vectors Manifested', { id: replyToast });
+      } catch (e) {
+         toast.error('Neural Logic Error', { id: replyToast });
+      } finally {
+         setIsGeneratingReplies(false);
       }
-      return c;
-    }));
+   };
 
-    setNewMessage('');
-    setSmartReplies([]);
-  };
+   return (
+      <div className="h-[calc(100vh-6.5rem)] flex bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in duration-700 max-w-7xl mx-auto mb-6">
 
-  const handleGenerateAIReplies = async () => {
-    if (!activeConversation) return;
-    setIsGeneratingReplies(true);
-    
-    // Construct simple history string
-    const history = activeConversation.messages.slice(-3).map(m => `${m.senderName}: ${m.content}`).join('\n');
-    
-    try {
-      const replies = await generateSmartReplies(history);
-      setSmartReplies(replies);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsGeneratingReplies(false);
-    }
-  };
-
-  return (
-    <div className="h-[calc(100vh-6rem)] flex bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
-      
-      {/* Sidebar: Conversation List */}
-      <div className={`w-full md:w-80 border-r border-slate-200 flex flex-col ${activeConversationId ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-slate-900 mb-3">Messages</h2>
-          <div className="relative">
-             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-             <input 
-                type="text" 
-                placeholder="Search messages..." 
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-             />
-          </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto">
-           {conversations.map(conv => {
-             // Determine styling based on read status
-             const isUnread = conv.unreadCount > 0;
-             const isActive = conv.id === activeConversationId;
-             
-             return (
-               <div 
-                 key={conv.id}
-                 onClick={() => setActiveConversationId(conv.id)}
-                 className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors
-                   ${isActive ? 'bg-primary-50/50 border-l-4 border-l-primary-500' : 'border-l-4 border-l-transparent'}
-                 `}
-               >
-                 <div className="flex justify-between items-start mb-1">
-                    <h3 className={`text-sm ${isUnread ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
-                       {conv.participants.filter(p => p !== user?.name).join(', ')}
-                    </h3>
-                    <span className="text-xs text-slate-400">{conv.lastMessageTime}</span>
-                 </div>
-                 <p className={`text-xs truncate ${isUnread ? 'text-slate-800 font-medium' : 'text-slate-500'}`}>
-                    {conv.lastMessage}
-                 </p>
-                 <div className="flex items-center gap-2 mt-2">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold border
-                       ${conv.category === 'Urgent' ? 'bg-red-50 text-red-700 border-red-100' : 
-                         conv.category === 'Scheduling' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                         'bg-slate-100 text-slate-600 border-slate-200'
-                       }
-                    `}>
-                       {conv.category}
-                    </span>
-                    {isUnread && <span className="w-2 h-2 bg-primary-600 rounded-full"></span>}
-                 </div>
+         {/* Sidebar: Unit Stream Matrix */}
+         <div className={`w-full md:w-96 border-r border-slate-50 flex flex-col ${activeConversationId ? 'hidden md:flex' : 'flex'} bg-slate-50/20`}>
+            <div className="p-10 border-b border-slate-50">
+               <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-8 flex items-center gap-4">
+                  <Activity size={24} className="text-primary-600" />
+                  Comms <span className="text-primary-600">Grid</span>
+               </h2>
+               <div className="relative">
+                  <Search className="absolute left-6 top-5 text-slate-300" size={18} />
+                  <input
+                     type="text"
+                     placeholder="Filter Grid Stream..."
+                     className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-4 focus:ring-primary-500/10 placeholder:text-slate-200 shadow-sm transition-all"
+                  />
                </div>
-             );
-           })}
-        </div>
-      </div>
+            </div>
 
-      {/* Main: Chat Window */}
-      <div className={`flex-1 flex flex-col ${activeConversationId ? 'flex' : 'hidden md:flex'}`}>
-        {activeConversationId ? (
-          <>
-             {/* Chat Header */}
-             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
-                <div className="flex items-center gap-3">
-                   <button className="md:hidden p-1 hover:bg-slate-200 rounded-full" onClick={() => setActiveConversationId(null)}>
-                      <ArrowLeft size={20} className="text-slate-600" />
-                   </button>
-                   <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
-                      <User size={20} />
-                   </div>
-                   <div>
-                      <h3 className="font-bold text-slate-900">{otherParticipant}</h3>
-                      <p className="text-xs text-slate-500">{activeConversation?.subject}</p>
-                   </div>
-                </div>
-                <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full">
-                   <MoreVertical size={20} />
-                </button>
-             </div>
+            <div className="flex-1 overflow-y-auto scrollbar-hide py-4 px-4 space-y-3">
+               {conversations.map(conv => {
+                  const isUnread = conv.unreadCount > 0;
+                  const isActive = conv.id === activeConversationId;
+                  const participantName = conv.participants.filter(p => p !== userName).join(', ');
 
-             {/* Messages Area */}
-             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
-                {activeConversation?.messages.map(msg => {
-                   const isMe = msg.senderId === user?.id;
-                   return (
-                     <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] rounded-xl p-3 shadow-sm
-                           ${isMe ? 'bg-primary-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'}
-                        `}>
-                           {!isMe && <p className="text-[10px] font-bold mb-1 opacity-70">{msg.senderName}</p>}
-                           <p className="text-sm leading-relaxed">{msg.content}</p>
-                           <div className={`text-[10px] mt-1 flex items-center gap-1 ${isMe ? 'text-primary-100 justify-end' : 'text-slate-400'}`}>
-                              <Clock size={10} /> {msg.timestamp}
-                           </div>
+                  return (
+                     <div
+                        key={conv.id}
+                        onClick={() => {
+                           setActiveConversationId(conv.id);
+                           toast.info(`Synchronizing with channel: ${participantName}`);
+                        }}
+                        className={`p-6 rounded-[2.25rem] border transition-all cursor-pointer group relative overflow-hidden
+                   ${isActive ? 'bg-slate-900 border-slate-900 shadow-2xl' : 'bg-white border-slate-50 hover:bg-slate-100/50'}
+                 `}
+                     >
+                        <div className="flex justify-between items-start mb-3 relative z-10">
+                           <h3 className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-white' : isUnread ? 'text-slate-900' : 'text-slate-500'}`}>
+                              {participantName}
+                           </h3>
+                           <span className={`text-[8px] font-black uppercase tracking-widest ${isActive ? 'text-slate-500' : 'text-slate-300'}`}>{conv.lastMessageTime}</span>
+                        </div>
+                        <p className={`text-xs font-bold truncate mb-4 ${isActive ? 'text-slate-400' : isUnread ? 'text-slate-800' : 'text-slate-500'}`}>
+                           {conv.lastMessage}
+                        </p>
+                        <div className="flex items-center justify-between relative z-10">
+                           <span className={`text-[8px] font-black px-3 py-1.5 rounded-xl border uppercase tracking-[0.2em]
+                       ${conv.category === 'Urgent' ? 'bg-rose-50 text-rose-700 border-rose-100 shadow-rose-100' :
+                                 conv.category === 'Scheduling' ? 'bg-indigo-50 text-indigo-700 border-indigo-100 shadow-indigo-100' :
+                                    isActive ? 'bg-white/10 text-white border-white/10' : 'bg-slate-50 text-slate-400 border-slate-50'
+                              }
+                    `}>
+                              {conv.category}
+                           </span>
+                           {isUnread && <div className="w-2.5 h-2.5 bg-primary-600 rounded-full shadow-[0_0_12px_rgba(37,99,235,0.8)] animate-pulse"></div>}
+                        </div>
+                        {isActive && <div className="absolute top-0 right-0 w-32 h-32 bg-primary-600/10 rounded-full blur-3xl -mr-16 -mt-16" />}
+                     </div>
+                  );
+               })}
+            </div>
+         </div>
+
+         {/* Main: Protocol Transmit Terminal */}
+         <div className={`flex-1 flex flex-col ${activeConversationId ? 'flex' : 'hidden md:flex'} relative`}>
+            {activeConversationId ? (
+               <>
+                  {/* Terminal Header */}
+                  <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white relative z-10">
+                     <div className="flex items-center gap-8">
+                        <button className="md:hidden p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all" onClick={() => setActiveConversationId(null)}>
+                           <ArrowLeft size={24} className="text-slate-900" />
+                        </button>
+                        <div className="w-16 h-16 rounded-[1.75rem] bg-slate-900 flex items-center justify-center text-white shadow-2xl border-4 border-white">
+                           <User size={32} />
+                        </div>
+                        <div className="space-y-1">
+                           <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{otherParticipant}</h3>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{activeConversation?.subject}</p>
                         </div>
                      </div>
-                   );
-                })}
-             </div>
-
-             {/* Smart Replies */}
-             <div className="px-4 py-2 bg-white border-t border-slate-100">
-               {smartReplies.length > 0 && (
-                  <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
-                     {smartReplies.map((reply, i) => (
-                        <button 
-                          key={i} 
-                          onClick={() => handleSendMessage(reply)}
-                          className="whitespace-nowrap px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-full text-xs font-medium hover:bg-purple-100 transition-colors flex items-center gap-1"
-                        >
-                           <Sparkles size={10} /> {reply}
-                        </button>
-                     ))}
+                     <button className="p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl text-slate-400 transition-all active:scale-95">
+                        <MoreVertical size={24} />
+                     </button>
                   </div>
-               )}
-               <div className="flex justify-end">
-                 <button 
-                   onClick={handleGenerateAIReplies} 
-                   disabled={isGeneratingReplies}
-                   className="text-xs font-bold text-purple-600 flex items-center gap-1 hover:underline disabled:opacity-50"
-                 >
-                    {isGeneratingReplies ? <Loader2 className="animate-spin" size={12}/> : <Sparkles size={12}/>}
-                    {isGeneratingReplies ? 'Drafting...' : 'AI Smart Reply'}
-                 </button>
-               </div>
-             </div>
 
-             {/* Input Area */}
-             <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-2">
-                <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full"><Paperclip size={20} /></button>
-                <input 
-                   type="text" 
-                   className="flex-1 p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                   placeholder="Type your message..."
-                   value={newMessage}
-                   onChange={(e) => setNewMessage(e.target.value)}
-                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(newMessage)}
-                />
-                <button 
-                   onClick={() => handleSendMessage(newMessage)}
-                   disabled={!newMessage.trim()}
-                   className="p-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                >
-                   <Send size={18} />
-                </button>
-             </div>
-          </>
-        ) : (
-           <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                 <Send size={24} className="opacity-30 -ml-1" />
-              </div>
-              <p className="font-medium">Select a conversation to start messaging</p>
-           </div>
-        )}
+                  {/* Message Stream */}
+                  <div className="flex-1 overflow-y-auto p-12 space-y-10 scrollbar-hide bg-slate-50/10 relative">
+                     <div className="absolute inset-0 bg-grid-slate-100/50 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))] -z-10" />
+                     {activeConversation?.messages.map(msg => {
+                        const isMe = msg.senderId === user?.id;
+                        return (
+                           <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-500`}>
+                              <div className={`max-w-[70%] rounded-[2.5rem] p-8 shadow-2xl relative
+                           ${isMe ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-50 text-slate-900 rounded-tl-none'}
+                        `}>
+                                 {!isMe && <p className="text-[8px] font-black uppercase tracking-[0.4em] mb-4 text-primary-500">{msg.senderName}</p>}
+                                 <p className="text-sm font-bold tracking-tight leading-relaxed">{msg.content}</p>
+                                 <div className={`text-[8px] font-black uppercase tracking-widest mt-6 flex items-center gap-2 ${isMe ? 'text-slate-500 justify-end' : 'text-slate-300'}`}>
+                                    <Clock size={12} className="text-primary-500" /> {msg.timestamp}
+                                 </div>
+                                 {isMe && <div className="absolute -bottom-1 -right-1 p-2"><ShieldCheck size={12} className="text-green-500" /></div>}
+                              </div>
+                           </div>
+                        );
+                     })}
+                  </div>
+
+                  {/* Neural Reply Hub */}
+                  <div className="px-10 py-6 bg-white border-t border-slate-50 relative z-20">
+                     <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-[8px] font-black text-slate-400 uppercase tracking-[0.5em] flex items-center gap-2">
+                           <Brain size={16} className="text-primary-600" />
+                           Neural Assist Layer
+                        </h4>
+                        <button
+                           onClick={handleGenerateAIReplies}
+                           disabled={isGeneratingReplies}
+                           className="text-[10px] font-black text-primary-600 uppercase tracking-widest flex items-center gap-2 hover:text-black transition-colors disabled:opacity-30 group"
+                        >
+                           {isGeneratingReplies ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} className="group-hover:rotate-12 transition-transform" />}
+                           {isGeneratingReplies ? 'Synthesizing...' : 'Trigger AI Replies'}
+                        </button>
+                     </div>
+                     {smartReplies.length > 0 && (
+                        <div className="flex gap-4 mb-4 overflow-x-auto pb-6 scrollbar-hide">
+                           {smartReplies.map((reply, i) => (
+                              <button
+                                 key={i}
+                                 onClick={() => handleSendMessage(reply)}
+                                 className="whitespace-nowrap px-10 py-5 bg-slate-50 hover:bg-slate-900 hover:text-white border-2 border-slate-100 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all hover:shadow-2xl hover:scale-[1.05] active:scale-95 flex items-center gap-3"
+                              >
+                                 {reply}
+                              </button>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Transmission Terminal */}
+                  <div className="p-10 bg-white border-t border-slate-50 flex items-center gap-6 relative z-30">
+                     <button className="p-5 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-[1.5rem] text-slate-400 transition-all shadow-inner active:scale-90"><Paperclip size={24} /></button>
+                     <div className="flex-1 relative">
+                        <input
+                           type="text"
+                           className="w-full pl-8 pr-12 py-6 bg-slate-50 border-2 border-slate-50 rounded-[2rem] text-sm font-black tracking-tight uppercase focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 placeholder:text-slate-300 transition-all scrollbar-hide"
+                           placeholder="Enter secure communication protocol..."
+                           value={newMessage}
+                           onChange={(e) => setNewMessage(e.target.value)}
+                           onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(newMessage)}
+                        />
+                     </div>
+                     <button
+                        onClick={() => handleSendMessage(newMessage)}
+                        disabled={!newMessage.trim()}
+                        className="p-6 bg-slate-900 text-white rounded-[2rem] hover:bg-black disabled:opacity-30 shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all active:scale-90"
+                     >
+                        <Send size={28} />
+                     </button>
+                  </div>
+               </>
+            ) : (
+               <div className="flex-1 flex flex-col items-center justify-center p-20 text-center gap-8">
+                  <div className="w-32 h-32 bg-slate-50 rounded-[3rem] flex items-center justify-center shadow-inner relative group transform hover:rotate-12 transition-all">
+                     <Send size={48} className="text-slate-200 -ml-2" />
+                     <div className="absolute inset-0 bg-primary-600/5 rounded-full blur-3xl group-hover:bg-primary-600/10 transition-colors" />
+                  </div>
+                  <div className="space-y-3">
+                     <h2 className="text-3xl font-black text-slate-300 uppercase tracking-tighter">Null Channel Selected</h2>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] max-w-[280px] mx-auto leading-relaxed">Select an active communication vector from the primary grid to initiate secure transmission.</p>
+                  </div>
+               </div>
+            )}
+         </div>
       </div>
-    </div>
-  );
+   );
 };
 
 export default Messages;

@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { useTenant } from '@/context/TenantContext';
 import { supabase } from '@/lib/supabase';
-import { X, Mail, Loader2, Check, Copy, Link } from 'lucide-react';
+import { X, Mail, Loader2, Check, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface InviteUserModalProps {
     isOpen: boolean;
@@ -27,34 +27,35 @@ export default function InviteUserModal({ isOpen, onClose, onInviteSent }: Invit
         setInviteLink(null);
 
         try {
-            const { data, error } = await supabase.rpc('invite_user_to_tenant', {
+            const { data, error: rpcError } = await supabase.rpc('invite_user_to_tenant', {
                 p_email: email,
                 p_role: role,
                 p_tenant_id: currentTenant.id
             });
 
-            if (error) throw error;
+            if (rpcError) throw rpcError;
 
-            // In a real app with SMTP, the email is sent automatically.
-            // Without SMTP, we might need to generate a link manually if the RPC returned a token.
-            // But our RPC returns the invitation ID. We'd need to fetch the token to show a link.
-            // For now, let's assume we just show a success message or fetch the token if needed.
-
-            // Let's fetch the token to show a manual link for testing/demo purposes
-            const { data: invite } = await supabase
+            const { data: invite, error: inviteError } = await supabase
                 .from('tenant_invitations')
                 .select('token')
                 .eq('id', data)
                 .single();
 
+            if (inviteError) throw inviteError;
+
             if (invite?.token) {
                 const link = `${window.location.origin}/accept-invite?token=${invite.token}`;
                 setInviteLink(link);
+                toast.success('Invitation link generated!');
+            } else {
+                toast.success('Invitation sent successfully!');
             }
 
             if (onInviteSent) onInviteSent();
         } catch (err: any) {
-            setError(err.message || 'Failed to send invitation.');
+            const errorMessage = err.message || 'Failed to send invitation.';
+            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -63,7 +64,7 @@ export default function InviteUserModal({ isOpen, onClose, onInviteSent }: Invit
     const copyLink = () => {
         if (inviteLink) {
             navigator.clipboard.writeText(inviteLink);
-            alert('Link copied to clipboard!');
+            toast.success('Link copied to clipboard!');
         }
     };
 
