@@ -10,6 +10,7 @@ import { UserRole } from '../types';
 import { Link } from 'react-router-dom';
 import { statsService, visitService } from '../services/supabaseService';
 import StaffComplianceWidget from '../components/StaffComplianceWidget';
+import FamilyPortal from './FamilyPortal';
 
 const visitData = [
   { name: 'Mon', visits: 45, completed: 42 },
@@ -49,6 +50,7 @@ const StatCard: React.FC<{ title: string; value: string; change: string; icon: R
 const Dashboard: React.FC = () => {
   const { user, profile } = useAuth();
   const [stats, setStats] = React.useState({ activeClients: 0, todayVisits: 0, openIncidents: 0 });
+  const [feed, setFeed] = React.useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -58,6 +60,10 @@ const Dashboard: React.FC = () => {
   const isCarer = userRole === 'carer';
   const isAdmin = userRole === 'admin';
   const isFamilyOrClient = userRole === 'family' || userRole === 'client';
+
+  if (isFamilyOrClient) {
+    return <FamilyPortal />;
+  }
 
   const { currentTenant } = useTenant();
 
@@ -87,6 +93,11 @@ const Dashboard: React.FC = () => {
         if (isMounted) {
           console.log('Dashboard: stats fetched', dashboardStats);
           setStats(dashboardStats);
+
+          if (isAdmin) {
+            const feedData = await statsService.getLiveFeed();
+            setFeed(feedData);
+          }
 
           if (isCarer) {
             console.log('Dashboard: fetching carer visits');
@@ -139,7 +150,7 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Overview</h1>
-          <p className="text-slate-500 text-sm">Welcome back, {user?.name}. Here's what's happening today.</p>
+          <p className="text-slate-500 text-sm">Welcome back, {profile?.full_name || user?.user_metadata?.full_name || user?.email}. Here's what's happening today.</p>
         </div>
         {isAdmin && (
           <div className="flex gap-2">
@@ -334,15 +345,13 @@ const Dashboard: React.FC = () => {
             <button className="text-primary-600 text-sm font-medium hover:underline">View All</button>
           </div>
           <div className="divide-y divide-slate-100">
-            {[
-              { type: 'System', msg: 'Dashboard updated with real-time data', time: 'Just now', color: 'text-green-600 bg-green-50' },
-            ].map((item, idx) => (
+            {feed.length > 0 ? feed.map((item, idx) => (
               <div key={idx} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.color}`}>{item.type}</span>
                 <p className="flex-1 text-sm text-slate-700">{item.msg}</p>
-                <span className="text-xs text-slate-400">{item.time}</span>
+                <span className="text-xs text-slate-400">{item.time.split('T')[0]}</span>
               </div>
-            ))}
+            )) : <p className="p-6 text-center text-slate-400">No recent activity.</p>}
           </div>
         </div>
       )}

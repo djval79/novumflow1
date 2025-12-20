@@ -16,6 +16,64 @@ const checkAI = () => {
   return true;
 };
 
+// Default model to use - gemini-2.0-flash is the current stable model
+const DEFAULT_MODEL = 'gemini-2.0-flash';
+
+// Retry configuration for rate limit handling
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 2000, // Start with 2 seconds
+  maxDelayMs: 30000, // Cap at 30 seconds
+};
+
+/**
+ * Helper function to implement exponential backoff for API calls
+ * Automatically retries on 429 (rate limit) errors
+ */
+const withRetry = async <T>(
+  operation: () => Promise<T>,
+  operationName: string = 'API call'
+): Promise<T> => {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+
+      // Check if this is a rate limit error (429)
+      const isRateLimitError =
+        error?.message?.includes('429') ||
+        error?.message?.includes('RESOURCE_EXHAUSTED') ||
+        error?.message?.includes('quota');
+
+      if (!isRateLimitError) {
+        // Not a rate limit error, don't retry
+        throw error;
+      }
+
+      if (attempt < RETRY_CONFIG.maxRetries) {
+        // Calculate delay with exponential backoff + jitter
+        const exponentialDelay = RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt);
+        const jitter = Math.random() * 1000; // Add up to 1 second of jitter
+        const delay = Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelayMs);
+
+        console.warn(
+          `${operationName}: Rate limited (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}). ` +
+          `Retrying in ${Math.round(delay / 1000)}s...`
+        );
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  // All retries exhausted
+  console.error(`${operationName}: All ${RETRY_CONFIG.maxRetries + 1} attempts failed due to rate limiting.`);
+  throw lastError;
+};
+
 export const generateCarePlanAI = async (
   clientDetails: string,
   medicalHistory: string
@@ -23,52 +81,53 @@ export const generateCarePlanAI = async (
   if (!checkAI()) return null;
 
   try {
-    const modelId = 'gemini-2.5-flash'; // Using 2.5 Flash for speed and structure
-
-    const response = await ai!.models.generateContent({
-      model: modelId,
-      contents: `Create a detailed care plan and risk assessment for a care home or home help client.
+    const response = await withRetry(
+      () => ai!.models.generateContent({
+        model: DEFAULT_MODEL,
+        contents: `Create a detailed care plan and risk assessment for a care home or home help client.
       
-      Client Details: ${clientDetails}
-      Medical History/Condition: ${medicalHistory}
+        Client Details: ${clientDetails}
+        Medical History/Condition: ${medicalHistory}
       
-      Return a structured JSON response suitable for a care management system.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: { type: Type.STRING, description: "A 2-3 sentence executive summary of the care required." },
-            needs: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  category: { type: Type.STRING, description: "e.g., Mobility, Hygiene, Nutrition" },
-                  description: { type: Type.STRING },
-                  frequency: { type: Type.STRING, description: "e.g., Daily, Twice Daily, Per Visit" }
+        Return a structured JSON response suitable for a care management system.`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              summary: { type: Type.STRING, description: "A 2-3 sentence executive summary of the care required." },
+              needs: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    category: { type: Type.STRING, description: "e.g., Mobility, Hygiene, Nutrition" },
+                    description: { type: Type.STRING },
+                    frequency: { type: Type.STRING, description: "e.g., Daily, Twice Daily, Per Visit" }
+                  }
                 }
-              }
-            },
-            risks: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  risk: { type: Type.STRING, description: "The specific risk identified" },
-                  mitigation: { type: Type.STRING, description: "Steps to reduce the risk" },
-                  score: { type: Type.NUMBER, description: "Risk score 1 (low) to 5 (high)" }
+              },
+              risks: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    risk: { type: Type.STRING, description: "The specific risk identified" },
+                    mitigation: { type: Type.STRING, description: "Steps to reduce the risk" },
+                    score: { type: Type.NUMBER, description: "Risk score 1 (low) to 5 (high)" }
+                  }
                 }
+              },
+              goals: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING, description: "Short or long term goals for the client" }
               }
-            },
-            goals: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING, description: "Short or long term goals for the client" }
             }
           }
         }
-      }
-    });
+      }),
+      'generateCarePlanAI'
+    );
 
     if (response.text) {
       return JSON.parse(response.text) as GeneratedCarePlan;
@@ -83,7 +142,7 @@ export const generateCarePlanAI = async (
 export const analyzeRiskScenario = async (incidentDescription: string): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Analyze the following incident report for a care provider and suggest 3 immediate actions and a long-term prevention strategy. Keep it professional and concise.
       
       Incident: ${incidentDescription}`
@@ -109,7 +168,7 @@ export const generateRosterSuggestions = async (
     const simpleShifts = unassignedShifts.map(s => ({ id: s.id, client: s.clientName, time: s.startTime, type: s.type }));
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `You are an automated rostering agent. Assign the following Unassigned Shifts to the available Staff.
       
       Rules:
@@ -164,7 +223,7 @@ export const generateExecutiveReport = async (
 ): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Write a concise (max 100 words) executive management summary for a care agency based on this data:
       
       - Monthly Revenue: £${stats.revenue}
@@ -188,7 +247,7 @@ export const generatePolicyDocument = async (
 ): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Write a professional "Staff Training & Compliance Policy" for a care agency named "${companyName}".
       
       The policy must explicitly cover the following mandatory training modules:
@@ -219,7 +278,7 @@ export const generateProgressReview = async (
     const goalsSummary = goals.map(g => `${g.category}: ${g.description} (Status: ${g.status})`).join('\n');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `As a Clinical Care Specialist, review the following client progress logs against their goals.
       
       Current Goals:
@@ -245,7 +304,7 @@ export const generateSmartReplies = async (
 ): Promise<string[]> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `You are a helpful care agency administrator assistant. 
       Based on the following recent message history, generate 3 brief, professional smart replies that I can send back.
       
@@ -282,7 +341,7 @@ export const optimizeRouteSequence = async (
 ): Promise<{ optimizedOrder: string[]; savedDistance: number }> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Solve the Traveling Salesperson Problem for these coordinates on a 100x100 grid. Start at {x:50, y:50} (Office).
       
       Locations: ${JSON.stringify(locations)}
@@ -323,7 +382,7 @@ export const analyzeMedicationSafety = async (
     const medList = medications.map(m => `${m.name} (${m.dosage})`).join(', ');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `As a Clinical Pharmacist AI, review this patient's medication list against their conditions for safety.
       
       Medications: ${medList}
@@ -348,7 +407,7 @@ export const generateFormTemplate = async (
 ): Promise<FormTemplate> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Create a professional audit or assessment form template for a Care Agency based on this topic: "${topic}".
       
       Include 5-8 relevant questions.
@@ -399,37 +458,40 @@ export const generateTrainingQuiz = async (
   topic: string
 ): Promise<GeneratedQuiz> => {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Create a 5-question multiple choice quiz for care staff training on the topic: "${topic}".
+    const response = await withRetry(
+      () => ai!.models.generateContent({
+        model: DEFAULT_MODEL,
+        contents: `Create a 5-question multiple choice quiz for care staff training on the topic: "${topic}".
       
-      Return a structured JSON object with a title and an array of questions.
-      Each question should have 4 options and an index for the correct answer (0-3).`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            questions: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  question: { type: Type.STRING },
-                  options: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                  },
-                  correctOptionIndex: { type: Type.NUMBER }
+        Return a structured JSON object with a title and an array of questions.
+        Each question should have 4 options and an index for the correct answer (0-3).`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              questions: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    question: { type: Type.STRING },
+                    options: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING }
+                    },
+                    correctOptionIndex: { type: Type.NUMBER }
+                  }
                 }
               }
             }
           }
         }
-      }
-    });
+      }),
+      'generateTrainingQuiz'
+    );
 
     if (response.text) {
       return JSON.parse(response.text) as GeneratedQuiz;
@@ -447,7 +509,7 @@ export const generateIncidentInvestigation = async (
 ): Promise<IncidentAnalysis> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Care Quality Investigator. Analyze this incident to determine root cause and required actions.
       
       Incident Type: ${incidentType}
@@ -488,7 +550,7 @@ export const analyzeCandidateProfile = async (
 ): Promise<CandidateAnalysis> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as an HR Recruitment Specialist. Screen this candidate's bio for the role of "${role}".
       
       Candidate Bio/CV Summary:
@@ -528,7 +590,7 @@ export const analyzeEnquiry = async (
 ): Promise<EnquiryAnalysis> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Care Sales Consultant. Analyze this care enquiry text to extract key details and estimate value.
       
       Enquiry Text:
@@ -567,7 +629,7 @@ export const analyzeDocument = async (
 ): Promise<DocumentAnalysis> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as an Intelligent Document Processing agent for a care agency. Analyze the text content of this document ("${fileName}") to categorize it and extract metadata.
       
       Document Text/Preview:
@@ -603,7 +665,7 @@ export const parseNaturalLanguageTasks = async (
 ): Promise<OfficeTask[]> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `You are a smart task manager assistant for a care agency office. 
       Convert the following natural language brain dump into a list of structured office tasks.
       Infer priority based on urgency words (ASAP, urgent = High).
@@ -654,7 +716,7 @@ export const askSystemHelp = async (
 ): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `You are the "CareFlow AI" Support Assistant. 
       The user is asking a question about how to use this care management application.
       
@@ -687,7 +749,7 @@ export const predictAssetMaintenance = async (
 ): Promise<AssetAnalysis> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as an Equipment Maintenance Expert for a Care Provider. 
       Analyze this asset to suggest maintenance schedules and identify risks.
       
@@ -724,7 +786,7 @@ export const analyzeReceipt = async (
 ): Promise<ReceiptAnalysis> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Receipt OCR and Data Extraction agent. 
       Analyze this receipt image to extract the merchant, date, total amount, and category.
       
@@ -766,7 +828,7 @@ export const predictShiftFillChance = async (
 ): Promise<MarketPrediction> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Staffing Coordinator AI. 
       Predict the likelihood of an internal staff member picking up this open shift vs needing an external agency.
       
@@ -808,7 +870,7 @@ export const generateActivityIdeas = async (
 ): Promise<ActivitySuggestion[]> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Care Home Activities Coordinator. 
       Suggest 3 engaging group activities suitable for elderly clients with these interests: ${clientInterests.join(', ')}.
       
@@ -853,7 +915,7 @@ export const analyzeSecurityLogs = async (
 ): Promise<SecurityAnalysis> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Cybersecurity Analyst for a healthcare SaaS. 
       Review the following access log summary for suspicious activity.
       
@@ -914,7 +976,7 @@ export const validateImportData = async (
       };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Data Import Validator for a Care Management System.
       Review the following raw CSV rows (header + data).
       
@@ -960,7 +1022,7 @@ export const analyzeFeedbackTrends = async (
 ): Promise<SentimentSummary> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Customer Experience Manager for a Care Agency.
       Analyze the following feedback reviews to identify trends and overall sentiment.
       
@@ -1005,7 +1067,7 @@ export const generateDailyBriefing = async (
     const alerts = unread.map(n => `- [${n.type}] ${n.title}: ${n.message}`).join('\n');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `You are an Intelligent Care Manager Assistant.
       Review these active alerts and notifications for the agency manager.
       
@@ -1043,7 +1105,7 @@ export const generateWeeklyMenu = async (
 ): Promise<MealPlan[]> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as a Care Home Chef. Create a balanced 3-day meal plan sample for a client with these needs: ${dietaryConstraints.join(', ')}.
       
       Include Breakfast, Lunch, Dinner, Snacks, and estimated calories.
@@ -1091,7 +1153,7 @@ export const predictStockDepletion = async (
 ): Promise<StockPrediction> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: DEFAULT_MODEL,
       contents: `Act as an Inventory Manager AI.
       Calculate when we will run out of stock for "${itemType}".
       

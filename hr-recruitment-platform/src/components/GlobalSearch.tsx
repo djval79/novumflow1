@@ -172,7 +172,7 @@ export default function GlobalSearch() {
     );
 
     function generateMockResults(searchQuery: string) {
-        const mockResults: SearchResult[] = [
+        const mockItems: any[] = [
             {
                 id: '1',
                 type: 'employee',
@@ -197,9 +197,13 @@ export default function GlobalSearch() {
                 url: '/recruit',
                 icon: <Users className="w-4 h-4 text-purple-500" />
             }
-        ].filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase()));
+        ];
 
-        setResults(mockResults);
+        const filtered = mockItems.filter(r =>
+            r.title.toLowerCase().includes(searchQuery.toLowerCase())
+        ) as SearchResult[];
+
+        setResults(filtered);
     }
 
     useEffect(() => {

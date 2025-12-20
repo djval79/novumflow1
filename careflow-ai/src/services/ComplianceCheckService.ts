@@ -59,7 +59,7 @@ class ComplianceCheckService {
             if (!compliance) {
                 const { data: employee, error: empError } = await supabase
                     .from('employees')
-                    .select('id, first_name, last_name, status, rtw_status')
+                    .select('id, first_name, last_name, status, right_to_work_status')
                     .eq('id', staffId)
                     .eq('tenant_id', tenantId)
                     .single();
@@ -114,9 +114,9 @@ class ComplianceCheckService {
             // Get all employees for tenant
             const { data: employees, error: empError } = await supabase
                 .from('employees')
-                .select('id, first_name, last_name, status, rtw_status')
+                .select('id, first_name, last_name, status, right_to_work_status')
                 .eq('tenant_id', tenantId)
-                .eq('status', 'active');
+                .or('status.eq.active,status.eq.Active');
 
             if (empError || !employees) {
                 console.error('Error fetching employees:', empError);
@@ -156,7 +156,7 @@ class ComplianceCheckService {
                     });
                 } else {
                     // Fallback to basic employee data
-                    const rtwValid = emp.rtw_status === 'verified';
+                    const rtwValid = emp.right_to_work_status === 'verified';
                     complianceMap.set(emp.id, {
                         staffId: emp.id,
                         isCompliant: rtwValid,

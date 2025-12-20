@@ -33,6 +33,8 @@ export default function Rostering() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [clients, setClients] = useState<Client[]>([]);
 
+    const [staffVisits, setStaffVisits] = useState<any[]>([]);
+
     useEffect(() => {
         loadData();
     }, [currentDate]);
@@ -63,7 +65,27 @@ export default function Rostering() {
 
             setUnassignedVisits(mappedVisits || []);
 
-            // 3. Load Clients for dropdown
+            // 3. Load Assigned Visits for the week
+            const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+            const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd');
+            const assignedData = await visitService.getByDateRange(weekStartStr, weekEndStr);
+
+            const mappedAssigned = assignedData.map((v: any) => ({
+                id: v.id,
+                client: {
+                    first_name: v.clientName?.split(' ')[0] || 'Unknown',
+                    last_name: v.clientName?.split(' ').slice(1).join(' ') || ''
+                },
+                visit_date: v.date,
+                start_time: v.start_time,
+                end_time: v.end_time,
+                visitType: v.visitType,
+                status: v.status,
+                staffId: v.staffId
+            }));
+            setStaffVisits(mappedAssigned);
+
+            // 4. Load Clients for dropdown
             const clientsData = await clientService.getAll();
             setClients(clientsData);
 
@@ -219,21 +241,37 @@ export default function Rostering() {
                                         </div>
 
                                         {/* Days Columns */}
-                                        {weekDays.map(day => (
-                                            <div
-                                                key={day.toString()}
-                                                onDragOver={(e) => e.preventDefault()}
-                                                onDrop={() => handleDrop(member.id, day, member)}
-                                                className={`flex-1 border-r border-slate-200 last:border-r-0 min-h-[80px] relative transition-colors ${!compliant ? 'cursor-not-allowed' : 'hover:bg-indigo-50/50'
-                                                    }`}
-                                            >
-                                                {!compliant && (
-                                                    <div className="absolute inset-0 bg-stripes-red opacity-10" title="Staff Locked: Compliance Issue"></div>
-                                                )}
+                                        {weekDays.map(day => {
+                                            // Find visits for this staff and this day
+                                            const dayVisits = staffVisits.filter(v =>
+                                                v.staffId === member.userId &&
+                                                isSameDay(parseISO(v.visit_date), day)
+                                            );
 
-                                                {/* Render Assigned Visits Here (Future) */}
-                                            </div>
-                                        ))}
+                                            return (
+                                                <div
+                                                    key={day.toString()}
+                                                    onDragOver={(e) => e.preventDefault()}
+                                                    onDrop={() => handleDrop(member.id, day, member)}
+                                                    className={`flex-1 border-r border-slate-200 last:border-r-0 min-h-[80px] relative transition-colors p-1 space-y-1 ${!compliant ? 'cursor-not-allowed' : 'hover:bg-indigo-50/50'
+                                                        }`}
+                                                >
+                                                    {!compliant && (
+                                                        <div className="absolute inset-0 bg-stripes-red opacity-10" title="Staff Locked: Compliance Issue"></div>
+                                                    )}
+
+                                                    {/* Render Assigned Visits */}
+                                                    {dayVisits.map(visit => (
+                                                        <div key={visit.id} className="bg-indigo-100 border border-indigo-200 p-1.5 rounded text-xs shadow-sm hover:bg-indigo-200 cursor-pointer">
+                                                            <div className="font-bold text-indigo-900 truncate">
+                                                                {visit.start_time.slice(0, 5)} - {visit.client?.first_name} {visit.client?.last_name?.charAt(0)}.
+                                                            </div>
+                                                            <div className="text-[10px] text-indigo-700 truncate">{visit.visitType}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 );
                             })

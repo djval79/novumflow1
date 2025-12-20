@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Checkbox, CheckSquare, Square, Trash2, Download, Mail, MoreHorizontal, X } from 'lucide-react';
+import { CheckSquare, Square, Trash2, Download, Mail, MoreHorizontal, X } from 'lucide-react';
 
 interface BulkActionsProps<T> {
     items: T[];
@@ -112,8 +112,8 @@ export default function BulkActions<T>({
                                 key={action.id}
                                 onClick={() => handleAction(action)}
                                 className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg transition ${action.variant === 'danger'
-                                        ? 'text-red-700 hover:bg-red-100'
-                                        : 'text-indigo-700 hover:bg-indigo-100'
+                                    ? 'text-red-700 hover:bg-red-100'
+                                    : 'text-indigo-700 hover:bg-indigo-100'
                                     }`}
                             >
                                 {action.icon}
@@ -142,8 +142,8 @@ export default function BulkActions<T>({
                                                     key={action.id}
                                                     onClick={() => handleAction(action)}
                                                     className={`w-full flex items-center px-4 py-2 text-sm ${action.variant === 'danger'
-                                                            ? 'text-red-700 hover:bg-red-50'
-                                                            : 'text-gray-700 hover:bg-gray-50'
+                                                        ? 'text-red-700 hover:bg-red-50'
+                                                        : 'text-gray-700 hover:bg-gray-50'
                                                         }`}
                                                 >
                                                     {action.icon}

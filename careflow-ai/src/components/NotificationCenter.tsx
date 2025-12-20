@@ -41,7 +41,7 @@ export default function NotificationCenter() {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'careflow_notifications',
-                filter: `user_id=eq.${user?.id}`
+                filter: `recipient_id=eq.${user?.id}`
             }, (payload) => {
                 setNotifications(prev => [payload.new as Notification, ...prev]);
             })
@@ -69,7 +69,7 @@ export default function NotificationCenter() {
             const { data, error } = await supabase
                 .from('careflow_notifications')
                 .select('*')
-                .eq('user_id', user?.id)
+                .eq('recipient_id', user?.id)
                 .order('created_at', { ascending: false })
                 .limit(50);
 
@@ -156,7 +156,7 @@ export default function NotificationCenter() {
             await supabase
                 .from('careflow_notifications')
                 .update({ read: true })
-                .eq('user_id', user?.id)
+                .eq('recipient_id', user?.id)
                 .eq('read', false);
         } catch (error) {
             console.error('Error marking all as read:', error);

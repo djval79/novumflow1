@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+/// <reference types="vite/client" />
 /**
  * Unit Tests for Error Handler
  */

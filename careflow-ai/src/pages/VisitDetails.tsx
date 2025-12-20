@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 import { Clock, MapPin, CheckSquare, AlertTriangle, FileText, Key, ShieldAlert, ChevronLeft, Save, Loader2, Navigation } from 'lucide-react';
 import { analyzeRiskScenario } from '../services/geminiService';
+import { visitService } from '../services/supabaseService';
+import { toast } from 'sonner';
 import MedicationLog from '../components/MedicationLog';
 
 interface Task {
@@ -55,29 +57,13 @@ export default function VisitDetails() {
   const fetchVisit = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('visits')
-        .select(`
-                    id,
-                    visit_date,
-                    start_time,
-                    end_time,
-                    status,
-                    visit_type,
-                    tasks,
-                    notes,
-                    client:clients (id, first_name, last_name, address, postcode, care_level)
-                `)
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-
+      const data = await visitService.getById(id!); // Use service
       setVisit(data as any);
       setTasks(data.tasks || []);
       setNotes(data.notes || '');
     } catch (error) {
       console.error('Error fetching visit:', error);
+      toast.error("Failed to load visit details");
     } finally {
       setLoading(false);
     }
@@ -91,35 +77,25 @@ export default function VisitDetails() {
     if (!visit) return;
     setSaving(true);
 
-    const now = new Date().toISOString();
-    let updates: any = {};
-
-    if (visit.status === 'Scheduled') {
-      updates = {
-        status: 'In Progress',
-        check_in_time: now
-      };
-    } else if (visit.status === 'In Progress') {
-      updates = {
-        status: 'Completed',
-        check_out_time: now,
-        tasks: tasks, // Save final task state
-        notes: notes
-      };
-    }
-
     try {
-      const { error } = await supabase
-        .from('visits')
-        .update(updates)
-        .eq('id', visit.id);
-
-      if (error) throw error;
-
-      // Refresh local state
-      setVisit(prev => prev ? { ...prev, ...updates } : null);
+      if (visit.status === 'Scheduled') {
+        await visitService.updateStatus(visit.id, 'In Progress', 'actual_start');
+        setVisit(prev => prev ? { ...prev, status: 'In Progress' } : null);
+        toast.success("Visit started");
+      } else if (visit.status === 'In Progress') {
+        const now = new Date().toISOString();
+        await visitService.updateDetails(visit.id, {
+          status: 'Completed',
+          actual_end: now,
+          tasks_completed: tasks,
+          notes: notes
+        });
+        setVisit(prev => prev ? { ...prev, status: 'Completed' } : null);
+        toast.success("Visit completed");
+      }
     } catch (error) {
       console.error('Error updating status:', error);
+      toast.error("Failed to update status");
     } finally {
       setSaving(false);
     }
@@ -129,13 +105,8 @@ export default function VisitDetails() {
     if (!visit) return;
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('visits')
-        .update({ notes, tasks }) // Save tasks too just in case
-        .eq('id', visit.id);
-
-      if (error) throw error;
-      alert('Notes saved successfully');
+      await visitService.updateDetails(visit.id, { notes, tasks_completed: tasks });
+      toast.success('Notes saved successfully');
     } catch (error) {
       console.error('Error saving notes:', error);
     } finally {

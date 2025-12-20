@@ -44,7 +44,7 @@ export default function MedicationLog({ visitId, clientId, isReadOnly }: Medicat
         try {
             // Fetch Active Medications
             const { data: meds, error: medsError } = await supabase
-                .from('medications')
+                .from('careflow_medications')
                 .select('*')
                 .eq('tenant_id', currentTenant!.id)
                 .eq('client_id', clientId)
@@ -54,15 +54,22 @@ export default function MedicationLog({ visitId, clientId, isReadOnly }: Medicat
 
             // Fetch Logs for this Visit
             const { data: logData, error: logError } = await supabase
-                .from('medication_logs')
+                .from('careflow_medication_administrations')
                 .select('*')
                 .eq('tenant_id', currentTenant!.id)
                 .eq('visit_id', visitId);
 
             if (logError) throw logError;
 
+            // Map DB fields to component state
             setMedications(meds || []);
-            setLogs(logData || []);
+            setLogs(logData?.map((l: any) => ({
+                id: l.id,
+                medication_id: l.medication_id,
+                status: l.status,
+                notes: l.notes,
+                administered_at: l.administered_at
+            })) || []);
         } catch (error) {
             console.error('Error fetching eMAR data:', error);
         } finally {
@@ -91,16 +98,17 @@ export default function MedicationLog({ visitId, clientId, isReadOnly }: Medicat
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('No user found');
 
-            // We need the employee ID. For now assuming user.id maps to employee.id or we fetch it.
-            // In this app, auth.uid() is usually the employee id if we set it up that way, 
-            // OR we need to lookup employee by auth_id. 
-            // For MVP, let's assume we can get the employee ID from the session or context.
-            // Actually, let's look it up.
-            const { data: emp } = await supabase.from('employees').select('id').eq('email', user.email).single();
+            const { data: emp, error: staffError } = await supabase
+                .from('careflow_staff')
+                .select('id')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (staffError) console.warn("Staff lookup error:", staffError);
             if (!emp) throw new Error('Employee profile not found');
 
             const { data: newLog, error } = await supabase
-                .from('medication_logs')
+                .from('careflow_medication_administrations')
                 .insert({
                     tenant_id: currentTenant.id,
                     visit_id: visitId,
@@ -115,7 +123,13 @@ export default function MedicationLog({ visitId, clientId, isReadOnly }: Medicat
 
             if (error) throw error;
 
-            setLogs([...logs, newLog]);
+            setLogs([...logs, {
+                id: newLog.id,
+                medication_id: newLog.medication_id,
+                status: newLog.status,
+                notes: newLog.notes,
+                administered_at: newLog.administered_at
+            }]);
         } catch (error) {
             console.error('Error logging medication:', error);
             alert('Failed to log medication.');

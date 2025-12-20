@@ -11,7 +11,7 @@ interface Notification {
     message: string;
     entity_type?: string;
     entity_id?: string;
-    is_read: boolean;
+    read: boolean;
     created_at: string;
     action_url?: string;
 }
@@ -31,7 +31,7 @@ export default function NotificationCenter() {
     }, [currentTenant]);
 
     useEffect(() => {
-        setUnreadCount(notifications.filter(n => !n.is_read).length);
+        setUnreadCount(notifications.filter(n => !n.read).length);
     }, [notifications]);
 
     async function loadNotifications() {
@@ -40,7 +40,7 @@ export default function NotificationCenter() {
 
         try {
             const { data, error } = await supabase
-                .from('notifications')
+                .from('careflow_notifications')
                 .select('*')
                 .eq('tenant_id', currentTenant.id)
                 .order('created_at', { ascending: false })
@@ -66,7 +66,7 @@ export default function NotificationCenter() {
                 title: 'New Application Received',
                 message: 'John Smith applied for Senior Developer position',
                 entity_type: 'application',
-                is_read: false,
+                read: false,
                 created_at: new Date(Date.now() - 5 * 60000).toISOString(),
                 action_url: '/recruit'
             },
@@ -76,7 +76,7 @@ export default function NotificationCenter() {
                 title: 'Document Expiring Soon',
                 message: 'DBS check for Sarah Johnson expires in 7 days',
                 entity_type: 'compliance',
-                is_read: false,
+                read: false,
                 created_at: new Date(Date.now() - 30 * 60000).toISOString(),
                 action_url: '/compliance-hub'
             },
@@ -86,7 +86,7 @@ export default function NotificationCenter() {
                 title: 'Interview Scheduled',
                 message: 'Technical interview confirmed for tomorrow at 2pm',
                 entity_type: 'interview',
-                is_read: true,
+                read: true,
                 created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
                 action_url: '/recruit'
             },
@@ -96,7 +96,7 @@ export default function NotificationCenter() {
                 title: 'Leave Request Pending',
                 message: 'Mark Wilson requested 5 days annual leave',
                 entity_type: 'leave',
-                is_read: true,
+                read: true,
                 created_at: new Date(Date.now() - 4 * 3600000).toISOString(),
                 action_url: '/hr'
             },
@@ -106,7 +106,7 @@ export default function NotificationCenter() {
                 title: 'Training Completed',
                 message: 'Fire Safety training marked as complete',
                 entity_type: 'training',
-                is_read: true,
+                read: true,
                 created_at: new Date(Date.now() - 24 * 3600000).toISOString(),
                 action_url: '/compliance-hub'
             }
@@ -124,7 +124,7 @@ export default function NotificationCenter() {
                 {
                     event: 'INSERT',
                     schema: 'public',
-                    table: 'notifications',
+                    table: 'careflow_notifications',
                     filter: `tenant_id=eq.${currentTenant.id}`
                 },
                 (payload) => {
@@ -163,13 +163,13 @@ export default function NotificationCenter() {
 
     async function markAsRead(id: string) {
         setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+            prev.map(n => n.id === id ? { ...n, read: true } : n)
         );
 
         try {
             await supabase
-                .from('notifications')
-                .update({ is_read: true })
+                .from('careflow_notifications')
+                .update({ read: true })
                 .eq('id', id);
         } catch (error) {
             // Ignore if table doesn't exist
@@ -177,12 +177,12 @@ export default function NotificationCenter() {
     }
 
     async function markAllAsRead() {
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
         try {
             await supabase
-                .from('notifications')
-                .update({ is_read: true })
+                .from('careflow_notifications')
+                .update({ read: true })
                 .eq('tenant_id', currentTenant?.id);
         } catch (error) {
             // Ignore if table doesn't exist
@@ -194,7 +194,7 @@ export default function NotificationCenter() {
 
         try {
             await supabase
-                .from('notifications')
+                .from('careflow_notifications')
                 .delete()
                 .eq('id', id);
         } catch (error) {
@@ -296,7 +296,7 @@ export default function NotificationCenter() {
                                     {notifications.map((notification) => (
                                         <div
                                             key={notification.id}
-                                            className={`p-4 hover:bg-gray-50 transition cursor-pointer ${!notification.is_read ? 'bg-indigo-50/50' : ''
+                                            className={`p-4 hover:bg-gray-50 transition cursor-pointer ${!notification.read ? 'bg-indigo-50/50' : ''
                                                 }`}
                                             onClick={() => {
                                                 markAsRead(notification.id);
@@ -312,7 +312,7 @@ export default function NotificationCenter() {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between">
-                                                        <p className={`text-sm font-medium text-gray-900 ${!notification.is_read ? 'font-semibold' : ''
+                                                        <p className={`text-sm font-medium text-gray-900 ${!notification.read ? 'font-semibold' : ''
                                                             }`}>
                                                             {notification.title}
                                                         </p>
@@ -334,7 +334,7 @@ export default function NotificationCenter() {
                                                         {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                                                     </div>
                                                 </div>
-                                                {!notification.is_read && (
+                                                {!notification.read && (
                                                     <div className="w-2 h-2 bg-indigo-600 rounded-full" />
                                                 )}
                                             </div>

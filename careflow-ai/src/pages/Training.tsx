@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
    GraduationCap, BookOpen, CheckCircle2, Circle, PlayCircle,
-   Award, Sparkles, Loader2, Plus, AlertCircle, Trophy
+   Award, Sparkles, Loader2, Plus, AlertCircle, Trophy, X
 } from 'lucide-react';
 import { MOCK_TRAINING_MODULES, MOCK_ONBOARDING_TASKS } from '../services/mockData';
 import { generateTrainingQuiz } from '../services/geminiService';
@@ -30,7 +30,29 @@ const TrainingPage: React.FC = () => {
    const [showScore, setShowScore] = useState(false);
    const [isSaving, setIsSaving] = useState(false);
 
+   const [modules, setModules] = useState(MOCK_TRAINING_MODULES);
+   const [showPlayer, setShowPlayer] = useState(false);
+   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+
    // Handlers
+   const handleStartModule = (moduleId: string) => {
+      setActiveModuleId(moduleId);
+      setModules(prev => prev.map(m =>
+         m.id === moduleId ? { ...m, status: 'In Progress', progress: 5 } : m
+      ));
+      setShowPlayer(true);
+   };
+
+   const handleCompleteModule = () => {
+      if (activeModuleId) {
+         setModules(prev => prev.map(m =>
+            m.id === activeModuleId ? { ...m, status: 'Completed', progress: 100 } : m
+         ));
+      }
+      setShowPlayer(false);
+      setActiveModuleId(null);
+   };
+
    const handleGenerateQuiz = async () => {
       if (!quizTopic.trim()) return;
       setIsGeneratingQuiz(true);
@@ -40,9 +62,13 @@ const TrainingPage: React.FC = () => {
 
       try {
          const quiz = await generateTrainingQuiz(quizTopic);
+         if (!quiz || !quiz.questions || quiz.questions.length === 0) {
+            throw new Error('Invalid quiz generated');
+         }
          setGeneratedQuiz(quiz);
       } catch (error) {
          console.error(error);
+         alert('Failed to generate quiz. Please check your connection or try a different topic.');
       } finally {
          setIsGeneratingQuiz(false);
       }
@@ -89,7 +115,7 @@ const TrainingPage: React.FC = () => {
 
    const renderLearning = () => (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4">
-         {MOCK_TRAINING_MODULES.map(module => (
+         {modules.map(module => (
             <div key={module.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                <div className={`h-32 ${module.thumbnailColor} flex items-center justify-center`}>
                   <PlayCircle className="text-white/80" size={48} />
@@ -122,7 +148,10 @@ const TrainingPage: React.FC = () => {
                         ></div>
                      </div>
                      {module.status !== 'Completed' && (
-                        <button className="w-full mt-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 text-sm">
+                        <button
+                           onClick={() => handleStartModule(module.id)}
+                           className="w-full mt-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 text-sm"
+                        >
                            {module.status === 'Not Started' ? 'Start Course' : 'Continue'}
                         </button>
                      )}
@@ -214,11 +243,11 @@ const TrainingPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-8">
-                     {generatedQuiz.questions.map((q, idx) => (
+                     {generatedQuiz?.questions?.map((q, idx) => (
                         <div key={idx} className="space-y-3">
                            <p className="font-bold text-slate-800"><span className="text-slate-400 mr-2">{idx + 1}.</span>{q.question}</p>
                            <div className="space-y-2 pl-6">
-                              {q.options.map((opt, optIdx) => {
+                              {q.options?.map((opt, optIdx) => {
                                  let style = "border-slate-200 hover:bg-slate-50";
                                  if (showScore) {
                                     if (optIdx === q.correctOptionIndex) style = "bg-green-100 border-green-500 text-green-900 font-bold";
@@ -285,8 +314,64 @@ const TrainingPage: React.FC = () => {
       </div>
    );
 
+   const renderCoursePlayer = () => {
+      const activeModule = modules.find(m => m.id === activeModuleId);
+      if (!activeModule) return null;
+
+      return (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+               <div className="flex justify-between items-center p-4 bg-slate-900 text-white">
+                  <div className="flex items-center gap-3">
+                     <PlayCircle className="text-primary-400" />
+                     <div>
+                        <h3 className="font-bold">{activeModule.title}</h3>
+                        <p className="text-xs text-slate-400">Chapter 1: Introduction</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setShowPlayer(false)} className="p-2 hover:bg-white/10 rounded-full">
+                     <X size={24} />
+                  </button>
+               </div>
+
+               <div className="flex-1 bg-black flex items-center justify-center relative aspect-video">
+                  {/* Mock Video Player */}
+                  <div className="text-center text-white space-y-4">
+                     <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto border-2 border-white/20">
+                        <PlayCircle size={40} />
+                     </div>
+                     <p className="text-slate-400">(Video Demo Placeholder)</p>
+                  </div>
+
+                  {/* Progress Bar Mock */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800">
+                     <div className="h-full bg-red-600 w-1/3"></div>
+                  </div>
+               </div>
+
+               <div className="p-6 bg-white space-y-4">
+                  <div className="flex justify-between items-center">
+                     <h4 className="font-bold text-lg text-slate-800">About this lesson</h4>
+                     <button
+                        onClick={handleCompleteModule}
+                        className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 flex items-center gap-2"
+                     >
+                        <CheckCircle2 size={18} /> Complete & Finish
+                     </button>
+                  </div>
+                  <p className="text-slate-600 text-sm leading-relaxed">
+                     This interactive module covers the essential guidelines and practical applications required for compliance.
+                     Please watch the full video and complete the assessment at the end to verify your understanding.
+                  </p>
+               </div>
+            </div>
+         </div>
+      );
+   };
+
    return (
       <div className="space-y-6">
+         {/* ... (existing JSX) ... */}
          <div>
             <h1 className="text-2xl font-bold text-slate-900">Training Academy</h1>
             <p className="text-slate-500 text-sm">Staff onboarding, compliance training, and knowledge checks.</p>
@@ -316,6 +401,8 @@ const TrainingPage: React.FC = () => {
          {activeTab === 'learning' && renderLearning()}
          {activeTab === 'onboarding' && renderOnboarding()}
          {activeTab === 'quiz' && renderQuiz()}
+
+         {showPlayer && renderCoursePlayer()}
       </div>
    );
 };

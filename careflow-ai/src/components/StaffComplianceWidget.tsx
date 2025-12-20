@@ -40,7 +40,7 @@ export default function StaffComplianceWidget() {
                 .from('employees')
                 .select('id, first_name, last_name')
                 .eq('tenant_id', currentTenant.id)
-                .eq('status', 'active');
+                .or('status.eq.active,status.eq.Active');
 
             if (staffError) throw staffError;
             setStaff(staffData || []);
@@ -156,7 +156,7 @@ export default function StaffComplianceWidget() {
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-600">Overall Compliance Rate</span>
                     <span className={`text-sm font-semibold ${overallComplianceRate >= 90 ? 'text-green-600' :
-                            overallComplianceRate >= 70 ? 'text-amber-600' : 'text-red-600'
+                        overallComplianceRate >= 70 ? 'text-amber-600' : 'text-red-600'
                         }`}>
                         {overallComplianceRate}%
                     </span>
@@ -164,7 +164,7 @@ export default function StaffComplianceWidget() {
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                         className={`h-full rounded-full transition-all ${overallComplianceRate >= 90 ? 'bg-green-500' :
-                                overallComplianceRate >= 70 ? 'bg-amber-500' : 'bg-red-500'
+                            overallComplianceRate >= 70 ? 'bg-amber-500' : 'bg-red-500'
                             }`}
                         style={{ width: `${overallComplianceRate}%` }}
                     />
