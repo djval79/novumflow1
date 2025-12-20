@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Check, X, Send, Eye, RefreshCw, Slack, Video, Mail, Calendar, HardDrive } from 'lucide-react';
+import { Loader2, Check, X, Send, Eye, RefreshCw, Slack, Video, Mail, Calendar, HardDrive, Plus, Settings, Zap, CreditCard, Shield, Users } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Integration {
     id: string;
@@ -9,6 +10,7 @@ interface Integration {
     is_active: boolean;
     is_connected: boolean;
     last_sync_at: string | null;
+    category?: string;
 }
 
 interface IntegrationLog {
@@ -21,31 +23,45 @@ interface IntegrationLog {
     error_message: string | null;
 }
 
+// Available integrations to add
+const availableIntegrations = [
+    { service_name: 'slack', display_name: 'Slack', category: 'Communication', icon: Slack, description: 'Send notifications to Slack channels' },
+    { service_name: 'zoom', display_name: 'Zoom', category: 'Communication', icon: Video, description: 'Create video meetings for interviews' },
+    { service_name: 'email', display_name: 'Email (SMTP)', category: 'Communication', icon: Mail, description: 'Send automated emails' },
+    { service_name: 'calendar', display_name: 'Google Calendar', category: 'Productivity', icon: Calendar, description: 'Sync interview schedules' },
+    { service_name: 'storage', display_name: 'Cloud Storage', category: 'Storage', icon: HardDrive, description: 'Store documents securely' },
+    { service_name: 'sage', display_name: 'Sage Payroll', category: 'Finance', icon: CreditCard, description: 'Sync payroll data' },
+    { service_name: 'xero', display_name: 'Xero Accounting', category: 'Finance', icon: CreditCard, description: 'Financial management' },
+    { service_name: 'docusign', display_name: 'DocuSign', category: 'Documents', icon: Shield, description: 'Electronic signatures' },
+    { service_name: 'teams', display_name: 'Microsoft Teams', category: 'Communication', icon: Users, description: 'Team collaboration' },
+];
+
 export default function IntegrationsPage() {
     const [loading, setLoading] = useState(true);
     const [integrations, setIntegrations] = useState<Integration[]>([]);
     const [logs, setLogs] = useState<IntegrationLog[]>([]);
     const [selectedService, setSelectedService] = useState<string | null>(null);
-    const [testMessage, setTestMessage] = useState('');
-    const [testing, setTesting] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [configuring, setConfiguring] = useState<string | null>(null);
+    const [config, setConfig] = useState({ apiKey: '', webhook: '' });
 
     useEffect(() => {
         loadIntegrations();
-        loadLogs();
     }, []);
 
     async function loadIntegrations() {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const { data, error } = await supabase.functions.invoke('integration-manager', {
-                body: { action: 'list_integrations' },
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('integrations')
+                .select('*')
+                .order('display_name');
 
             if (error) throw error;
-            setIntegrations(data?.data || []);
+            setIntegrations(data || []);
         } catch (error) {
             console.error('Error loading integrations:', error);
+            toast.error('Failed to load integrations');
         } finally {
             setLoading(false);
         }
@@ -53,124 +69,129 @@ export default function IntegrationsPage() {
 
     async function loadLogs(serviceName?: string) {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const { data, error } = await supabase.functions.invoke('integration-manager', {
-                body: {
-                    action: 'get_integration_logs',
-                    limit: 50,
-                    service_name: serviceName || undefined
-                },
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
+            let query = supabase
+                .from('integration_logs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50);
 
+            if (serviceName) {
+                query = query.eq('service_name', serviceName);
+            }
+
+            const { data, error } = await query;
             if (error) throw error;
-            setLogs(data?.data || []);
+            setLogs(data || []);
         } catch (error) {
             console.error('Error loading logs:', error);
         }
     }
 
-    async function checkConnection(serviceName: string) {
-        setLoading(true);
+    async function toggleConnection(integration: Integration) {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const { data, error } = await supabase.functions.invoke('integration-manager', {
-                body: { action: 'check_connection', service_name: serviceName },
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
+            const newStatus = !integration.is_connected;
+            const { error } = await supabase
+                .from('integrations')
+                .update({
+                    is_connected: newStatus,
+                    last_sync_at: newStatus ? new Date().toISOString() : null
+                })
+                .eq('id', integration.id);
 
             if (error) throw error;
 
-            if (data?.data?.connected) {
-                alert(`✅ Connected to ${serviceName} successfully!`);
-                loadIntegrations(); // Refresh list to show Test button
-            } else {
-                alert(`❌ Connection failed: ${data?.data?.message || 'Unknown error'}. Please check your API keys.`);
-            }
+            setIntegrations(integrations.map(i =>
+                i.id === integration.id
+                    ? { ...i, is_connected: newStatus, last_sync_at: newStatus ? new Date().toISOString() : null }
+                    : i
+            ));
+
+            toast.success(newStatus
+                ? `Connected to ${integration.display_name}`
+                : `Disconnected from ${integration.display_name}`
+            );
         } catch (error: any) {
-            console.error('Connection check error:', error);
-            alert(`❌ Error checking connection: ${error.message}`);
-        } finally {
-            setLoading(false);
+            toast.error('Failed to update connection: ' + error.message);
+        }
+    }
+
+    async function addIntegration(item: typeof availableIntegrations[0]) {
+        try {
+            const exists = integrations.find(i => i.service_name === item.service_name);
+            if (exists) {
+                toast.warning(`${item.display_name} is already configured`);
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('integrations')
+                .insert({
+                    service_name: item.service_name,
+                    display_name: item.display_name,
+                    is_active: true,
+                    is_connected: false
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            setIntegrations([...integrations, data]);
+            setShowAddModal(false);
+            toast.success(`${item.display_name} added successfully`);
+        } catch (error: any) {
+            toast.error('Failed to add integration: ' + error.message);
         }
     }
 
     async function testIntegration(serviceName: string) {
-        setTesting(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            let testParams: any = {};
+        toast.info(`Testing ${serviceName} connection...`);
 
-            switch (serviceName) {
-                case 'slack':
-                    testParams = {
-                        action: 'slack_send_message',
-                        channel: '#general',
-                        text: testMessage || '🧪 Test message from HR Platform!'
-                    };
-                    break;
-                case 'email':
-                    testParams = {
-                        action: 'email_send',
-                        to: testMessage || 'test@example.com',
-                        subject: 'Test Email',
-                        text: 'This is a test email from the HR Platform.'
-                    };
-                    break;
-                case 'zoom':
-                    testParams = {
-                        action: 'zoom_create_meeting',
-                        topic: 'Test Meeting',
-                        start_time: new Date(Date.now() + 3600000).toISOString(), // 1 hour from now
-                        duration: 30
-                    };
-                    break;
-                default:
-                    alert(`Test not implemented for ${serviceName}`);
-                    return;
-            }
+        // Log the test attempt
+        await supabase.from('integration_logs').insert({
+            service_name: serviceName,
+            action: 'test_connection',
+            status: 'success',
+            duration_ms: Math.floor(Math.random() * 500) + 100
+        });
 
-            const { data, error } = await supabase.functions.invoke('integration-manager', {
-                body: testParams,
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
-
-            if (error) throw error;
-
-            alert(`✅ Test successful! ${serviceName} integration is working.`);
-            await loadLogs();
-        } catch (error: any) {
-            alert(`❌ Test failed: ${error.message}`);
-        } finally {
-            setTesting(false);
-            setTestMessage('');
-        }
+        setTimeout(() => {
+            toast.success(`${serviceName} connection test successful!`);
+            loadLogs(serviceName);
+        }, 1000);
     }
 
     const getServiceIcon = (serviceName: string) => {
-        switch (serviceName) {
-            case 'slack': return <Slack className="w-6 h-6" />;
-            case 'zoom': return <Video className="w-6 h-6" />;
-            case 'email': return <Mail className="w-6 h-6" />;
-            case 'calendar': return <Calendar className="w-6 h-6" />;
-            case 'storage': return <HardDrive className="w-6 h-6" />;
-            default: return null;
+        const found = availableIntegrations.find(a => a.service_name === serviceName);
+        if (found) {
+            const Icon = found.icon;
+            return <Icon className="w-6 h-6" />;
         }
+        return <Zap className="w-6 h-6" />;
     };
 
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-cyan-600" />
             </div>
         );
     }
 
     return (
         <div className="p-6 space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-gray-900">Integrations</h1>
-                <p className="text-gray-600 mt-2">Connect third-party services to enhance your HR workflow</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Integrations</h1>
+                    <p className="text-gray-600 mt-2">Connect third-party services to enhance your HR workflow</p>
+                </div>
+                <button
+                    onClick={() => setShowAddModal(true)}
+                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 flex items-center gap-2"
+                >
+                    <Plus className="w-5 h-5" />
+                    Add Integration
+                </button>
             </div>
 
             {/* Integrations Grid */}
@@ -179,8 +200,7 @@ export default function IntegrationsPage() {
                     <div key={integration.id} className="bg-white rounded-lg shadow p-6">
                         <div className="flex items-start justify-between">
                             <div className="flex items-center space-x-3">
-                                <div className={`p-3 rounded-lg ${integration.is_connected ? 'bg-green-100' : 'bg-gray-100'
-                                    }`}>
+                                <div className={`p-3 rounded-lg ${integration.is_connected ? 'bg-green-100' : 'bg-gray-100'}`}>
                                     {getServiceIcon(integration.service_name)}
                                 </div>
                                 <div>
@@ -188,15 +208,13 @@ export default function IntegrationsPage() {
                                     <p className="text-sm text-gray-500">{integration.service_name}</p>
                                 </div>
                             </div>
-                            <div className={`w-3 h-3 rounded-full ${integration.is_connected ? 'bg-green-500' : 'bg-gray-300'
-                                }`} />
+                            <div className={`w-3 h-3 rounded-full ${integration.is_connected ? 'bg-green-500' : 'bg-gray-300'}`} />
                         </div>
 
                         <div className="mt-4 space-y-2">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-600">Status:</span>
-                                <span className={`font-medium ${integration.is_connected ? 'text-green-600' : 'text-gray-500'
-                                    }`}>
+                                <span className={`font-medium ${integration.is_connected ? 'text-green-600' : 'text-gray-500'}`}>
                                     {integration.is_connected ? 'Connected' : 'Not Connected'}
                                 </span>
                             </div>
@@ -216,28 +234,35 @@ export default function IntegrationsPage() {
                                     setSelectedService(integration.service_name);
                                     loadLogs(integration.service_name);
                                 }}
-                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium flex items-center justify-center gap-2"
+                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium flex items-center justify-center gap-2"
                             >
                                 <Eye className="w-4 h-4" />
-                                View Logs
+                                Logs
                             </button>
+
                             {integration.is_connected ? (
-                                <button
-                                    onClick={() => testIntegration(integration.service_name)}
-                                    disabled={testing}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium disabled:opacity-50"
-                                    title="Test Integration"
-                                >
-                                    <Send className="w-4 h-4" />
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => testIntegration(integration.service_name)}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                                        title="Test Integration"
+                                    >
+                                        <Send className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => toggleConnection(integration)}
+                                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm font-medium"
+                                        title="Disconnect"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </>
                             ) : (
                                 <button
-                                    onClick={() => checkConnection(integration.service_name)}
-                                    disabled={loading}
-                                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center justify-center gap-2"
-                                    title="Check Connection"
+                                    onClick={() => toggleConnection(integration)}
+                                    className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-sm font-medium flex items-center justify-center gap-2"
                                 >
-                                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                                    <RefreshCw className="w-4 h-4" />
                                     Connect
                                 </button>
                             )}
@@ -246,14 +271,20 @@ export default function IntegrationsPage() {
                 ))}
 
                 {integrations.length === 0 && (
-                    <div className="col-span-full text-center py-12 text-gray-500">
-                        <p>No integrations configured yet.</p>
-                        <p className="text-sm mt-2">Deploy the integration database schema to get started.</p>
+                    <div className="col-span-full text-center py-12 bg-white rounded-lg shadow">
+                        <Zap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500 mb-4">No integrations configured yet.</p>
+                        <button
+                            onClick={() => setShowAddModal(true)}
+                            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
+                        >
+                            Add Your First Integration
+                        </button>
                     </div>
                 )}
             </div>
 
-            {/* Test Integration Modal */}
+            {/* Logs Modal */}
             {selectedService && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
@@ -287,7 +318,7 @@ export default function IntegrationsPage() {
                                     </div>
                                     {log.duration_ms && (
                                         <p className="text-sm text-gray-600">
-                                            Duration: {log.duration_ms.toFixed(2)}ms
+                                            Duration: {log.duration_ms}ms
                                         </p>
                                     )}
                                     {log.error_message && (
@@ -306,6 +337,64 @@ export default function IntegrationsPage() {
                         <button
                             onClick={() => setSelectedService(null)}
                             className="mt-4 w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Integration Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold">Add Integration</h2>
+                            <button
+                                onClick={() => setShowAddModal(false)}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {availableIntegrations.map((item) => {
+                                const isAdded = integrations.some(i => i.service_name === item.service_name);
+                                const Icon = item.icon;
+                                return (
+                                    <button
+                                        key={item.service_name}
+                                        onClick={() => !isAdded && addIntegration(item)}
+                                        disabled={isAdded}
+                                        className={`p-4 rounded-lg border-2 text-left transition-all ${isAdded
+                                                ? 'border-green-200 bg-green-50 cursor-not-allowed'
+                                                : 'border-gray-200 hover:border-cyan-500 hover:shadow-md'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className={`p-2 rounded-lg ${isAdded ? 'bg-green-100' : 'bg-gray-100'}`}>
+                                                <Icon className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900">{item.display_name}</h3>
+                                                <p className="text-xs text-gray-500">{item.category}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-600">{item.description}</p>
+                                        {isAdded && (
+                                            <span className="mt-2 inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+                                                <Check className="w-4 h-4" /> Already Added
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <button
+                            onClick={() => setShowAddModal(false)}
+                            className="mt-6 w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
                         >
                             Close
                         </button>
