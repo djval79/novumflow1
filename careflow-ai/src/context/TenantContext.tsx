@@ -218,8 +218,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             const { data, error } = await supabase.rpc('create_tenant', {
                 p_name: name,
                 p_subdomain: subdomain,
-                p_owner_user_id: user.id,
-                p_subscription_tier: 'trial' // Added to match NovumFlow expectations
+                p_owner_user_id: user.id
+                // Note: subscription_tier is hardcoded to 'trial' inside the RPC function
             });
 
             if (error) throw error;
