@@ -362,33 +362,8 @@ ALTER TABLE careflow_hydration ENABLE ROW LEVEL SECURITY;
 -- RLS POLICIES (Tenant-based access)
 -- =============================================
 
--- Generic policy creator function
-DO $$
-DECLARE
-    tbl TEXT;
-    tables TEXT[] := ARRAY[
-        'careflow_training_modules', 'careflow_training_progress',
-        'careflow_onboarding_tasks', 'careflow_onboarding_progress',
-        'careflow_shift_marketplace', 'careflow_assets',
-        'careflow_feedback', 'careflow_documents',
-        'careflow_events', 'careflow_office_tasks',
-        'careflow_inventory', 'careflow_enquiries',
-        'careflow_policies', 'careflow_policy_acknowledgements',
-        'careflow_payroll', 'careflow_meals', 'careflow_hydration'
-    ];
-BEGIN
-    FOREACH tbl IN ARRAY tables
-    LOOP
-        -- Allow all operations for authenticated users within their tenant
-        EXECUTE format('
-            CREATE POLICY IF NOT EXISTS "%s_tenant_access" ON %I
-            FOR ALL USING (
-                tenant_id IN (
-                    SELECT tenant_id FROM users_profiles WHERE user_id = auth.uid()
-                )
-            )', tbl || '_policy', tbl);
-    END LOOP;
-END $$;
+-- Note: RLS policies are created in the fix migration (20251220120100_fix_rls_policies.sql)
+-- PostgreSQL does not support CREATE POLICY IF NOT EXISTS in dynamic SQL
 
 -- =============================================
 -- INDEXES FOR PERFORMANCE
