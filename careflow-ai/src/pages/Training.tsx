@@ -1,15 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
    GraduationCap, BookOpen, CheckCircle2, Circle, PlayCircle,
    Award, Sparkles, Loader2, Plus, AlertCircle, Trophy, X
 } from 'lucide-react';
-import { MOCK_TRAINING_MODULES, MOCK_ONBOARDING_TASKS } from '../services/mockData';
 import { generateTrainingQuiz } from '../services/geminiService';
 import { GeneratedQuiz, QuizQuestion } from '../types';
-
+import { trainingService, onboardingService, staffService } from '../services/supabaseService';
 import { useAuth } from '../context/AuthContext';
-import { staffService } from '../services/supabaseService';
 
 const ClockIcon = ({ size }: { size: number }) => (
    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -19,8 +17,9 @@ const ClockIcon = ({ size }: { size: number }) => (
 );
 
 const TrainingPage: React.FC = () => {
-   const { user } = useAuth();
+   const { user, profile } = useAuth();
    const [activeTab, setActiveTab] = useState<'learning' | 'onboarding' | 'quiz'>('learning');
+   const [isLoading, setIsLoading] = useState(true);
 
    // Quiz State
    const [quizTopic, setQuizTopic] = useState('');
@@ -30,9 +29,76 @@ const TrainingPage: React.FC = () => {
    const [showScore, setShowScore] = useState(false);
    const [isSaving, setIsSaving] = useState(false);
 
-   const [modules, setModules] = useState(MOCK_TRAINING_MODULES);
+   const [modules, setModules] = useState<any[]>([]);
+   const [onboardingTasks, setOnboardingTasks] = useState<any[]>([]);
    const [showPlayer, setShowPlayer] = useState(false);
    const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+
+   // Fetch data from database
+   useEffect(() => {
+      async function loadData() {
+         setIsLoading(true);
+         try {
+            const tenantId = profile?.tenant_id;
+
+            // Fetch training modules
+            const fetchedModules = await trainingService.getModules(tenantId || undefined);
+            if (fetchedModules.length > 0) {
+               const mappedModules = fetchedModules.map((m: any) => ({
+                  id: m.id,
+                  title: m.title,
+                  category: m.category?.toUpperCase() || 'GENERAL',
+                  duration: `${m.duration || 30} mins`,
+                  status: 'Not Started',
+                  progress: 0,
+                  thumbnailColor: m.category === 'mandatory' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
+                     m.category === 'refresher' ? 'bg-gradient-to-br from-green-500 to-teal-600' :
+                        'bg-gradient-to-br from-purple-500 to-pink-600'
+               }));
+               setModules(mappedModules);
+            } else {
+               // Fallback to default modules if DB is empty
+               setModules([
+                  { id: '1', title: 'Safeguarding Adults', category: 'MANDATORY', duration: '45 mins', status: 'Not Started', progress: 0, thumbnailColor: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
+                  { id: '2', title: 'Fire Safety', category: 'MANDATORY', duration: '30 mins', status: 'Not Started', progress: 0, thumbnailColor: 'bg-gradient-to-br from-red-500 to-orange-600' },
+                  { id: '3', title: 'Infection Control', category: 'MANDATORY', duration: '40 mins', status: 'Not Started', progress: 0, thumbnailColor: 'bg-gradient-to-br from-green-500 to-teal-600' },
+                  { id: '4', title: 'Moving & Handling', category: 'MANDATORY', duration: '50 mins', status: 'Not Started', progress: 0, thumbnailColor: 'bg-gradient-to-br from-purple-500 to-pink-600' }
+               ]);
+            }
+
+            // Fetch onboarding tasks
+            const fetchedTasks = await onboardingService.getTasks(tenantId || undefined);
+            if (fetchedTasks.length > 0) {
+               const mappedTasks = fetchedTasks.map((t: any) => ({
+                  id: t.id,
+                  task: t.title,
+                  staffName: 'New Hire',
+                  dueDate: `Day ${t.dueDays || 7}`,
+                  completed: false
+               }));
+               setOnboardingTasks(mappedTasks);
+            } else {
+               // Fallback default tasks
+               setOnboardingTasks([
+                  { id: '1', task: 'Complete Right to Work check', staffName: 'New Hire', dueDate: 'Day 1', completed: false },
+                  { id: '2', task: 'Submit DBS application', staffName: 'New Hire', dueDate: 'Day 1', completed: false },
+                  { id: '3', task: 'Complete mandatory training modules', staffName: 'New Hire', dueDate: 'Day 7', completed: false },
+                  { id: '4', task: 'Shadow experienced carer', staffName: 'New Hire', dueDate: 'Day 14', completed: false }
+               ]);
+            }
+         } catch (error) {
+            console.error('Error loading training data:', error);
+            // Set defaults on error
+            setModules([
+               { id: '1', title: 'Safeguarding Adults', category: 'MANDATORY', duration: '45 mins', status: 'Not Started', progress: 0, thumbnailColor: 'bg-gradient-to-br from-blue-500 to-indigo-600' }
+            ]);
+            setOnboardingTasks([]);
+         } finally {
+            setIsLoading(false);
+         }
+      }
+      loadData();
+   }, [profile?.tenant_id]);
 
    // Handlers
    const handleStartModule = (moduleId: string) => {
@@ -172,7 +238,7 @@ const TrainingPage: React.FC = () => {
                </button>
             </div>
             <div className="divide-y divide-slate-100">
-               {MOCK_ONBOARDING_TASKS.map(task => (
+               {onboardingTasks.map(task => (
                   <div key={task.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
                      <div className="flex items-center gap-4">
                         <button className={`p-1 rounded-full ${task.completed ? 'text-green-600' : 'text-slate-300 hover:text-slate-400'}`}>
@@ -190,6 +256,12 @@ const TrainingPage: React.FC = () => {
                      </span>
                   </div>
                ))}
+               {onboardingTasks.length === 0 && (
+                  <div className="p-8 text-center text-slate-500">
+                     <AlertCircle className="mx-auto mb-2" size={32} />
+                     <p>No onboarding tasks configured yet.</p>
+                  </div>
+               )}
             </div>
          </div>
       </div>

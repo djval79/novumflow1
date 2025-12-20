@@ -1073,3 +1073,701 @@ const mapper = {
         return dbUpdates;
     }
 };
+
+// ==========================================
+// Training Modules (replaces MOCK_TRAINING_MODULES)
+// ==========================================
+
+export const trainingService = {
+    async getModules(tenantId?: string) {
+        let query = supabase.from('careflow_training_modules').select('*').order('title');
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((m: any) => ({
+            id: m.id,
+            title: m.title,
+            description: m.description,
+            category: m.category,
+            duration: m.duration_minutes,
+            isMandatory: m.is_mandatory,
+            validMonths: m.certification_valid_months,
+            passScore: m.pass_score,
+            contentUrl: m.content_url,
+            videoUrl: m.video_url
+        }));
+    },
+
+    async getProgress(staffId: string) {
+        const { data, error } = await supabase
+            .from('careflow_training_progress')
+            .select('*, module:careflow_training_modules(title, category)')
+            .eq('staff_id', staffId);
+        if (error) throw error;
+        return data.map((p: any) => ({
+            id: p.id,
+            moduleId: p.module_id,
+            moduleTitle: p.module?.title,
+            category: p.module?.category,
+            status: p.status,
+            progress: p.progress_percent,
+            score: p.score,
+            startedAt: p.started_at,
+            completedAt: p.completed_at,
+            expiresAt: p.expires_at
+        }));
+    },
+
+    async updateProgress(staffId: string, moduleId: string, updates: { progress?: number; status?: string; score?: number }) {
+        const dbUpdates: any = { updated_at: new Date().toISOString() };
+        if (updates.progress !== undefined) dbUpdates.progress_percent = updates.progress;
+        if (updates.status) dbUpdates.status = updates.status;
+        if (updates.score !== undefined) dbUpdates.score = updates.score;
+        if (updates.status === 'completed') dbUpdates.completed_at = new Date().toISOString();
+
+        const { data, error } = await supabase
+            .from('careflow_training_progress')
+            .upsert({ staff_id: staffId, module_id: moduleId, ...dbUpdates })
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+};
+
+// ==========================================
+// Onboarding Tasks (replaces MOCK_ONBOARDING_TASKS)
+// ==========================================
+
+export const onboardingService = {
+    async getTasks(tenantId?: string) {
+        let query = supabase.from('careflow_onboarding_tasks').select('*').order('order_index');
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            description: t.description,
+            category: t.category,
+            isMandatory: t.is_mandatory,
+            dueDays: t.due_days
+        }));
+    },
+
+    async getProgress(staffId: string) {
+        const { data, error } = await supabase
+            .from('careflow_onboarding_progress')
+            .select('*, task:careflow_onboarding_tasks(title, category)')
+            .eq('staff_id', staffId);
+        if (error) throw error;
+        return data.map((p: any) => ({
+            id: p.id,
+            taskId: p.task_id,
+            taskTitle: p.task?.title,
+            category: p.task?.category,
+            status: p.status,
+            completedAt: p.completed_at,
+            notes: p.notes
+        }));
+    },
+
+    async completeTask(staffId: string, taskId: string, notes?: string) {
+        const { data, error } = await supabase
+            .from('careflow_onboarding_progress')
+            .upsert({
+                staff_id: staffId,
+                task_id: taskId,
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                completed_by: (await supabase.auth.getUser()).data.user?.id,
+                notes
+            })
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+};
+
+// ==========================================
+// Shift Marketplace (replaces MOCK_MARKET_SHIFTS)
+// ==========================================
+
+export const shiftMarketService = {
+    async getOpenShifts() {
+        const { data, error } = await supabase
+            .from('careflow_shift_marketplace')
+            .select('*, client:careflow_clients(name)')
+            .eq('status', 'open')
+            .order('shift_date', { ascending: true });
+        if (error) throw error;
+        return data.map((s: any) => ({
+            id: s.id,
+            clientName: s.client?.name || 'Unassigned',
+            date: s.shift_date,
+            startTime: s.start_time,
+            endTime: s.end_time,
+            role: s.role_required,
+            rate: s.hourly_rate,
+            description: s.description,
+            requirements: s.requirements || [],
+            status: s.status
+        }));
+    },
+
+    async claimShift(shiftId: string) {
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        const { data, error } = await supabase
+            .from('careflow_shift_marketplace')
+            .update({ status: 'claimed', claimed_by: userId, claimed_at: new Date().toISOString() })
+            .eq('id', shiftId)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async postShift(shift: { tenantId: string; clientId?: string; date: string; startTime: string; endTime: string; role?: string; rate?: number; description?: string; requirements?: string[] }) {
+        const { data, error } = await supabase
+            .from('careflow_shift_marketplace')
+            .insert([{
+                tenant_id: shift.tenantId,
+                client_id: shift.clientId,
+                shift_date: shift.date,
+                start_time: shift.startTime,
+                end_time: shift.endTime,
+                role_required: shift.role || 'carer',
+                hourly_rate: shift.rate,
+                description: shift.description,
+                requirements: shift.requirements,
+                posted_by: (await supabase.auth.getUser()).data.user?.id,
+                status: 'open'
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+};
+
+// ==========================================
+// Assets (replaces MOCK_ASSETS)
+// ==========================================
+
+export const assetService = {
+    async getAll(tenantId?: string) {
+        let query = supabase.from('careflow_assets').select('*').order('name');
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            category: a.category,
+            serialNumber: a.serial_number,
+            status: a.status,
+            location: a.location,
+            assignedTo: a.assigned_to,
+            purchaseDate: a.purchase_date,
+            purchaseCost: a.purchase_cost,
+            warrantyExpires: a.warranty_expires,
+            lastMaintenance: a.last_maintenance,
+            nextMaintenance: a.next_maintenance,
+            notes: a.notes
+        }));
+    },
+
+    async create(asset: { tenantId: string; name: string; category: string; serialNumber?: string; status?: string; location?: string; purchaseCost?: number }) {
+        const { data, error } = await supabase
+            .from('careflow_assets')
+            .insert([{
+                tenant_id: asset.tenantId,
+                name: asset.name,
+                category: asset.category,
+                serial_number: asset.serialNumber,
+                status: asset.status || 'available',
+                location: asset.location,
+                purchase_cost: asset.purchaseCost
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async update(id: string, updates: any) {
+        const { data, error } = await supabase
+            .from('careflow_assets')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+};
+
+// ==========================================
+// Feedback (replaces MOCK_FEEDBACK)
+// ==========================================
+
+export const feedbackService = {
+    async getAll(tenantId?: string) {
+        let query = supabase.from('careflow_feedback').select('*').order('created_at', { ascending: false });
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((f: any) => ({
+            id: f.id,
+            type: f.type,
+            source: f.source,
+            rating: f.rating,
+            title: f.title,
+            content: f.content,
+            submittedBy: f.submitted_by_name || 'Anonymous',
+            submittedAt: f.created_at,
+            status: f.status,
+            response: f.response,
+            isPublic: f.is_public
+        }));
+    },
+
+    async create(feedback: { tenantId: string; type: string; source?: string; rating?: number; title?: string; content: string; submitterName?: string }) {
+        const { data, error } = await supabase
+            .from('careflow_feedback')
+            .insert([{
+                tenant_id: feedback.tenantId,
+                type: feedback.type,
+                source: feedback.source,
+                rating: feedback.rating,
+                title: feedback.title,
+                content: feedback.content,
+                submitted_by_name: feedback.submitterName,
+                status: 'open'
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async respond(id: string, response: string) {
+        const { error } = await supabase
+            .from('careflow_feedback')
+            .update({
+                response,
+                responded_by: (await supabase.auth.getUser()).data.user?.id,
+                responded_at: new Date().toISOString(),
+                status: 'resolved'
+            })
+            .eq('id', id);
+        if (error) throw error;
+    }
+};
+
+// ==========================================
+// Documents (replaces MOCK_DOCUMENTS)
+// ==========================================
+
+export const documentService = {
+    async getAll(tenantId?: string, category?: string) {
+        let query = supabase.from('careflow_documents').select('*').order('name');
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        if (category) query = query.eq('category', category);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            category: d.category,
+            fileUrl: d.file_url,
+            fileType: d.file_type,
+            fileSize: d.file_size,
+            version: d.version,
+            tags: d.tags || [],
+            isPublic: d.is_public,
+            accessRoles: d.access_roles || [],
+            expiresAt: d.expires_at,
+            uploadedAt: d.created_at
+        }));
+    },
+
+    async upload(doc: { tenantId: string; name: string; category: string; fileUrl: string; fileType?: string; fileSize?: number; tags?: string[] }) {
+        const { data, error } = await supabase
+            .from('careflow_documents')
+            .insert([{
+                tenant_id: doc.tenantId,
+                name: doc.name,
+                category: doc.category,
+                file_url: doc.fileUrl,
+                file_type: doc.fileType,
+                file_size: doc.fileSize,
+                tags: doc.tags,
+                uploaded_by: (await supabase.auth.getUser()).data.user?.id
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+};
+
+// ==========================================
+// Events/Activities (replaces MOCK_EVENTS)
+// ==========================================
+
+export const eventService = {
+    async getAll(tenantId?: string) {
+        let query = supabase.from('careflow_events').select('*').order('start_datetime', { ascending: true });
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((e: any) => ({
+            id: e.id,
+            title: e.title,
+            description: e.description,
+            type: e.type,
+            location: e.location,
+            startTime: e.start_datetime,
+            endTime: e.end_datetime,
+            maxParticipants: e.max_participants,
+            participants: e.participants || [],
+            costPerPerson: e.cost_per_person,
+            status: e.status,
+            notes: e.notes
+        }));
+    },
+
+    async create(event: { tenantId: string; title: string; description?: string; type: string; location?: string; startTime: string; endTime?: string; maxParticipants?: number; costPerPerson?: number }) {
+        const { data, error } = await supabase
+            .from('careflow_events')
+            .insert([{
+                tenant_id: event.tenantId,
+                title: event.title,
+                description: event.description,
+                type: event.type,
+                location: event.location,
+                start_datetime: event.startTime,
+                end_datetime: event.endTime,
+                max_participants: event.maxParticipants,
+                cost_per_person: event.costPerPerson,
+                organizer_id: (await supabase.auth.getUser()).data.user?.id,
+                status: 'scheduled'
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async joinEvent(eventId: string) {
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        const { data: event } = await supabase.from('careflow_events').select('participants').eq('id', eventId).single();
+        const participants = event?.participants || [];
+        if (!participants.includes(userId)) {
+            participants.push(userId);
+            await supabase.from('careflow_events').update({ participants }).eq('id', eventId);
+        }
+    }
+};
+
+// ==========================================
+// Office Tasks (replaces MOCK_TASKS)
+// ==========================================
+
+export const officeTaskService = {
+    async getAll(tenantId?: string, status?: string) {
+        let query = supabase.from('careflow_office_tasks').select('*').order('due_date', { ascending: true });
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        if (status) query = query.eq('status', status);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            description: t.description,
+            priority: t.priority,
+            category: t.category,
+            assignedTo: t.assigned_to,
+            dueDate: t.due_date,
+            status: t.status,
+            tags: t.tags || [],
+            createdAt: t.created_at
+        }));
+    },
+
+    async create(task: { tenantId: string; title: string; description?: string; priority?: string; category?: string; assignedTo?: string; dueDate?: string; tags?: string[] }) {
+        const { data, error } = await supabase
+            .from('careflow_office_tasks')
+            .insert([{
+                tenant_id: task.tenantId,
+                title: task.title,
+                description: task.description,
+                priority: task.priority || 'medium',
+                category: task.category,
+                assigned_to: task.assignedTo,
+                due_date: task.dueDate,
+                tags: task.tags,
+                created_by: (await supabase.auth.getUser()).data.user?.id,
+                status: 'pending'
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async complete(taskId: string) {
+        const { error } = await supabase
+            .from('careflow_office_tasks')
+            .update({
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                completed_by: (await supabase.auth.getUser()).data.user?.id
+            })
+            .eq('id', taskId);
+        if (error) throw error;
+    }
+};
+
+// ==========================================
+// Inventory (replaces MOCK_INVENTORY)
+// ==========================================
+
+export const inventoryService = {
+    async getAll(tenantId?: string) {
+        let query = supabase.from('careflow_inventory').select('*').order('name');
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((i: any) => ({
+            id: i.id,
+            name: i.name,
+            category: i.category,
+            sku: i.sku,
+            quantity: i.quantity,
+            unit: i.unit,
+            minStock: i.min_stock_level,
+            maxStock: i.max_stock_level,
+            location: i.location,
+            supplier: i.supplier,
+            unitCost: i.unit_cost,
+            lastOrdered: i.last_ordered,
+            lastRestocked: i.last_restocked,
+            notes: i.notes,
+            isLowStock: i.quantity < i.min_stock_level
+        }));
+    },
+
+    async updateQuantity(itemId: string, newQuantity: number) {
+        const { error } = await supabase
+            .from('careflow_inventory')
+            .update({ quantity: newQuantity, updated_at: new Date().toISOString() })
+            .eq('id', itemId);
+        if (error) throw error;
+    },
+
+    async restock(itemId: string, addQuantity: number) {
+        const { data: item } = await supabase.from('careflow_inventory').select('quantity').eq('id', itemId).single();
+        const newQty = (item?.quantity || 0) + addQuantity;
+        const { error } = await supabase
+            .from('careflow_inventory')
+            .update({ quantity: newQty, last_restocked: new Date().toISOString() })
+            .eq('id', itemId);
+        if (error) throw error;
+    }
+};
+
+// ==========================================
+// CRM / Enquiries (replaces MOCK_ENQUIRIES)
+// ==========================================
+
+export const enquiryService = {
+    async getAll(tenantId?: string) {
+        let query = supabase.from('careflow_enquiries').select('*').order('created_at', { ascending: false });
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((e: any) => ({
+            id: e.id,
+            type: e.enquiry_type,
+            source: e.source,
+            contactName: e.contact_name,
+            contactEmail: e.contact_email,
+            contactPhone: e.contact_phone,
+            relationship: e.relationship,
+            clientName: e.client_name,
+            serviceRequired: e.service_required,
+            message: e.message,
+            urgency: e.urgency,
+            status: e.status,
+            assignedTo: e.assigned_to,
+            followUpDate: e.follow_up_date,
+            notes: e.notes,
+            createdAt: e.created_at
+        }));
+    },
+
+    async create(enquiry: { tenantId: string; type: string; source?: string; contactName: string; contactEmail?: string; contactPhone?: string; relationship?: string; clientName?: string; serviceRequired?: string; message?: string; urgency?: string }) {
+        const { data, error } = await supabase
+            .from('careflow_enquiries')
+            .insert([{
+                tenant_id: enquiry.tenantId,
+                enquiry_type: enquiry.type,
+                source: enquiry.source,
+                contact_name: enquiry.contactName,
+                contact_email: enquiry.contactEmail,
+                contact_phone: enquiry.contactPhone,
+                relationship: enquiry.relationship,
+                client_name: enquiry.clientName,
+                service_required: enquiry.serviceRequired,
+                message: enquiry.message,
+                urgency: enquiry.urgency || 'normal',
+                status: 'new'
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async updateStatus(id: string, status: string, notes?: string) {
+        const updates: any = { status, updated_at: new Date().toISOString() };
+        if (notes) updates.notes = notes;
+        const { error } = await supabase.from('careflow_enquiries').update(updates).eq('id', id);
+        if (error) throw error;
+    }
+};
+
+// ==========================================
+// Policies (replaces MOCK_POLICIES)
+// ==========================================
+
+export const policyService = {
+    async getAll(tenantId?: string) {
+        let query = supabase.from('careflow_policies').select('*').eq('status', 'active').order('title');
+        if (tenantId) query = query.eq('tenant_id', tenantId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            category: p.category,
+            documentUrl: p.document_url,
+            version: p.version,
+            effectiveDate: p.effective_date,
+            reviewDate: p.review_date,
+            status: p.status,
+            requiresAcknowledgement: p.requires_acknowledgement
+        }));
+    },
+
+    async acknowledge(policyId: string) {
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        const { error } = await supabase
+            .from('careflow_policy_acknowledgements')
+            .upsert({ policy_id: policyId, staff_id: userId, acknowledged_at: new Date().toISOString() });
+        if (error) throw error;
+    },
+
+    async getAcknowledgements(policyId: string) {
+        const { data, error } = await supabase
+            .from('careflow_policy_acknowledgements')
+            .select('*, staff:careflow_staff(full_name)')
+            .eq('policy_id', policyId);
+        if (error) throw error;
+        return data;
+    }
+};
+
+// ==========================================
+// Nutrition (replaces MOCK_MEALS and MOCK_HYDRATION)
+// ==========================================
+
+export const nutritionService = {
+    async getMeals(clientId: string, date?: string) {
+        let query = supabase.from('careflow_meals').select('*').eq('client_id', clientId).order('meal_date', { ascending: false });
+        if (date) query = query.eq('meal_date', date);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((m: any) => ({
+            id: m.id,
+            mealType: m.meal_type,
+            date: m.meal_date,
+            time: m.meal_time,
+            description: m.description,
+            portionEaten: m.portion_eaten,
+            fluidIntake: m.fluid_intake_ml,
+            dietaryNotes: m.dietary_notes
+        }));
+    },
+
+    async logMeal(meal: { tenantId: string; clientId: string; mealType: string; date: string; time?: string; description?: string; portionEaten?: string; fluidIntake?: number; dietaryNotes?: string }) {
+        const { data, error } = await supabase
+            .from('careflow_meals')
+            .insert([{
+                tenant_id: meal.tenantId,
+                client_id: meal.clientId,
+                meal_type: meal.mealType,
+                meal_date: meal.date,
+                meal_time: meal.time,
+                description: meal.description,
+                portion_eaten: meal.portionEaten,
+                fluid_intake_ml: meal.fluidIntake,
+                dietary_notes: meal.dietaryNotes,
+                assisted_by: (await supabase.auth.getUser()).data.user?.id
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async getHydration(clientId: string, date?: string) {
+        let query = supabase.from('careflow_hydration').select('*').eq('client_id', clientId).order('log_date', { ascending: false });
+        if (date) query = query.eq('log_date', date);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data.map((h: any) => ({
+            id: h.id,
+            date: h.log_date,
+            time: h.log_time,
+            fluidType: h.fluid_type,
+            amountMl: h.amount_ml,
+            notes: h.notes
+        }));
+    },
+
+    async logHydration(hydration: { tenantId: string; clientId: string; date: string; time: string; fluidType?: string; amountMl: number; notes?: string }) {
+        const { data, error } = await supabase
+            .from('careflow_hydration')
+            .insert([{
+                tenant_id: hydration.tenantId,
+                client_id: hydration.clientId,
+                log_date: hydration.date,
+                log_time: hydration.time,
+                fluid_type: hydration.fluidType,
+                amount_ml: hydration.amountMl,
+                notes: hydration.notes,
+                assisted_by: (await supabase.auth.getUser()).data.user?.id
+            }])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async getDailySummary(clientId: string, date: string) {
+        const meals = await this.getMeals(clientId, date);
+        const hydration = await this.getHydration(clientId, date);
+        const totalFluid = hydration.reduce((sum, h) => sum + (h.amountMl || 0), 0);
+        return {
+            meals,
+            hydration,
+            totalFluidIntakeMl: totalFluid,
+            mealsLogged: meals.length,
+            hydrationLogs: hydration.length
+        };
+    }
+};

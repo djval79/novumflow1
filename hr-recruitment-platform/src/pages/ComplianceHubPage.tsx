@@ -64,10 +64,10 @@ import {
   type ComplianceTask,
   type ExpiringDocument,
 } from '@/hooks/useComplianceData';
-import { 
-  COMPLIANCE_FOLDER_STRUCTURE, 
-  type ComplianceAuthority, 
-  type ComplianceStage 
+import {
+  COMPLIANCE_FOLDER_STRUCTURE,
+  type ComplianceAuthority,
+  type ComplianceStage
 } from '@/lib/compliance/complianceTypes';
 
 // ===========================================
@@ -86,9 +86,8 @@ const StatCard: React.FC<{
   loading?: boolean;
 }> = ({ title, value, subtitle, icon, color, bgColor, trend, onClick, loading }) => (
   <div
-    className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200 ${
-      onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-200' : ''
-    }`}
+    className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200 ${onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-200' : ''
+      }`}
     onClick={onClick}
   >
     <div className="flex items-start justify-between">
@@ -118,8 +117,8 @@ const StatCard: React.FC<{
   </div>
 );
 
-const ComplianceScoreGauge: React.FC<{ score: number; size?: 'sm' | 'md' | 'lg'; label?: string }> = ({ 
-  score, 
+const ComplianceScoreGauge: React.FC<{ score: number; size?: 'sm' | 'md' | 'lg'; label?: string }> = ({
+  score,
   size = 'md',
   label = 'Compliance'
 }) => {
@@ -130,7 +129,7 @@ const ComplianceScoreGauge: React.FC<{ score: number; size?: 'sm' | 'md' | 'lg';
   };
 
   const config = sizeConfig[size];
-  
+
   const getColor = (s: number) => {
     if (s >= 90) return '#10b981';
     if (s >= 70) return '#f59e0b';
@@ -174,9 +173,9 @@ const ComplianceScoreGauge: React.FC<{ score: number; size?: 'sm' | 'md' | 'lg';
   );
 };
 
-const AuthorityBadge: React.FC<{ authority: ComplianceAuthority; size?: 'sm' | 'md' }> = ({ 
-  authority, 
-  size = 'md' 
+const AuthorityBadge: React.FC<{ authority: ComplianceAuthority; size?: 'sm' | 'md' }> = ({
+  authority,
+  size = 'md'
 }) => {
   const config = {
     HOME_OFFICE: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Home Office' },
@@ -256,8 +255,8 @@ const EmptyState: React.FC<{ icon: React.ReactNode; title: string; description: 
 // TAB COMPONENTS
 // ===========================================
 
-const OverviewTab: React.FC<{ 
-  stats: any; 
+const OverviewTab: React.FC<{
+  stats: any;
   loading: boolean;
   onStageClick: (stage: ComplianceStage) => void;
 }> = ({ stats, loading, onStageClick }) => {
@@ -271,8 +270,8 @@ const OverviewTab: React.FC<{
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {stages.map((stage) => {
             const count = stats?.byStage?.[stage] || 0;
-            const percentage = stats?.totalPersons > 0 
-              ? Math.round((count / stats.totalPersons) * 100) 
+            const percentage = stats?.totalPersons > 0
+              ? Math.round((count / stats.totalPersons) * 100)
               : 0;
 
             return (
@@ -340,9 +339,9 @@ const OverviewTab: React.FC<{
             </div>
           </div>
           <div className="flex items-center justify-between mb-4">
-            <ComplianceScoreGauge 
-              score={stats?.byAuthority?.homeOffice?.score || 0} 
-              size="sm" 
+            <ComplianceScoreGauge
+              score={stats?.byAuthority?.homeOffice?.score || 0}
+              size="sm"
               label="Score"
             />
             <div className="text-right">
@@ -366,9 +365,9 @@ const OverviewTab: React.FC<{
             </div>
           </div>
           <div className="flex items-center justify-between mb-4">
-            <ComplianceScoreGauge 
-              score={stats?.byAuthority?.cqc?.score || 0} 
-              size="sm" 
+            <ComplianceScoreGauge
+              score={stats?.byAuthority?.cqc?.score || 0}
+              size="sm"
               label="Score"
             />
             <div className="text-right">
@@ -459,7 +458,7 @@ const ExpiringDocumentsTab: React.FC<{
                     <div className="text-sm">
                       <p className="text-gray-900">{new Date(doc.expiry_date).toLocaleDateString()}</p>
                       <p className={`text-xs ${doc.days_until_expiry <= 0 ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                        {doc.days_until_expiry <= 0 
+                        {doc.days_until_expiry <= 0
                           ? `Expired ${Math.abs(doc.days_until_expiry)} days ago`
                           : `${doc.days_until_expiry} days left`
                         }
@@ -614,16 +613,14 @@ const TasksTab: React.FC<{
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    task.urgency === 'CRITICAL' ? 'bg-red-100' :
-                    task.urgency === 'HIGH' ? 'bg-orange-100' :
-                    task.urgency === 'MEDIUM' ? 'bg-yellow-100' : 'bg-green-100'
-                  }`}>
-                    <Activity className={`w-5 h-5 ${
-                      task.urgency === 'CRITICAL' ? 'text-red-600' :
-                      task.urgency === 'HIGH' ? 'text-orange-600' :
-                      task.urgency === 'MEDIUM' ? 'text-yellow-600' : 'text-green-600'
-                    }`} />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${task.urgency === 'CRITICAL' ? 'bg-red-100' :
+                      task.urgency === 'HIGH' ? 'bg-orange-100' :
+                        task.urgency === 'MEDIUM' ? 'bg-yellow-100' : 'bg-green-100'
+                    }`}>
+                    <Activity className={`w-5 h-5 ${task.urgency === 'CRITICAL' ? 'text-red-600' :
+                        task.urgency === 'HIGH' ? 'text-orange-600' :
+                          task.urgency === 'MEDIUM' ? 'text-yellow-600' : 'text-green-600'
+                      }`} />
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">{task.title}</p>
@@ -828,19 +825,169 @@ const ComplianceHubPage: React.FC = () => {
     setActiveTab('people');
   };
 
-  const handleSendReminder = (doc: ExpiringDocument) => {
-    // TODO: Implement reminder sending
-    console.log('Send reminder for:', doc);
+  const handleSendReminder = async (doc: ExpiringDocument) => {
+    try {
+      // Call the send-email edge function to send a reminder
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          to: doc.person_email,
+          subject: `Reminder: ${doc.document_type} expiring soon`,
+          html: `
+            <h2>Document Expiry Reminder</h2>
+            <p>Dear ${doc.person_name},</p>
+            <p>Your <strong>${doc.document_type}</strong> is expiring on <strong>${new Date(doc.expiry_date).toLocaleDateString()}</strong>.</p>
+            <p>Please ensure you renew or update this document to maintain compliance.</p>
+            <p>Days remaining: <strong>${doc.days_until_expiry}</strong></p>
+            <br/>
+            <p>Best regards,<br/>Compliance Team</p>
+          `
+        })
+      });
+
+      if (response.ok) {
+        alert(`Reminder sent successfully to ${doc.person_email}`);
+      } else {
+        const err = await response.json();
+        console.error('Send reminder error:', err);
+        alert('Failed to send reminder. Please try again.');
+      }
+    } catch (error) {
+      console.error('Send reminder error:', error);
+      alert('Failed to send reminder. Please check your connection.');
+    }
   };
 
   const handleSync = async () => {
-    // TODO: Implement sync to CareFlow
-    await refetchStats();
+    try {
+      // Call the sync-to-careflow edge function
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-to-careflow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          tenantId: tenantId,
+          syncType: 'compliance'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Sync completed! ${result.synced || 0} records synchronized to CareFlow.`);
+        await refetchStats();
+      } else {
+        const err = await response.json();
+        console.error('Sync error:', err);
+        alert('Sync failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Sync failed. Please check your connection.');
+    }
   };
 
-  const handleExportReport = () => {
-    // TODO: Implement report export
-    console.log('Export compliance report');
+  const handleExportReport = async () => {
+    // Generate compliance report as CSV/PDF
+    try {
+      // Get all compliance data
+      const reportData = {
+        generatedAt: new Date().toISOString(),
+        tenantId: tenantId,
+        stats: stats,
+        overallScore: overallScore
+      };
+
+      // Generate HTML report for printing
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Compliance Report - ${new Date().toLocaleDateString()}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; }
+    h1 { color: #1f2937; margin-bottom: 10px; }
+    .meta { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 20px 0; }
+    .stat-box { padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; text-align: center; }
+    .stat-value { font-size: 24px; font-weight: bold; color: #1f2937; }
+    .stat-label { font-size: 12px; color: #6b7280; }
+    .score { font-size: 48px; font-weight: bold; text-align: center; margin: 30px 0; }
+    .score.high { color: #16a34a; }
+    .score.medium { color: #f59e0b; }
+    .score.low { color: #dc2626; }
+    .footer { margin-top: 40px; font-size: 12px; color: #9ca3af; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Compliance Report</h1>
+  <div class="meta">Generated on ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+  
+  <h2>Overall Compliance Score</h2>
+  <div class="score ${overallScore >= 80 ? 'high' : overallScore >= 50 ? 'medium' : 'low'}">
+    ${overallScore}%
+  </div>
+  
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="stat-value">${stats?.totalPersons || 0}</div>
+      <div class="stat-label">Total Staff</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" style="color: #16a34a;">${stats?.compliant || 0}</div>
+      <div class="stat-label">Compliant</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" style="color: #f59e0b;">${stats?.atRisk || 0}</div>
+      <div class="stat-label">At Risk</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" style="color: #dc2626;">${stats?.nonCompliant || 0}</div>
+      <div class="stat-label">Non-Compliant</div>
+    </div>
+  </div>
+
+  <h3>Authority Breakdown</h3>
+  <div class="stat-grid" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="stat-box">
+      <div class="stat-value" style="color: #3b82f6;">${stats?.byAuthority?.homeOffice?.score || 0}%</div>
+      <div class="stat-label">Home Office Compliance</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" style="color: #16a34a;">${stats?.byAuthority?.cqc?.score || 0}%</div>
+      <div class="stat-label">CQC Compliance</div>
+    </div>
+  </div>
+
+  <h3>Key Metrics</h3>
+  <ul>
+    <li>Documents Expiring Soon: ${stats?.expiringDocuments || 0}</li>
+    <li>Pending Verifications: ${stats?.pendingVerifications || 0}</li>
+  </ul>
+
+  <div class="footer">
+    <p>Report generated by NovumFlow Compliance Hub</p>
+    <p>&copy; ${new Date().getFullYear()} NovumFlow</p>
+  </div>
+</body>
+</html>`;
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 250);
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to generate report.');
+    }
   };
 
   if (!tenantId) {
@@ -1067,11 +1214,10 @@ const ComplianceHubPage: React.FC = () => {
                         setActiveTab(tab.id as any);
                         if (tab.id !== 'people') setStageFilter(undefined);
                       }}
-                      className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                        activeTab === tab.id
+                      className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
                           ? 'border-indigo-600 text-indigo-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <tab.icon className="w-4 h-4" />
                       {tab.label}
