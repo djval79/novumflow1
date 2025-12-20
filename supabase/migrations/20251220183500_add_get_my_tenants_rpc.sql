@@ -1,12 +1,12 @@
--- Drop and recreate get_my_tenants RPC function
+-- Drop and recreate get_my_tenants RPC function with TEXT types to avoid strict type mismatch errors
 DROP FUNCTION IF EXISTS public.get_my_tenants();
 
 CREATE OR REPLACE FUNCTION public.get_my_tenants()
 RETURNS TABLE (
     id UUID,
-    name VARCHAR,
-    slug VARCHAR,
-    subdomain VARCHAR,
+    name TEXT,
+    slug TEXT,
+    subdomain TEXT,
     features JSONB
 ) 
 LANGUAGE plpgsql
@@ -16,9 +16,9 @@ BEGIN
     RETURN QUERY
     SELECT 
         t.id,
-        t.name,
-        t.slug,
-        t.domain as subdomain,
+        t.name::TEXT,
+        t.slug::TEXT,
+        t.domain::TEXT as subdomain,
         COALESCE(t.features, '{"novumflow_enabled": true, "careflow_enabled": true}'::jsonb) as features
     FROM public.tenants t
     INNER JOIN public.user_tenant_memberships m ON m.tenant_id = t.id
