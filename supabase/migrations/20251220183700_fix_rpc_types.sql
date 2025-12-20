@@ -1,0 +1,33 @@
+-- Fix get_my_tenants RPC by using TEXT instead of VARCHAR to prevent type mismatch errors
+DROP FUNCTION IF EXISTS public.get_my_tenants();
+
+CREATE OR REPLACE FUNCTION public.get_my_tenants()
+RETURNS TABLE (
+    id UUID,
+    name TEXT,
+    slug TEXT,
+    subdomain TEXT,
+    features JSONB
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        t.id,
+        t.name::TEXT,
+        t.slug::TEXT,
+        t.domain::TEXT as subdomain,
+        COALESCE(t.features, '{"novumflow_enabled": true, "careflow_enabled": true}'::jsonb) as features
+    FROM public.tenants t
+    INNER JOIN public.user_tenant_memberships m ON m.tenant_id = t.id
+    WHERE m.user_id = auth.uid()
+    AND m.is_active = true
+    AND t.is_active = true;
+END;
+$$;
+
+-- Grant execute to authenticated users
+GRANT EXECUTE ON FUNCTION public.get_my_tenants() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_my_tenants() TO service_role;
