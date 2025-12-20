@@ -35,6 +35,7 @@ import { QuickAppSwitcher } from './CrossAppNavigation';
 import NotificationCenter from './NotificationCenter';
 import GlobalSearch from './GlobalSearch';
 import QuickActions from './QuickActions';
+import HelpCenter from './HelpCenter';
 
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
@@ -160,6 +161,9 @@ export default function AppLayout() {
             <div className="flex items-center space-x-2">
               {/* Global Search */}
               <GlobalSearch />
+
+              {/* Help Center */}
+              <HelpCenter />
 
               {/* Notification Center */}
               <NotificationCenter />

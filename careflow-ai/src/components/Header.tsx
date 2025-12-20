@@ -6,6 +6,7 @@ import TenantSwitcher from './TenantSwitcher';
 import { QuickAppSwitcher } from './CrossAppNavigation';
 import NotificationCenter from './NotificationCenter';
 import GlobalSearch from './GlobalSearch';
+import HelpCenter from './HelpCenter';
 
 const Header: React.FC = () => {
   const { user, profile } = useAuth();
@@ -34,6 +35,9 @@ const Header: React.FC = () => {
       <div className="flex items-center gap-4">
         {/* Cross-App Navigation */}
         <QuickAppSwitcher />
+
+        {/* Help Center */}
+        <HelpCenter />
 
         {/* Real Notification Center */}
         <NotificationCenter />
