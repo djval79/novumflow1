@@ -45,6 +45,7 @@ import TeamPage from './pages/TeamPage';
 import OnboardingPage from './pages/OnboardingPage';
 import TrainingPage from './pages/TrainingPage';
 import ComplianceFormsPage from './pages/ComplianceFormsPage';
+import WorkforceManagementPage from './pages/WorkforceManagementPage';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -180,6 +181,7 @@ function App() {
                 <Route path="team" element={<TeamPage />} />
                 <Route path="onboarding" element={<OnboardingPage />} />
                 <Route path="training" element={<TrainingPage />} />
+                <Route path="workforce-management" element={<WorkforceManagementPage />} />
               </Route>
 
               {/* Standalone Protected Routes (No App Layout) */}
