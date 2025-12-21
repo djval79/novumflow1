@@ -76,8 +76,17 @@
 | Sufficient staff for safe care | Rostering system (CareFlow) | ✅ DONE | - |
 | Appropriately skilled staff | Qualification tracking | ✅ DONE | - |
 | Staff deployment based on needs | Visit scheduling | ✅ DONE | - |
-| Safe staffing levels | Dashboard metrics | 🟡 PARTIAL | Need ratio calculator |
-| Induction programme tracking | Training records | 🟡 PARTIAL | Need specific induction workflow |
+| Safe staffing levels | `SafeStaffingCalculator.tsx` | ✅ DONE | NEW: Dependency-based ratio calculator |
+| Induction programme tracking | `InductionWorkflow.tsx` | ✅ DONE | NEW: 6-stage structured induction |
+
+#### Workforce Management Tools (NEW - Implemented 21 Dec 2024)
+
+| Tool | Description | Location |
+|------|-------------|----------|
+| Safe Staffing Calculator | CQC Regulation 18 compliant ratio calculator | `/workforce-management` |
+| Induction Workflow | Skills for Care aligned 34-task programme | `/workforce-management` |
+| Dependency Ratios | 1:2 to 1:8 based on service user needs | `SafeStaffingCalculator.tsx` |
+| Care Certificate Integration | 15 standards tracked in induction | `InductionWorkflow.tsx` |
 
 ---
 
