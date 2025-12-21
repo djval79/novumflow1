@@ -5,6 +5,7 @@
  * - Right to Work Check (eVisa compliant)
  * - Character Declaration (CQC Regulation 19)
  * - Values-Based Interview Scoring
+ * - Competency Assessment (CQC Regulation 18)
  */
 
 import React, { useState } from 'react';
@@ -15,13 +16,15 @@ import {
     Users,
     AlertTriangle,
     Clock,
-    CheckCircle
+    CheckCircle,
+    Award
 } from 'lucide-react';
 import RightToWorkForm from '@/components/RightToWorkForm';
 import CharacterDeclarationForm from '@/components/CharacterDeclarationForm';
+import CompetencyAssessment from '@/components/CompetencyAssessment';
 import { ValuesInterviewScoring } from '@/components/recruitment';
 
-type FormType = 'rtw' | 'character' | 'values' | null;
+type FormType = 'rtw' | 'character' | 'values' | 'competency' | null;
 
 export default function ComplianceFormsPage() {
     const [activeForm, setActiveForm] = useState<FormType>(null);
@@ -73,6 +76,21 @@ export default function ComplianceFormsPage() {
                 'Integrity & teamwork evaluation',
                 'Safeguarding concerns flagging'
             ]
+        },
+        {
+            id: 'competency' as FormType,
+            title: 'Competency Assessment',
+            description: 'Track staff competencies with sign-off workflow (Care Certificate, Clinical Skills)',
+            icon: Award,
+            color: 'indigo',
+            badge: 'CQC Regulation 18',
+            badgeColor: 'bg-indigo-100 text-indigo-700',
+            features: [
+                '15 Care Certificate standards',
+                'Clinical skills assessments',
+                'Moving & handling sign-off',
+                'Supervisor sign-off workflow'
+            ]
         }
     ];
 
@@ -105,6 +123,15 @@ export default function ComplianceFormsPage() {
                     <ValuesInterviewScoring
                         onSuccess={handleFormSuccess}
                         onCancel={() => setActiveForm(null)}
+                    />
+                );
+            case 'competency':
+                return (
+                    <CompetencyAssessment
+                        employeeId={employeeId || 'demo-employee'}
+                        employeeName={employeeName || 'Demo Employee'}
+                        employeeRole="carer"
+                        onClose={() => setActiveForm(null)}
                     />
                 );
             default:
