@@ -46,7 +46,7 @@ import OnboardingPage from './pages/OnboardingPage';
 import TrainingPage from './pages/TrainingPage';
 import ComplianceFormsPage from './pages/ComplianceFormsPage';
 import WorkforceManagementPage from './pages/WorkforceManagementPage';
-
+import GovernanceDashboard from './pages/GovernanceDashboard';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
@@ -182,6 +182,7 @@ function App() {
                 <Route path="onboarding" element={<OnboardingPage />} />
                 <Route path="training" element={<TrainingPage />} />
                 <Route path="workforce-management" element={<WorkforceManagementPage />} />
+                <Route path="governance" element={<GovernanceDashboard />} />
               </Route>
 
               {/* Standalone Protected Routes (No App Layout) */}

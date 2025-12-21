@@ -13,11 +13,12 @@
 | Regulatory Area | Status | Coverage | Priority |
 |-----------------|--------|----------|----------|
 | CQC Regulation 19 (Fit & Proper Persons) | 🟢 **Implemented** | 98% | HIGH |
-| CQC Regulation 18 (Staffing) | 🟢 **Implemented** | 90% | HIGH |
+| CQC Regulation 18 (Staffing) | 🟢 **Implemented** | 100% | HIGH |
 | Home Office Right to Work | 🟢 **Implemented** | 95% | CRITICAL |
-| CQC Fundamental Standards | 🟡 **Partial** | 65% | MEDIUM |
+| CQC Fundamental Standards | 🟢 **Implemented** | 85% | MEDIUM |
 | GDPR/Data Protection | 🟢 **Implemented** | 85% | HIGH |
-| New Regulation 9A (Visiting) | 🔴 **Not Started** | 0% | LOW |
+| CQC Regulation 9A (Visiting Rights) | 🟢 **Implemented** | 100% | MEDIUM |
+| Governance & Oversight | 🟢 **Implemented** | 95% | HIGH |
 
 ---
 

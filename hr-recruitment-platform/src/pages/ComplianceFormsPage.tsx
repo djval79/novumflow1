@@ -6,6 +6,7 @@
  * - Character Declaration (CQC Regulation 19)
  * - Values-Based Interview Scoring
  * - Competency Assessment (CQC Regulation 18)
+ * - Visiting Rights (CQC Regulation 9A)
  */
 
 import React, { useState } from 'react';
@@ -17,14 +18,16 @@ import {
     AlertTriangle,
     Clock,
     CheckCircle,
-    Award
+    Award,
+    Home
 } from 'lucide-react';
 import RightToWorkForm from '@/components/RightToWorkForm';
 import CharacterDeclarationForm from '@/components/CharacterDeclarationForm';
 import CompetencyAssessment from '@/components/CompetencyAssessment';
+import VisitingRightsManagement from '@/components/VisitingRightsManagement';
 import { ValuesInterviewScoring } from '@/components/recruitment';
 
-type FormType = 'rtw' | 'character' | 'values' | 'competency' | null;
+type FormType = 'rtw' | 'character' | 'values' | 'competency' | 'visiting' | null;
 
 export default function ComplianceFormsPage() {
     const [activeForm, setActiveForm] = useState<FormType>(null);
@@ -91,6 +94,21 @@ export default function ComplianceFormsPage() {
                 'Moving & handling sign-off',
                 'Supervisor sign-off workflow'
             ]
+        },
+        {
+            id: 'visiting' as FormType,
+            title: 'Visiting Rights',
+            description: 'Manage visiting policies, restrictions, and compliance (NEW: April 2024)',
+            icon: Home,
+            color: 'rose',
+            badge: 'CQC Regulation 9A',
+            badgeColor: 'bg-rose-100 text-rose-700',
+            features: [
+                'Visiting policy management',
+                'Restriction tracking & review',
+                'Alternative arrangements',
+                'Compliance checklist'
+            ]
         }
     ];
 
@@ -133,6 +151,20 @@ export default function ComplianceFormsPage() {
                         employeeRole="carer"
                         onClose={() => setActiveForm(null)}
                     />
+                );
+            case 'visiting':
+                return (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-auto">
+                        <div className="max-w-6xl w-full max-h-[90vh] overflow-auto">
+                            <VisitingRightsManagement />
+                            <button
+                                onClick={() => setActiveForm(null)}
+                                className="mt-4 w-full py-3 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-100"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
                 );
             default:
                 return null;
