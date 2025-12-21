@@ -41,37 +41,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (mounted) {
                     setUser(user);
                     if (user) {
-                        // EMERGENCY BYPASS FOR SUPER ADMIN
-                        if (user.email === 'mrsonirie@gmail.com' || user.email === 'mrsonirie@msn.com') {
-                            const bypassProfile: UserProfile = {
-                                id: 'bypass-id',
-                                user_id: user.id,
-                                email: user.email,
-                                full_name: 'System Administrator',
-                                role: 'admin',
-                                is_super_admin: true,
-                                is_active: true,
-                                phone: null,
-                                avatar_url: null,
-                                department: null,
-                                position: null,
-                                tenant_id: null,
-                                created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString()
-                            };
-                            setProfile(bypassProfile);
-                            setLoading(false);
-                            return;
-                        }
 
+                        // Standard profile load
                         const { data: profileData, error: profileError } = await supabase
                             .from('users_profiles')
                             .select('*')
                             .eq('user_id', user.id)
                             .maybeSingle();
 
+
                         if (mounted) {
-                            if (!profileData && !profileError) {
+                            if (profileError) {
+                                console.error('AuthContext: Profile error:', profileError);
+                                setProfile(null);
+                            } else if (!profileData) {
                                 const { data: newProfile, error: createError } = await supabase
                                     .from('users_profiles')
                                     .insert({
@@ -84,9 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     .select()
                                     .single();
 
+
                                 if (!createError) {
                                     setProfile(newProfile);
                                 } else {
+                                    console.error('AuthContext: Failed to create profile:', createError);
                                     setProfile(null);
                                 }
                             } else {
@@ -114,29 +99,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (session?.user) {
                 const userId = session.user.id;
-
-                // EMERGENCY BYPASS FOR SUPER ADMIN
-                if (session.user.email === 'mrsonirie@gmail.com' || session.user.email === 'mrsonirie@msn.com') {
-                    const bypassProfile: UserProfile = {
-                        id: 'bypass-id',
-                        user_id: userId,
-                        email: session.user.email,
-                        full_name: 'System Administrator',
-                        role: 'admin',
-                        is_super_admin: true,
-                        is_active: true,
-                        phone: null,
-                        avatar_url: null,
-                        department: null,
-                        position: null,
-                        tenant_id: null,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    };
-                    setProfile(bypassProfile);
-                    setLoading(false);
-                    return;
-                }
 
                 // Fetch profile
                 const { data: profileData, error: profileError } = await supabase

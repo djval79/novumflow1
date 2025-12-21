@@ -639,10 +639,16 @@ export const statsService = {
             .select('*', { count: 'exact', head: true })
             .eq('status', 'reported');
 
+        const { count: staffCount } = await supabase
+            .from('careflow_staff')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'Active');
+
         return {
             activeClients: clientCount || 0,
             todayVisits: visitCount || 0,
-            openIncidents: incidentCount || 0
+            openIncidents: incidentCount || 0,
+            activeStaff: staffCount || 0
         };
     },
 

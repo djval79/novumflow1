@@ -14,10 +14,10 @@ CareFlow has **demo credentials** built into the login page! Here's how to use t
 
 1. **Open**: http://localhost:3000
 2. **Click on one of the Demo Credential buttons**:
-   - **Admin** - `mrsonirie@gmail.com`
-   - **Carer** - `carer@ringstead.com`
-   - **Family** - `family@ringstead.com`
-   - **Client** - `client@ringstead.com`
+   - **Admin** - `admin@careflow.ai`
+   - **Carer** - `carer@careflow.ai`
+   - **Family** - `family@careflow.ai`
+   - **Client** - `client@careflow.ai`
 3. **Password is shown**: `password123`
 4. **Click "Sign In"**
 
@@ -47,8 +47,8 @@ CareFlow has **demo credentials** built into the login page! Here's how to use t
 **Solutions**:
 
 **A. Try Demo Credentials**:
-- Admin: `mrsonirie@gmail.com` / `password123`
-- Carer: `carer@ringstead.com` / `password123`
+- Admin: `admin@careflow.ai` / `password123`
+- Carer: `carer@careflow.ai` / `password123`
 
 **B. Create New Account**:
 - Use the "Create Account" tab

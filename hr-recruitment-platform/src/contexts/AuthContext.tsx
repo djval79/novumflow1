@@ -23,7 +23,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Effect 1: Initialize Auth (Run once)
   useEffect(() => {
     async function loadUser() {
-      console.log('🔄 AuthContext: loadUser() started');
       setLoading(true);
 
       if (!supabase) {
@@ -34,12 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        console.log('⏳ AuthContext: Calling supabase.auth.getUser()...');
         const { data: { user }, error } = await supabase.auth.getUser();
-        console.log('📨 AuthContext: getUser() result:', { user: user?.id, error });
 
         if (error) {
-          console.error('❌ AuthContext: Error loading user:', error.message, error);
 
           // Check for Service Unavailable (503)
           if (
@@ -49,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             error.message.includes('upstream connect error') ||
             error.message.includes('Failed to fetch')
           ) {
-            console.error('🚨 Service Unavailable: Supabase backend is down.');
             setIsServiceUnavailable(true);
             setLoading(false);
             return;
@@ -81,7 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profileError.message.includes('upstream connect error') ||
             profileError.message.includes('Failed to fetch')
           )) {
-            console.error('🚨 Service Unavailable: Supabase backend is down (Profile Load).');
             setIsServiceUnavailable(true);
             setLoading(false);
             return;

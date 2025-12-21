@@ -227,7 +227,7 @@ const Sidebar: React.FC = () => {
 
   // Use profile.role instead of user.role (Case Insensitive)
   const userRole = profile?.role?.toLowerCase();
-  const isSuperAdmin = user?.email === 'mrsonirie@gmail.com' || profile?.is_super_admin;
+  const isSuperAdmin = profile?.is_super_admin;
 
   console.log('Sidebar Debug:', {
     userEmail: user?.email,

@@ -105,10 +105,10 @@ const Login: React.FC = () => {
 
   const fillDemo = (role: string) => {
     setPassword('password123');
-    if (role === 'admin') setEmail('mrsonirie@gmail.com');
-    if (role === 'carer') setEmail('carer@ringstead.com');
-    if (role === 'family') setEmail('family@ringstead.com');
-    if (role === 'client') setEmail('client@ringstead.com');
+    if (role === 'admin') setEmail('admin@careflow.ai');
+    if (role === 'carer') setEmail('carer@careflow.ai');
+    if (role === 'family') setEmail('family@careflow.ai');
+    if (role === 'client') setEmail('client@careflow.ai');
     toast.info(`Pre-loading ${role} credentials`);
   };
 

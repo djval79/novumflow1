@@ -2,9 +2,14 @@ import React from 'react';
 import { useTenant } from '@/context/TenantContext';
 import { ExternalLink, Heart, Users } from 'lucide-react';
 
-// Configuration
-const CAREFLOW_URL = import.meta.env.VITE_CAREFLOW_URL || 'https://careflow-ai.vercel.app';
-const NOVUMFLOW_URL = import.meta.env.VITE_NOVUMFLOW_URL || 'https://hr-recruitment-platform.vercel.app';
+// Configuration - use localhost in development
+const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const CAREFLOW_URL = isDev
+    ? 'http://localhost:5174'
+    : (import.meta.env.VITE_CAREFLOW_URL || 'https://careflow-ai.vercel.app');
+const NOVUMFLOW_URL = isDev
+    ? 'http://localhost:5173'
+    : (import.meta.env.VITE_NOVUMFLOW_URL || 'https://hr-recruitment-platform.vercel.app');
 
 interface CrossAppNavigationProps {
     app: 'novumflow' | 'careflow';

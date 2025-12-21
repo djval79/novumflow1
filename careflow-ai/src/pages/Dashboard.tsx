@@ -3,7 +3,7 @@ import React, { useCallback } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
-import { AlertTriangle, CheckCircle2, Clock, Users, MapPin, ArrowRight, CalendarHeart, ShieldCheck, Zap, TrendingUp, Activity, Target, History } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Users, MapPin, ArrowRight, CalendarHeart, ShieldCheck, Zap, TrendingUp, Activity, Target, History, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { Link } from 'react-router-dom';
@@ -52,7 +52,7 @@ const StatCard: React.FC<{ title: string; value: string; change: string; icon: R
 
 const Dashboard: React.FC = () => {
   const { user, profile } = useAuth();
-  const [stats, setStats] = React.useState({ activeClients: 0, todayVisits: 0, openIncidents: 0 });
+  const [stats, setStats] = React.useState({ activeClients: 0, todayVisits: 0, openIncidents: 0, activeStaff: 0 });
   const [feed, setFeed] = React.useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -238,7 +238,7 @@ const Dashboard: React.FC = () => {
           />
           <StatCard
             title="Operational Units"
-            value="12"
+            value={stats.activeStaff.toString()}
             change="Combat Ready"
             trend="On-Station"
             icon={TrendingUp}
