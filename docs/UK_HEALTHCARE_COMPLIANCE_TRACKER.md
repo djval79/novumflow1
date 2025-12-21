@@ -13,7 +13,7 @@
 | Regulatory Area | Status | Coverage | Priority |
 |-----------------|--------|----------|----------|
 | CQC Regulation 19 (Fit & Proper Persons) | 🟢 **Implemented** | 98% | HIGH |
-| CQC Regulation 18 (Staffing) | 🟡 **Partial** | 70% | HIGH |
+| CQC Regulation 18 (Staffing) | 🟢 **Implemented** | 90% | HIGH |
 | Home Office Right to Work | 🟢 **Implemented** | 95% | CRITICAL |
 | CQC Fundamental Standards | 🟡 **Partial** | 65% | MEDIUM |
 | GDPR/Data Protection | 🟢 **Implemented** | 85% | HIGH |
@@ -42,12 +42,22 @@
 
 | Requirement | Your Feature | Status | Gap |
 |-------------|--------------|--------|-----|
-| Good character assessment | `CharacterDeclarationForm.tsx` | ✅ DONE | NEW: Full declaration with disclosures |
-| Compassionate approach assessment | `ValuesInterviewScoring.tsx` | ✅ DONE | NEW: 6 care values with scoring |
-| Pre-supervision competence check | Not implemented | 🔴 MISSING | Add competency framework |
+| Good character assessment | `CharacterDeclarationForm.tsx` | ✅ DONE | Full declaration with disclosures |
+| Compassionate approach assessment | `ValuesInterviewScoring.tsx` | ✅ DONE | 6 care values with scoring |
+| Pre-supervision competence check | `CompetencyAssessment.tsx` | ✅ DONE | NEW: Full competency framework with sign-off |
 | Risk assessment for disclosures | `risk_assessment` field in DBS | ✅ DONE | - |
 
+#### Competency Framework (NEW - Implemented 21 Dec 2024)
+
+| Category | Standards | Status | Location |
+|----------|-----------|--------|----------|
+| Care Certificate | 15 standards | ✅ Implemented | `competencyTypes.ts` |
+| Clinical Skills | 8 standards | ✅ Implemented | `CompetencyAssessment.tsx` |
+| Moving & Handling | 5 standards | ✅ Implemented | `competency_records` table |
+| Specialist Care | 6 standards | ✅ Implemented | Sign-off workflow enabled |
+
 #### Ongoing Monitoring
+
 
 | Requirement | Your Feature | Status | Gap |
 |-------------|--------------|--------|-----|
