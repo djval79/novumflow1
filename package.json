@@ -11,9 +11,14 @@
         "dev": "npm run dev --workspaces --if-present",
         "build": "npm run build --workspaces --if-present",
         "test": "npm run test --workspaces --if-present",
-        "clean": "rm -rf node_modules && npm run clean --workspaces --if-present"
+        "clean": "rm -rf node_modules && npm run clean --workspaces --if-present",
+        "verify:compliance": "npx tsx scripts/verify_compliance_readiness.ts",
+        "test:compliance": "npm run verify:compliance"
     },
     "engines": {
         "node": ">=18.0.0"
+    },
+    "devDependencies": {
+        "dotenv": "^17.2.3"
     }
 }

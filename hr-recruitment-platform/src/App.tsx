@@ -44,6 +44,7 @@ import ReportsPage from './pages/ReportsPage';
 import TeamPage from './pages/TeamPage';
 import OnboardingPage from './pages/OnboardingPage';
 import TrainingPage from './pages/TrainingPage';
+import ComplianceFormsPage from './pages/ComplianceFormsPage';
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -170,6 +171,7 @@ function App() {
                 <Route path="tenant-management" element={<TenantManagementPage />} />
                 <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
                 <Route path="compliance-hub" element={<ComplianceHubPage />} />
+                <Route path="compliance-forms" element={<ComplianceFormsPage />} />
                 <Route path="audit-logs" element={<AuditLogPage />} />
                 <Route path="admin" element={<AdminPortalPage />} />
                 <Route path="admin/security" element={<AdminSecurityDashboard />} />

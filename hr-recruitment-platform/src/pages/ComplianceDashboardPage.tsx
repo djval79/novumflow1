@@ -16,6 +16,7 @@ import {
 import ComplianceAlerts from '../components/ComplianceAlerts';
 import TrainingMatrix from '../components/TrainingMatrix';
 import DBSCheckForm from '../components/DBSCheckForm';
+import ComplianceReportSettings from '../components/ComplianceReportSettings';
 
 export default function ComplianceDashboardPage() {
     const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function ComplianceDashboardPage() {
     const [loading, setLoading] = useState(true);
     const [complianceReport, setComplianceReport] = useState<any>(null);
     const [nonCompliantStaff, setNonCompliantStaff] = useState<ComplianceStatus[]>([]);
-    const [activeTab, setActiveTab] = useState<'overview' | 'training'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'training' | 'settings'>('overview');
     const [showDBSModal, setShowDBSModal] = useState(false);
 
     useEffect(() => {
@@ -151,6 +152,15 @@ export default function ComplianceDashboardPage() {
                             }`}
                     >
                         Training Matrix
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('settings')}
+                        className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'settings'
+                            ? 'border-cyan-500 text-cyan-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                    >
+                        📧 Report Settings
                     </button>
                 </nav>
             </div>
@@ -360,8 +370,10 @@ export default function ComplianceDashboardPage() {
                         </button>
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'training' ? (
                 <TrainingMatrix />
+            ) : (
+                <ComplianceReportSettings />
             )}
 
             {showDBSModal && (

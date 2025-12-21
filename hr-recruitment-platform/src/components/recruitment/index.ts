@@ -8,3 +8,5 @@ export { JobsTable } from './JobsTable';
 export { ApplicationsTable } from './ApplicationsTable';
 export { InterviewsTable } from './InterviewsTable';
 export { ApplicationKanbanBoard } from './ApplicationKanbanBoard';
+export { default as ValuesInterviewScoring } from './ValuesInterviewScoring';
+

@@ -14,6 +14,7 @@ import {
 import { format } from 'date-fns';
 import AdminPrivilegeSetup from '../components/AdminPrivilegeSetup';
 import DashboardAnalytics from '../components/DashboardAnalytics';
+import UKComplianceDashboardWidget from '../components/UKComplianceDashboardWidget';
 
 interface DashboardStats {
   totalEmployees: number;
@@ -225,6 +226,11 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500 text-center py-8">No recent activities</p>
           )}
         </div>
+      </div>
+
+      {/* UK Compliance Widget - CQC & Home Office */}
+      <div className="mt-8">
+        <UKComplianceDashboardWidget />
       </div>
 
       {/* Analytics Section */}
