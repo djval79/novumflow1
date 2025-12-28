@@ -13,6 +13,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import {
     Shield,
     ShieldCheck,
@@ -200,7 +201,7 @@ export default function UKComplianceDashboardWidget() {
             setExpiringItems(items.slice(0, 5)); // Top 5 most urgent
 
         } catch (error) {
-            console.error('Error loading compliance data:', error);
+            log.error('Error loading compliance data', error, { component: 'UKComplianceDashboardWidget', action: 'loadComplianceData' });
         } finally {
             setLoading(false);
         }

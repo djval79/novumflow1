@@ -6,6 +6,7 @@ import { Building2, Check, X, Loader2, Shield, Save, CheckCircle2, Clock } from 
 import Toast from '@/components/Toast';
 import TenantOnboardingWizard from '@/components/TenantOnboardingWizard';
 import { onboardingService, TenantOnboarding } from '@/lib/services/OnboardingService';
+import { log } from '@/lib/logger';
 
 export default function TenantManagementPage() {
     const { user, profile } = useAuth();
@@ -182,18 +183,22 @@ export default function TenantManagementPage() {
     async function handleUpdateTenant() {
         if (!selectedTenant) return;
 
-        console.log('Updating tenant:', {
-            tenantId: selectedTenant.id,
-            oldName: selectedTenant.name,
-            newName: formData.name,
-            updates: {
-                name: formData.name,
-                domain: formData.domain || null,
-                subscription_tier: formData.subscription_tier,
-                subscription_price: parseFloat(formData.subscription_price) || undefined,
-                currency: formData.currency,
-                subscription_interval: formData.subscription_interval,
-                max_users: parseInt(formData.max_users) || 10
+        log.info('Updating tenant', {
+            component: 'TenantManagementPage',
+            action: 'handleUpdateTenant',
+            metadata: {
+                tenantId: selectedTenant.id,
+                oldName: selectedTenant.name,
+                newName: formData.name,
+                updates: {
+                    name: formData.name,
+                    domain: formData.domain || null,
+                    subscription_tier: formData.subscription_tier,
+                    subscription_price: parseFloat(formData.subscription_price) || undefined,
+                    currency: formData.currency,
+                    subscription_interval: formData.subscription_interval,
+                    max_users: parseInt(formData.max_users) || 10
+                }
             }
         });
 
@@ -210,7 +215,7 @@ export default function TenantManagementPage() {
             });
 
             if (updatedTenant) {
-                console.log('Tenant update successful:', updatedTenant);
+                log.info('Tenant update successful', { component: 'TenantManagementPage', action: 'handleUpdateTenant', metadata: { tenantId: updatedTenant.id } });
                 setToast({ message: 'Tenant updated successfully', type: 'success' });
 
                 // Update local state directly with the returned object
@@ -222,11 +227,11 @@ export default function TenantManagementPage() {
 
                 setEditMode(false);
             } else {
-                console.error('Tenant update failed - service returned null');
+                log.error('Tenant update failed - service returned null', null, { component: 'TenantManagementPage', action: 'handleUpdateTenant' });
                 setToast({ message: 'Failed to update tenant. Please check permissions.', type: 'error' });
             }
         } catch (error) {
-            console.error('Error updating tenant:', error);
+            log.error('Error updating tenant', error, { component: 'TenantManagementPage', action: 'handleUpdateTenant' });
             setToast({ message: 'An error occurred while updating tenant', type: 'error' });
         } finally {
             setSaving(false);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import {
     User, Briefcase, FileText, Calendar, Bell, CheckCircle,
@@ -30,6 +31,51 @@ export default function ActivityTimeline() {
         loadActivities();
     }, [currentTenant]);
 
+    function mapActionToType(action: string, entityType: string): ActivityEvent['type'] {
+        if (entityType === 'employee' && action === 'CREATE') return 'employee_added';
+        if (entityType === 'application') return 'application_received';
+        if (entityType === 'interview') return 'interview_scheduled';
+        if (entityType === 'document') return 'document_uploaded';
+        if (entityType === 'training') return 'training_completed';
+        if (entityType === 'leave_request') return 'leave_requested';
+        if (entityType === 'employee_digital_skills') return 'employee_onboarded';
+        if (entityType === 'jobs') return 'offer_sent';
+        return 'employee_added';
+    }
+
+    function formatActivityTitle(action: string, entityType: string, entityName: string, metadata?: any): string {
+        const entityLabel = {
+            'employee': 'Employee Profile',
+            'application': 'Job Application',
+            'interview': 'Interview Session',
+            'leave_request': 'Leave Request',
+            'jobs': 'New Role',
+            'employee_digital_skills': 'Skill Matrix',
+            'email_templates': 'Communication Template'
+        }[entityType] || entityType;
+
+        if (action === 'CREATE') {
+            if (entityType === 'leave_request') return `New Leave Request Filed`;
+            if (entityType === 'jobs') return `New Role Posted: ${entityName}`;
+            if (entityType === 'employee_digital_skills') return `New Digital Skill Verified`;
+            return `New ${entityLabel} Registered`;
+        }
+
+        if (action === 'UPDATE') {
+            if (entityType === 'application' && metadata?.status) {
+                return `Application moved to ${metadata.status}`;
+            }
+            if (entityType === 'leave_request' && metadata?.status) {
+                return `Leave Request ${metadata.status}`;
+            }
+            return `${entityLabel} Profile Updated`;
+        }
+
+        if (action === 'DELETE') return `${entityLabel} Removed`;
+
+        return `${entityLabel} ${action.toLowerCase()}`;
+    }
+
     async function loadActivities() {
         setLoading(true);
         try {
@@ -42,44 +88,29 @@ export default function ActivityTimeline() {
 
             if (error) throw error;
 
+            if (!data || data.length === 0) {
+                setActivities(generateMockActivities());
+                return;
+            }
+
             // Transform audit logs to activity events
-            const events: ActivityEvent[] = (data || []).map(log => ({
+            const events: ActivityEvent[] = data.map(log => ({
                 id: log.id,
                 type: mapActionToType(log.action, log.entity_type),
-                title: formatActivityTitle(log.action, log.entity_type, log.entity_name),
-                description: log.entity_name || '',
+                title: formatActivityTitle(log.action, log.entity_type, log.entity_name, log.changes),
+                description: log.entity_name || 'System event',
                 timestamp: log.timestamp,
-                user: log.user_email,
+                user: log.user_email?.split('@')[0].replace('.', ' '),
                 metadata: log.changes,
             }));
 
             setActivities(events);
         } catch (error) {
-            console.error('Error loading activities:', error);
+            log.error('Error loading activities', error, { component: 'ActivityTimeline', action: 'loadActivities' });
             setActivities(generateMockActivities());
         } finally {
             setLoading(false);
         }
-    }
-
-    function mapActionToType(action: string, entityType: string): ActivityEvent['type'] {
-        if (entityType === 'employee' && action === 'CREATE') return 'employee_added';
-        if (entityType === 'application') return 'application_received';
-        if (entityType === 'interview') return 'interview_scheduled';
-        if (entityType === 'document') return 'document_uploaded';
-        if (entityType === 'training') return 'training_completed';
-        return 'employee_added';
-    }
-
-    function formatActivityTitle(action: string, entityType: string, entityName: string): string {
-        const actionText = {
-            CREATE: 'created',
-            UPDATE: 'updated',
-            DELETE: 'deleted',
-            VIEW: 'viewed',
-        }[action] || action.toLowerCase();
-
-        return `${entityType} ${actionText}: ${entityName}`;
     }
 
     function generateMockActivities(): ActivityEvent[] {

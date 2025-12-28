@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { complianceService, ComplianceStatus } from '@/lib/services/ComplianceService';
 import { Shield, CheckCircle, AlertTriangle, XCircle, Download, Share2, User } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 export default function StaffPassportPage() {
     const { user } = useAuth();
@@ -24,7 +25,7 @@ export default function StaffPassportPage() {
             const data = await complianceService.getStaffComplianceStatus(user.id);
             setStatus(data);
         } catch (error) {
-            console.error('Error loading passport status:', error);
+            log.error('Error loading passport status', error, { component: 'StaffPassportPage', action: 'loadStatus' });
         } finally {
             setLoading(false);
         }

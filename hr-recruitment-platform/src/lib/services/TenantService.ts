@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { log } from '@/lib/logger';
 
 export interface Tenant {
     id: string;
@@ -12,8 +13,8 @@ export interface Tenant {
     is_active?: boolean;
     max_users?: number;
     careflow_enabled?: boolean;
-    cardflow_enabled?: boolean; // Legacy/Typo support if needed
-    settings?: Record<string, any>; // JSONB settings column
+    cardflow_enabled?: boolean;
+    settings?: Record<string, unknown>;
 }
 
 export interface Feature {
@@ -25,6 +26,11 @@ export interface Feature {
     is_premium: boolean;
 }
 
+interface TenantFeatureRow {
+    feature_id: string;
+    is_enabled: boolean;
+}
+
 /**
  * Service for tenant and feature management.
  */
@@ -33,7 +39,7 @@ export const tenantService = {
     async getAllTenants(): Promise<Tenant[]> {
         const { data, error } = await supabase.from('tenants').select('*');
         if (error) {
-            console.error('Error fetching tenants:', error);
+            log.error('Error fetching tenants', error, { component: 'TenantService' });
             return [];
         }
         return data ?? [];
@@ -43,7 +49,7 @@ export const tenantService = {
     async getAllFeatures(): Promise<Feature[]> {
         const { data, error } = await supabase.from('features').select('*');
         if (error) {
-            console.error('Error fetching features:', error);
+            log.error('Error fetching features', error, { component: 'TenantService' });
             return [];
         }
         return data ?? [];
@@ -55,12 +61,17 @@ export const tenantService = {
             .from('tenant_features')
             .select('feature_id, is_enabled')
             .eq('tenant_id', tenantId);
+
         const statusMap = new Map<string, boolean>();
         if (error) {
-            console.error('Error fetching tenant features:', error);
+            log.error('Error fetching tenant features', error, {
+                component: 'TenantService',
+                metadata: { tenantId }
+            });
             return statusMap;
         }
-        data?.forEach((row: any) => {
+
+        data?.forEach((row: TenantFeatureRow) => {
             statusMap.set(row.feature_id, row.is_enabled);
         });
         return statusMap;
@@ -75,12 +86,22 @@ export const tenantService = {
             enabled_by: adminUserId,
             enabled_at: new Date().toISOString(),
         }, {
-            onConflict: 'tenant_id,feature_id'  // Specify which columns to use for conflict resolution
+            onConflict: 'tenant_id,feature_id'
         });
+
         if (error) {
-            console.error('Error enabling feature:', error);
+            log.error('Error enabling feature', error, {
+                component: 'TenantService',
+                metadata: { tenantId, featureId }
+            });
             return false;
         }
+
+        log.track('feature_enabled', {
+            component: 'TenantService',
+            metadata: { tenantId, featureId, adminUserId }
+        });
+
         return true;
     },
 
@@ -91,12 +112,23 @@ export const tenantService = {
             .update({ is_enabled: false })
             .eq('tenant_id', tenantId)
             .eq('feature_id', featureId);
+
         if (error) {
-            console.error('Error disabling feature:', error);
+            log.error('Error disabling feature', error, {
+                component: 'TenantService',
+                metadata: { tenantId, featureId }
+            });
             return false;
         }
+
+        log.track('feature_disabled', {
+            component: 'TenantService',
+            metadata: { tenantId, featureId }
+        });
+
         return true;
     },
+
     /** Retrieve API key for a given service for the current tenant */
     async getApiKey(tenantId: string, serviceName: string): Promise<string | null> {
         const { data, error } = await supabase
@@ -105,15 +137,24 @@ export const tenantService = {
             .eq('tenant_id', tenantId)
             .eq('service_name', serviceName)
             .single();
+
         if (error) {
-            console.error(`Error fetching API key for ${serviceName}:`, error);
+            log.error(`Error fetching API key for ${serviceName}`, error, {
+                component: 'TenantService',
+                metadata: { tenantId, serviceName }
+            });
             return null;
         }
         return data?.api_key ?? null;
     },
 
     /** Update tenant subscription details */
-    async updateTenantSubscription(tenantId: string, price: number, currency: string, interval: 'monthly' | 'yearly'): Promise<boolean> {
+    async updateTenantSubscription(
+        tenantId: string,
+        price: number,
+        currency: string,
+        interval: 'monthly' | 'yearly'
+    ): Promise<boolean> {
         const { error } = await supabase
             .from('tenants')
             .update({
@@ -125,9 +166,18 @@ export const tenantService = {
             .eq('id', tenantId);
 
         if (error) {
-            console.error('Error updating tenant subscription:', error);
+            log.error('Error updating tenant subscription', error, {
+                component: 'TenantService',
+                metadata: { tenantId }
+            });
             return false;
         }
+
+        log.track('subscription_updated', {
+            component: 'TenantService',
+            metadata: { tenantId, price, currency, interval }
+        });
+
         return true;
     },
 
@@ -150,15 +200,27 @@ export const tenantService = {
             .single();
 
         if (error) {
-            console.error('Error creating tenant:', error);
+            log.error('Error creating tenant', error, {
+                component: 'TenantService',
+                metadata: { tenantName: tenant.name }
+            });
             return null;
         }
+
+        log.track('tenant_created', {
+            component: 'TenantService',
+            metadata: { tenantId: data.id, tenantName: data.name }
+        });
+
         return data;
     },
 
     /** Update an existing tenant */
     async updateTenant(tenantId: string, updates: Partial<Tenant>): Promise<Tenant | null> {
-        console.log('TenantService.updateTenant called:', { tenantId, updates });
+        log.info('Updating tenant', {
+            component: 'TenantService',
+            metadata: { tenantId, fields: Object.keys(updates) }
+        });
 
         const { data, error } = await supabase
             .from('tenants')
@@ -170,17 +232,18 @@ export const tenantService = {
             .select();
 
         if (error) {
-            console.error('Error updating tenant:', {
-                error,
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
+            log.error('Error updating tenant', error, {
+                component: 'TenantService',
+                metadata: { tenantId, errorCode: error.code }
             });
             return null;
         }
 
-        console.log('Tenant updated successfully:', data);
+        log.info('Tenant updated successfully', {
+            component: 'TenantService',
+            metadata: { tenantId }
+        });
+
         return data?.[0] || null;
     },
 
@@ -192,9 +255,19 @@ export const tenantService = {
             .eq('id', tenantId);
 
         if (error) {
-            console.error('Error deleting tenant:', error);
+            log.error('Error deleting tenant', error, {
+                component: 'TenantService',
+                metadata: { tenantId }
+            });
             return false;
         }
+
+        log.security('tenant_deleted', {
+            component: 'TenantService',
+            metadata: { tenantId }
+        });
+
         return true;
     },
 };
+

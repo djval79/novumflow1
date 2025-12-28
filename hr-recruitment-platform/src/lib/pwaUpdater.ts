@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { log } from './logger';
 
 /**
  * Hook to handle PWA updates
@@ -23,7 +24,7 @@ export function usePWAUpdate() {
         setInterval(() => {
           registration.update();
         }, 60 * 60 * 1000); // 1 hour
-      }).catch(console.error);
+      }).catch((error) => log.error('Service worker registration failed', error, { component: 'pwaUpdater' }));
     }
   }, []);
 
@@ -78,7 +79,7 @@ export async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegis
     const registration = await navigator.serviceWorker.getRegistration();
     return registration || null;
   } catch (error) {
-    console.error('Failed to get service worker registration', error);
+    log.error('Failed to get service worker registration', error, { component: 'pwaUpdater' });
     return null;
   }
 }
@@ -91,12 +92,12 @@ export async function unregisterServiceWorker(): Promise<boolean> {
     const registration = await getServiceWorkerRegistration();
     if (registration) {
       const success = await registration.unregister();
-      console.log('Service worker unregistered', { success });
+      log.info('Service worker unregistered', { component: 'pwaUpdater', metadata: { success } });
       return success;
     }
     return false;
   } catch (error) {
-    console.error('Failed to unregister service worker', error);
+    log.error('Failed to unregister service worker', error, { component: 'pwaUpdater' });
     return false;
   }
 }
@@ -109,10 +110,10 @@ export async function clearAllCaches(): Promise<void> {
     if ('caches' in window) {
       const cacheNames = await caches.keys();
       await Promise.all(cacheNames.map(name => caches.delete(name)));
-      console.log('All caches cleared', { count: cacheNames.length });
+      log.info(`All caches cleared (${cacheNames.length} caches)`, { component: 'pwaUpdater' });
     }
   } catch (error) {
-    console.error('Failed to clear caches', error);
+    log.error('Failed to clear caches', error, { component: 'pwaUpdater' });
   }
 }
 
@@ -142,7 +143,7 @@ export async function getCacheStats(): Promise<{
       };
     }
   } catch (error) {
-    console.error('Failed to get cache stats', error);
+    log.error('Failed to get cache stats', error, { component: 'pwaUpdater' });
   }
 
   return {

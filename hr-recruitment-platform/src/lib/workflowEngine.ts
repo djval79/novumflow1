@@ -4,6 +4,8 @@
  * Saves 20-30 manual handoffs per week
  */
 
+import { log } from './logger';
+
 export interface WorkflowRule {
   id: string;
   name: string;
@@ -219,7 +221,7 @@ export class WorkflowAutomationEngine {
   // Process entity changes and trigger workflows
   async processEntity(entity: any, entityType: string, changeType: 'create' | 'update' | 'delete') {
     const applicableRules = this.getApplicableRules(entity, entityType, changeType);
-    
+
     for (const rule of applicableRules) {
       if (this.evaluateConditions(rule.conditions, entity)) {
         await this.executeActions(rule.actions, entity, entityType);
@@ -231,7 +233,7 @@ export class WorkflowAutomationEngine {
     return Array.from(this.rules.values()).filter(rule => {
       if (!rule.isActive) return false;
       if (rule.trigger.entity !== entityType) return false;
-      
+
       switch (rule.trigger.type) {
         case 'status_change':
           return changeType === 'update' && entity.status === rule.trigger.value;
@@ -251,7 +253,7 @@ export class WorkflowAutomationEngine {
   private evaluateConditions(conditions: WorkflowCondition[], entity: any): boolean {
     return conditions.every(condition => {
       const fieldValue = this.getFieldValue(entity, condition.field);
-      
+
       switch (condition.operator) {
         case 'equals':
           return fieldValue === condition.value;
@@ -305,8 +307,8 @@ export class WorkflowAutomationEngine {
 
   private async updateEntityStatus(entity: any, status: string, entityType: string) {
     // This would integrate with your backend API
-    console.log(`Updating ${entityType} ${entity.id} status to: ${status}`);
-    
+    log.info(`Updating ${entityType} ${entity.id} status to: ${status}`, { component: 'WorkflowAutomationEngine', action: 'updateEntityStatus', metadata: { entityType, entityId: entity.id, status } });
+
     // Example API call:
     // await fetch(`/api/${entityType}/${entity.id}`, {
     //   method: 'PATCH',
@@ -317,7 +319,7 @@ export class WorkflowAutomationEngine {
   private async sendNotification(params: any, entity: any) {
     const message = this.interpolateMessage(params.message, entity);
     const title = this.interpolateMessage(params.title, entity);
-    
+
     const notification = {
       id: `notif_${Date.now()}`,
       title,
@@ -341,8 +343,8 @@ export class WorkflowAutomationEngine {
 
   private async deliverNotification(notification: any) {
     // This would integrate with your notification system
-    console.log('Delivering notification:', notification);
-    
+    log.info('Delivering notification', { component: 'WorkflowAutomationEngine', action: 'deliverNotification', metadata: { notification } });
+
     // Store in database for in-app notifications
     // Send emails/SMS based on user preferences
     // Real-time push to connected clients
@@ -350,22 +352,22 @@ export class WorkflowAutomationEngine {
 
   private async scheduleInterview(entity: any, params: any) {
     // Auto-suggest interview slots based on availability
-    console.log('Auto-scheduling interview for:', entity);
+    log.info(`Auto-scheduling interview for entity: ${entity.id}`, { component: 'WorkflowAutomationEngine', action: 'scheduleInterview' });
   }
 
   private async generateDocument(entity: any, params: any) {
     // Trigger document generation
-    console.log('Auto-generating document for:', entity);
+    log.info(`Auto-generating document for entity: ${entity.id}`, { component: 'WorkflowAutomationEngine', action: 'generateDocument' });
   }
 
   private async assignTask(entity: any, params: any) {
     // Create task assignment
-    console.log('Assigning task:', params.task, 'to:', params.assignee);
+    log.info(`Assigning task: ${params.task} to: ${params.assignee}`, { component: 'WorkflowAutomationEngine', action: 'assignTask' });
   }
 
   private async escalateIssue(entity: any, params: any) {
     // Escalate to higher authority
-    console.log('Escalating issue to:', params.escalate_to);
+    log.info(`Escalating issue to: ${params.escalate_to}`, { component: 'WorkflowAutomationEngine', action: 'escalateIssue' });
   }
 
   // Get all active rules
@@ -389,7 +391,7 @@ export class WorkflowAutomationEngine {
     time_saved_hours: number;
   } {
     const activeRules = this.getActiveRules().length;
-    
+
     return {
       total_rules: this.rules.size,
       active_rules: activeRules,

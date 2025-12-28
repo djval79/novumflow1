@@ -10,6 +10,7 @@ import AddLeaveRequestModal from '@/components/AddLeaveRequestModal';
 import HRAnalyticsDashboard from '@/components/HRAnalyticsDashboard';
 import Toast from '@/components/Toast';
 import SyncToCareFlow, { CompactSyncButton } from '@/components/SyncToCareFlow';
+import { log } from '@/lib/logger';
 
 type TabType = 'employees' | 'documents' | 'attendance' | 'leaves' | 'shifts' | 'analytics';
 
@@ -87,7 +88,7 @@ export default function HRModulePage() {
           break;
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      log.error('Error loading data', error, { component: 'HRModulePage', action: 'loadData', metadata: { activeTab } });
     } finally {
       setLoading(false);
     }

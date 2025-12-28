@@ -4,6 +4,7 @@ import { FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import FormBuilder, { FormField } from '@/components/FormBuilder/FormBuilder';
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
+import { log } from '@/lib/logger';
 
 type FormType =
     | 'job_application'
@@ -215,7 +216,7 @@ export default function FormsPage() {
             loadForms();
             setActiveTab('all');
         } catch (error) {
-            console.error('Template upload error:', error);
+            log.error('Template upload error', error, { component: 'FormsPage', action: 'handleTemplateUpload' });
             let message = 'Failed to import template';
             if (error instanceof SyntaxError) {
                 message = 'Invalid JSON format. Please ensure the file contains valid JSON data.';

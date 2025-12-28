@@ -4,7 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Search, Edit, Trash2, Download, FileText, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import AddTemplateModal from '@/components/AddTemplateModal';
+import GenerateLetterModal from '@/components/GenerateLetterModal';
 import Toast from '@/components/Toast';
+import { log } from '@/lib/logger';
 
 type TabType = 'templates' | 'generated';
 
@@ -15,6 +17,8 @@ export default function LettersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAddTemplateModal, setShowAddTemplateModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [selectedTemplateForGen, setSelectedTemplateForGen] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const { user } = useAuth();
 
@@ -40,27 +44,27 @@ export default function LettersPage() {
         setGeneratedLetters(data || []);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      log.error('Error loading data', error, { component: 'LettersPage', action: 'loadData', metadata: { activeTab } });
     } finally {
       setLoading(false);
     }
   }
 
-  async function generateLetter(templateId: string) {
-    // Placeholder for letter generation logic
-    setToast({ message: 'Letter generation feature - Would open modal to select employee and fill merge fields', type: 'warning' });
+  function generateLetter(templateId?: string) {
+    setSelectedTemplateForGen(templateId);
+    setShowGenerateModal(true);
   }
 
   function handleAddNew() {
     if (activeTab === 'templates') {
       setShowAddTemplateModal(true);
     } else {
-      setToast({ message: 'Generate letter feature coming soon', type: 'warning' });
+      generateLetter();
     }
   }
 
-  async function handleSuccess() {
-    setToast({ message: 'Template created successfully!', type: 'success' });
+  async function handleSuccess(message: string = 'Success!') {
+    setToast({ message, type: 'success' });
     // Small delay to ensure database has committed the changes
     await new Promise(resolve => setTimeout(resolve, 300));
     await loadData();
@@ -297,7 +301,18 @@ export default function LettersPage() {
       <AddTemplateModal
         isOpen={showAddTemplateModal}
         onClose={() => setShowAddTemplateModal(false)}
-        onSuccess={handleSuccess}
+        onSuccess={() => handleSuccess('Template created successfully!')}
+        onError={handleError}
+      />
+
+      <GenerateLetterModal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        templateId={selectedTemplateForGen}
+        onSuccess={() => {
+          setActiveTab('generated');
+          handleSuccess('Letter generated successfully!');
+        }}
         onError={handleError}
       />
 

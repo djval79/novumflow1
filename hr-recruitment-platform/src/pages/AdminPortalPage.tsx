@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Users, Building, Activity, Search, Filter, MoreVertical, CheckCircle, XCircle, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import EditTenantModal from '@/components/admin/EditTenantModal';
+import { log } from '@/lib/logger';
 
 interface Tenant {
     id: string;
@@ -44,7 +45,7 @@ export default function AdminPortalPage() {
             if (error) throw error;
             if (data) setStats(data);
         } catch (err) {
-            console.error('Error fetching stats:', err);
+            log.error('Error fetching stats', err, { component: 'AdminPortalPage' });
         }
     };
 
@@ -54,9 +55,10 @@ export default function AdminPortalPage() {
             const { data, error } = await supabase.rpc('get_all_tenants');
             if (error) throw error;
             setTenants(data || []);
-        } catch (err: any) {
-            console.error('Error fetching tenants:', err);
-            setError(err.message);
+        } catch (err) {
+            log.error('Error fetching tenants', err, { component: 'AdminPortalPage' });
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -74,9 +76,18 @@ export default function AdminPortalPage() {
             // Refresh list
             fetchTenants();
             fetchStats(); // Update stats too
+
+            log.security('tenant_status_toggled', {
+                component: 'AdminPortalPage',
+                metadata: { tenantId, newStatus: !currentStatus }
+            });
+
             toast.success(`Tenant ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
-        } catch (err: any) {
-            console.error('Error toggling status:', err);
+        } catch (err) {
+            log.error('Error toggling tenant status', err, {
+                component: 'AdminPortalPage',
+                metadata: { tenantId }
+            });
             toast.error('Failed to update tenant status');
         }
     };

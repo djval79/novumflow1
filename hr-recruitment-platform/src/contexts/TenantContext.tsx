@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from './AuthContext';
 
 // Tenant types
@@ -107,7 +108,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                 }
             }
         } catch (error) {
-            console.error('Error loading tenants:', error);
+            log.error('Error loading tenants', error, { component: 'TenantContext', action: 'loadTenants' });
         } finally {
             setLoading(false);
         }
@@ -122,10 +123,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         if (currentTenant) {
             supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id })
                 .then(({ error }) => {
-                    if (error) console.error('Error enforcing RLS context:', error);
-                    else console.log('RLS Context set to:', currentTenant.id);
+                    if (error) log.error('Error enforcing RLS context', error, { component: 'TenantContext', action: 'set_current_tenant', metadata: { tenantId: currentTenant.id } });
+                    else log.debug('RLS Context set', { tenantId: currentTenant.id, component: 'TenantContext' });
                 })
-                .catch(err => console.error('Failed to set RLS context:', err));
+                .catch(err => log.error('Failed to set RLS context', err, { component: 'TenantContext', action: 'set_current_tenant' }));
         }
     }, [currentTenant]);
 
@@ -133,7 +134,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const switchTenant = useCallback(async (tenantId: string) => {
         const tenant = tenants.find(t => t.id === tenantId);
         if (!tenant) {
-            console.error('Tenant not found:', tenantId);
+            log.error('Tenant not found during switch', undefined, { component: 'TenantContext', action: 'switchTenant', metadata: { tenantId } });
             return;
         }
 
@@ -147,10 +148,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             });
 
             if (error) {
-                console.error('Error setting tenant context:', error);
+                log.error('Error setting tenant context', error, { component: 'TenantContext', action: 'switchTenant', metadata: { tenantId } });
             }
         } catch (error) {
-            console.error('Error calling set_current_tenant:', error);
+            log.error('Error calling set_current_tenant', error, { component: 'TenantContext', action: 'switchTenant', metadata: { tenantId } });
         }
 
         // Reload page to refresh all data with new tenant
@@ -173,7 +174,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
             return data;
         } catch (error) {
-            console.error('Error creating tenant:', error);
+            log.error('Error creating tenant', error, { component: 'TenantContext', action: 'createTenant', metadata: { name, subdomain } });
             return null;
         }
     }, [user, loadTenants]);

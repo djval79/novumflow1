@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Building2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 
 export default function SimpleLoginPage() {
   const [email, setEmail] = useState('');
@@ -24,6 +25,10 @@ export default function SimpleLoginPage() {
 
       if (authError) {
         setError(authError.message);
+        log.security('failed_login', {
+          component: 'SimpleLoginPage',
+          metadata: { email, reason: authError.message }
+        });
         setLoading(false);
         return;
       }
@@ -42,10 +47,15 @@ export default function SimpleLoginPage() {
           .select()
           .single();
 
+        log.track('login_success', {
+          component: 'SimpleLoginPage',
+          userId: data.user.id
+        });
+
         navigate('/dashboard');
       }
-    } catch (err: any) {
-      console.error('Login error:', err);
+    } catch (err) {
+      log.error('Login error', err, { component: 'SimpleLoginPage' });
       setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
@@ -75,11 +85,18 @@ export default function SimpleLoginPage() {
             created_at: new Date().toISOString(),
           });
 
+        log.track('quick_account_created', {
+          component: 'SimpleLoginPage',
+          userId: data.user.id
+        });
+
         alert('Admin account created!\nEmail: admin@novumflow.com\nPassword: admin123456\nRedirecting...');
         navigate('/dashboard');
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      log.error('Quick account creation failed', err, { component: 'SimpleLoginPage' });
     } finally {
       setLoading(false);
     }
@@ -94,7 +111,7 @@ export default function SimpleLoginPage() {
               <Building2 className="w-10 h-10 text-white" />
             </div>
           </div>
-          
+
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">NOVUMFLOW Access</h1>
           <p className="text-center text-gray-600 mb-8">Direct Authentication (No Edge Functions)</p>
 
@@ -127,7 +144,7 @@ export default function SimpleLoginPage() {
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
               />
-              
+
               <input
                 type="password"
                 value={password}
@@ -136,7 +153,7 @@ export default function SimpleLoginPage() {
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
               />
-              
+
               <button
                 type="submit"
                 disabled={loading}

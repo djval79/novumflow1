@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Building2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import QuickAdminSetup from '../components/QuickAdminSetup';
+import { log } from '@/lib/logger';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ export default function LoginPage() {
       const { error: authError } = await signIn(email, password);
 
       if (authError) {
-        console.error('Auth error:', authError);
+        log.error('Auth error', authError, { component: 'LoginPage', action: 'handleSubmit', metadata: { email } });
         setError(authError.message || 'Invalid email or password');
         setLoading(false);
         return;
@@ -56,8 +57,8 @@ export default function LoginPage() {
 
         navigate('/dashboard');
       }
-    } catch (err: any) {
-      console.error('Login error:', err);
+    } catch (err: unknown) {
+      log.error('Login error', err, { component: 'LoginPage', action: 'handleSubmit' });
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }

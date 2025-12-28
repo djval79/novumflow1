@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { complianceService } from '@/lib/services/ComplianceService';
-import { Save, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Save, AlertTriangle, Loader2 } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 export default function ComplianceSettingsPage() {
     const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ export default function ComplianceSettingsPage() {
                 training_validity: { ...prev.training_validity, ...(data.training_validity || {}) }
             }));
         } catch (error) {
-            console.error('Error loading settings:', error);
+            log.error('Error loading settings', error, { component: 'ComplianceSettingsPage', action: 'loadSettings' });
         } finally {
             setLoading(false);
         }
@@ -49,7 +50,7 @@ export default function ComplianceSettingsPage() {
                 alert('Failed to update settings.');
             }
         } catch (error) {
-            console.error('Error saving settings:', error);
+            log.error('Error saving settings', error, { component: 'ComplianceSettingsPage', action: 'handleSave' });
             alert('An error occurred while saving.');
         } finally {
             setSaving(false);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { Wand2, Loader2 } from 'lucide-react';
 
@@ -84,7 +85,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         requirements: data.requirements || prev.requirements
       }));
     } catch (err: any) {
-      console.error(err);
+      log.error('Failed to generate description', err, { component: 'AddJobModal', action: 'handleGenerateWithAI' });
       onError(err.message || "Failed to generate description");
     } finally {
       setGeneratingAI(false);
@@ -115,7 +116,7 @@ export default function AddJobModal({ isOpen, onClose, onSuccess, onError, job }
         }
       }
 
-      console.log('Using Workflow ID:', workflowId);
+      log.debug('Using Workflow ID', { workflowId, component: 'AddJobModal', action: 'handleSubmit' });
 
       const salaryRange = formData.salary_range_min && formData.salary_range_max
         ? `${formData.salary_range_min} - ${formData.salary_range_max}`

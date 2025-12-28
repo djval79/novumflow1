@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Zap, Clock, Target, TrendingUp, Settings, Play, Pause, Edit, Trash2, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import Modal from './Modal';
 
 // Define interfaces matching the backend/frontend needs
@@ -69,7 +70,7 @@ export default function AutomationDashboard() {
         });
       }
     } catch (error) {
-      console.error('Failed to load automation data:', error);
+      log.error('Failed to load automation data', error, { component: 'AutomationDashboard', action: 'loadAutomationData' });
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ export default function AutomationDashboard() {
       // Optimistic update
       setWorkflows(workflows.map(w => w.id === ruleId ? { ...w, isActive } : w));
     } catch (error) {
-      console.error('Failed to toggle rule:', error);
+      log.error('Failed to toggle rule', error, { component: 'AutomationDashboard', action: 'toggleRule', metadata: { ruleId, isActive } });
       loadAutomationData(); // Revert on error
     }
   };
@@ -102,7 +103,7 @@ export default function AutomationDashboard() {
       alert('Delete functionality requires backend update. Hiding locally for now.');
       setWorkflows(workflows.filter(w => w.id !== ruleId));
     } catch (error) {
-      console.error('Failed to delete rule:', error);
+      log.error('Failed to delete rule', error, { component: 'AutomationDashboard', action: 'deleteRule', metadata: { ruleId } });
     }
   };
 
@@ -240,7 +241,7 @@ export default function AutomationDashboard() {
         await loadAutomationData();
         setShowCreateModal(false);
       } catch (error) {
-        console.error('Failed to create rule:', error);
+        log.error('Failed to create rule', error, { component: 'AutomationDashboard', action: 'handleSubmit' });
         alert('Failed to create automation rule');
       } finally {
         setSubmitting(false);

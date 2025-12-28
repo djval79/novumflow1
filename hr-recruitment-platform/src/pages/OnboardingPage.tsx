@@ -4,6 +4,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { User, Calendar, CheckCircle, Clock, AlertCircle, Plus, Search, ChevronRight } from 'lucide-react';
 import OnboardingChecklist from '@/components/OnboardingChecklist';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import { log } from '@/lib/logger';
 
 interface NewHire {
     id: string;
@@ -62,7 +63,7 @@ export default function OnboardingPage() {
                 setSelectedHire(hires[0]);
             }
         } catch (error) {
-            console.error('Error loading new hires:', error);
+            log.error('Error loading new hires', error, { component: 'OnboardingPage', action: 'loadNewHires' });
             setNewHires(generateMockNewHires());
         } finally {
             setLoading(false);

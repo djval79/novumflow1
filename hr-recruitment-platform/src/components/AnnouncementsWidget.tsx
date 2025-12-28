@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTenant } from '@/contexts/TenantContext';
+import { log } from '@/lib/logger';
 import {
     Megaphone, Pin, Calendar, User, ChevronRight,
     Plus, Edit2, Trash2, X, Check, AlertTriangle
@@ -44,7 +45,7 @@ export default function AnnouncementsWidget() {
             if (error) throw error;
             setAnnouncements(data || []);
         } catch (error) {
-            console.error('Error loading announcements:', error);
+            log.error('Error loading announcements', error, { component: 'AnnouncementsWidget', action: 'loadAnnouncements' });
             setAnnouncements(generateMockAnnouncements());
         } finally {
             setLoading(false);
@@ -164,8 +165,8 @@ export default function AnnouncementsWidget() {
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`px-3 py-1 text-xs rounded-lg transition ${filter === f
-                                    ? 'bg-indigo-100 text-indigo-700 font-medium'
-                                    : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-indigo-100 text-indigo-700 font-medium'
+                                : 'text-gray-600 hover:bg-gray-100'
                                 }`}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}

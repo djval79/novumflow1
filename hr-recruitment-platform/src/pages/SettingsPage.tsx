@@ -3,9 +3,26 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Save, Upload, Building2, Mail } from 'lucide-react';
 import EmailTemplateEditor from '../components/EmailTemplateEditor';
+import { log } from '@/lib/logger';
+
+interface CompanySettings {
+  id: string;
+  company_name?: string;
+  company_email?: string;
+  company_phone?: string;
+  company_website?: string;
+  company_address?: string;
+  working_hours_start?: string;
+  working_hours_end?: string;
+  annual_leave_days?: number;
+  sick_leave_days?: number;
+  timezone?: string;
+  currency?: string;
+  [key: string]: unknown;
+}
 
 export default function SettingsPage() {
-  const [companySettings, setCompanySettings] = useState<any>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -27,7 +44,7 @@ export default function SettingsPage() {
         setCompanySettings(data);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      log.error('Error loading settings', error, { component: 'SettingsPage' });
     } finally {
       setLoading(false);
     }
@@ -58,10 +75,17 @@ export default function SettingsPage() {
         timestamp: new Date().toISOString()
       });
 
+      log.track('settings_updated', {
+        component: 'SettingsPage',
+        userId: user?.id
+      });
+
       setMessage('Settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
-    } catch (error: any) {
-      setMessage('Error saving settings: ' + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setMessage('Error saving settings: ' + errorMessage);
+      log.error('Error saving settings', error, { component: 'SettingsPage' });
     } finally {
       setSaving(false);
     }

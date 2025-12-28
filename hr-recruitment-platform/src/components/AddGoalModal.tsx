@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AddGoalModalProps {
@@ -38,7 +39,7 @@ export default function AddGoalModal({ isOpen, onClose, onSuccess, onError }: Ad
                 .order('first_name');
             setEmployees(data || []);
         } catch (error) {
-            console.error('Error loading employees:', error);
+            log.error('Error loading employees for goal modal', error, { component: 'AddGoalModal', action: 'loadEmployees' });
         }
     }
 
@@ -69,6 +70,7 @@ export default function AddGoalModal({ isOpen, onClose, onSuccess, onError }: Ad
                 priority: 'medium',
             });
         } catch (error: any) {
+            log.error('Error adding goal', error, { component: 'AddGoalModal', action: 'handleSubmit', metadata: formData });
             onError(error.message);
         } finally {
             setLoading(false);

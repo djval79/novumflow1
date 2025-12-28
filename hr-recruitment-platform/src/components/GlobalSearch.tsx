@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { Search, X, User, Briefcase, FileText, Users, Calendar, Building, Clock, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -161,7 +162,7 @@ export default function GlobalSearch() {
                 setResults(searchResults);
                 setSelectedIndex(0);
             } catch (error) {
-                console.error('Search error:', error);
+                log.error('Search error', error, { component: 'GlobalSearch', action: 'performSearch', metadata: { query: searchQuery } });
                 // Generate mock results for demo
                 generateMockResults(searchQuery);
             } finally {

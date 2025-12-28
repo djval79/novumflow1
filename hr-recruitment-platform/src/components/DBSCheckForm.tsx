@@ -4,6 +4,7 @@ import { complianceService, DBSCheck } from '@/lib/services/ComplianceService';
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { X, Upload, Save, AlertCircle } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 interface DBSCheckFormProps {
     userId?: string;
@@ -63,7 +64,7 @@ export default function DBSCheckForm({ userId, applicantName, onSuccess, onCance
                 setError('Failed to save DBS check. Please try again.');
             }
         } catch (err) {
-            console.error('Error saving DBS check:', err);
+            log.error('Error saving DBS check', err, { component: 'DBSCheckForm', action: 'handleSubmit' });
             setError('An unexpected error occurred.');
         } finally {
             setIsSubmitting(false);

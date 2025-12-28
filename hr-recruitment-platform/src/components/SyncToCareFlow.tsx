@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import {
     RefreshCw, CheckCircle, AlertCircle, Heart,
@@ -57,7 +58,7 @@ export default function SyncToCareFlow({
                 onSuccess();
             }
         } catch (error: any) {
-            console.error('Sync error:', error);
+            log.error('CareFlow sync failed', error, { component: 'SyncToCareFlow', action: 'handleSync', metadata: { employeeId, tenantId: currentTenant.id } });
             setResult({
                 success: false,
                 message: error.message || 'Failed to sync with CareFlow'
@@ -76,8 +77,8 @@ export default function SyncToCareFlow({
                 onClick={handleSync}
                 disabled={syncing}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${syncing
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-pink-500 to-rose-600 text-white hover:from-pink-600 hover:to-rose-700 shadow-sm'
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-pink-500 to-rose-600 text-white hover:from-pink-600 hover:to-rose-700 shadow-sm'
                     }`}
             >
                 {syncing ? (
@@ -146,7 +147,7 @@ export function CompactSyncButton({
                 onSuccess?.();
             }
         } catch (error) {
-            console.error('Sync error:', error);
+            log.error('CareFlow sync failed (compact)', error, { component: 'CompactSyncButton', action: 'handleSync', metadata: { employeeId, tenantId: currentTenant.id } });
         } finally {
             setSyncing(false);
         }

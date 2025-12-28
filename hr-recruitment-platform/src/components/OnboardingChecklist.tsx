@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import {
     CheckCircle, Circle, Clock, User, FileText, Shield,
@@ -93,7 +94,7 @@ export default function OnboardingChecklist({ employeeId, employeeName, startDat
                 initializeDefaultItems();
             }
         } catch (error) {
-            console.error('Error loading checklist:', error);
+            log.error('Error loading onboarding checklist', error, { component: 'OnboardingChecklist', action: 'loadChecklist', metadata: { employeeId } });
             initializeDefaultItems();
         } finally {
             setLoading(false);
@@ -131,7 +132,7 @@ export default function OnboardingChecklist({ employeeId, employeeName, startDat
                         ...updated,
                     });
             } catch (error) {
-                console.error('Error updating checklist:', error);
+                log.error('Error updating onboarding checklist item', error, { component: 'OnboardingChecklist', action: 'toggleItem', metadata: { employeeId, itemId, updatedStatus: updated.is_completed } });
             }
         }
     }
@@ -274,8 +275,8 @@ export default function OnboardingChecklist({ employeeId, employeeName, startDat
                                         <div
                                             key={item.id}
                                             className={`flex items-start p-3 rounded-lg border transition ${item.is_completed
-                                                    ? 'bg-green-50 border-green-200'
-                                                    : 'bg-white border-gray-200 hover:border-gray-300'
+                                                ? 'bg-green-50 border-green-200'
+                                                : 'bg-white border-gray-200 hover:border-gray-300'
                                                 }`}
                                         >
                                             <button

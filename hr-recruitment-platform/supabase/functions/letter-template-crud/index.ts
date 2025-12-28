@@ -13,14 +13,14 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Missing authorization header');
     }
 
     const token = authHeader.replace('Bearer ', '');
-    
+
     // Verify token and get user
     const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: {
@@ -91,9 +91,9 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ data: template }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     } else if (action === 'update') {
@@ -149,9 +149,9 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ data: template }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     } else if (action === 'delete') {
@@ -197,9 +197,114 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ data: template }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    } else if (action === 'generate') {
+      // Generate letter from template
+      const { template_id, employee_id, variables = {} } = data;
+
+      if (!template_id || !employee_id) {
+        throw new Error('template_id and employee_id are required for generation');
+      }
+
+      // 1. Fetch template
+      const templateResponse = await fetch(`${supabaseUrl}/rest/v1/letter_templates?id=eq.${template_id}`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        }
+      });
+      const templates = await templateResponse.json();
+      const template = templates[0];
+      if (!template) throw new Error('Template not found');
+
+      // 2. Fetch employee
+      const employeeResponse = await fetch(`${supabaseUrl}/rest/v1/employees?id=eq.${employee_id}`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        }
+      });
+      const employees = await employeeResponse.json();
+      const employee = employees[0];
+      if (!employee) throw new Error('Employee not found');
+
+      // 3. Prepare variables
+      const mergedVariables = {
+        employee_name: `${employee.first_name} ${employee.last_name}`,
+        employee_first_name: employee.first_name,
+        employee_last_name: employee.last_name,
+        employee_email: employee.email,
+        employee_number: employee.employee_number,
+        position: employee.position,
+        department: employee.department,
+        current_date: new Date().toLocaleDateString(),
+        ...variables
+      };
+
+      // 4. Replace variables in content and subject
+      let contentContent = template.content || '';
+      let subjectStr = template.subject || '';
+
+      for (const [key, value] of Object.entries(mergedVariables)) {
+        const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+        contentContent = contentContent.replace(regex, String(value));
+        subjectStr = subjectStr.replace(regex, String(value));
+      }
+
+      // 5. Save generated letter
+      const generateResponse = await fetch(`${supabaseUrl}/rest/v1/generated_letters`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          template_id,
+          employee_id,
+          letter_type: template.template_type,
+          subject: subjectStr,
+          content: contentContent,
+          status: 'draft',
+          generated_by: userId,
+          generated_at: new Date().toISOString()
+        })
+      });
+
+      if (!generateResponse.ok) {
+        const genErr = await generateResponse.text();
+        throw new Error(`Failed to save generated letter: ${genErr}`);
+      }
+
+      const generatedLetter = await generateResponse.json();
+
+      // Log audit
+      await fetch(`${supabaseUrl}/rest/v1/audit_logs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          action: 'GENERATE_LETTER',
+          entity_type: 'generated_letters',
+          entity_id: Array.isArray(generatedLetter) ? generatedLetter[0].id : generatedLetter.id,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      return new Response(
+        JSON.stringify({ data: Array.isArray(generatedLetter) ? generatedLetter[0] : generatedLetter }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     } else {
@@ -213,9 +318,9 @@ Deno.serve(async (req) => {
           message: error.message
         }
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

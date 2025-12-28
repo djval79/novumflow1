@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { X, Save, Loader2, CreditCard, Activity, Settings } from 'lucide-react';
 
 interface EditTenantModalProps {
@@ -59,7 +60,7 @@ export default function EditTenantModal({ isOpen, onClose, tenant, onSuccess }: 
                 }
             });
         } catch (err) {
-            console.error('Error fetching tenant details:', err);
+            log.error('Error fetching tenant details', err, { component: 'EditTenantModal', action: 'fetchTenantDetails', metadata: { tenantId: tenant?.id } });
         }
     };
 
@@ -89,7 +90,7 @@ export default function EditTenantModal({ isOpen, onClose, tenant, onSuccess }: 
             onSuccess();
             onClose();
         } catch (err: any) {
-            console.error('Error updating tenant:', err);
+            log.error('Error updating tenant', err, { component: 'EditTenantModal', action: 'handleSubmit', metadata: { tenantId: tenant?.id } });
             alert('Failed to update tenant: ' + err.message);
         } finally {
             setLoading(false);

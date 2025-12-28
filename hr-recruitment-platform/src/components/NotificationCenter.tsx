@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { Bell, X, Check, Clock, AlertTriangle, Users, FileText, Calendar, Briefcase } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -49,7 +50,7 @@ export default function NotificationCenter() {
             if (error) throw error;
             setNotifications(data || []);
         } catch (error) {
-            console.error('Error loading notifications:', error);
+            log.error('Error loading notifications', error, { component: 'NotificationCenter', action: 'loadNotifications' });
             // Fallback to generated notifications if table doesn't exist
             generateMockNotifications();
         } finally {

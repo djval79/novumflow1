@@ -31,6 +31,7 @@ import {
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import {
     COMPETENCY_CATEGORIES,
     CompetencyRecord,
@@ -109,7 +110,7 @@ export default function CompetencyAssessment({
             if (error) throw error;
             setRecords(data || []);
         } catch (error) {
-            console.error('Error loading competency records:', error);
+            log.error('Error loading competency records', error, { component: 'CompetencyAssessment', action: 'loadCompetencyRecords', metadata: { employeeId } });
             // Initialize with empty records for demonstration
             setRecords([]);
         } finally {
@@ -188,7 +189,7 @@ export default function CompetencyAssessment({
 
             alert('Competency assessment saved successfully!');
         } catch (error) {
-            console.error('Error saving competency:', error);
+            log.error('Error saving competency', error, { component: 'CompetencyAssessment', action: 'handleSignoff', metadata: { employeeId } });
             alert('Failed to save assessment. Please try again.');
         } finally {
             setSubmitting(false);
@@ -242,8 +243,8 @@ export default function CompetencyAssessment({
                                         key={category.id}
                                         onClick={() => setActiveCategory(isActive ? null : category.id)}
                                         className={`w-full text-left p-3 rounded-lg mb-2 transition-all ${isActive
-                                                ? 'bg-purple-100 border-purple-300 border'
-                                                : 'bg-white border border-gray-200 hover:border-purple-200'
+                                            ? 'bg-purple-100 border-purple-300 border'
+                                            : 'bg-white border border-gray-200 hover:border-purple-200'
                                             } ${!isRequired ? 'opacity-50' : ''}`}
                                     >
                                         <div className="flex items-center justify-between mb-2">
@@ -393,8 +394,8 @@ export default function CompetencyAssessment({
                                             type="button"
                                             onClick={() => setSignoffData(prev => ({ ...prev, outcome: option.value as any }))}
                                             className={`p-3 rounded-lg border-2 text-sm font-medium flex flex-col items-center gap-1 transition-all ${signoffData.outcome === option.value
-                                                    ? `border-${option.color}-500 bg-${option.color}-50 text-${option.color}-700`
-                                                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                                                ? `border-${option.color}-500 bg-${option.color}-50 text-${option.color}-700`
+                                                : 'border-gray-200 hover:border-gray-300 text-gray-600'
                                                 }`}
                                         >
                                             {option.icon}

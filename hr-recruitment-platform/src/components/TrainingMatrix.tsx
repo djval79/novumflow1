@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { complianceService, TrainingRecord } from '@/lib/services/ComplianceService';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, ChevronDown } from 'lucide-react';
 import TrainingRecordForm from './TrainingRecordForm';
@@ -74,7 +75,7 @@ export default function TrainingMatrix() {
 
             setMatrixData(Object.values(grouped));
         } catch (error) {
-            console.error('Error loading training matrix:', error);
+            log.error('Error loading training matrix', error, { component: 'TrainingMatrix', action: 'loadMatrixData' });
         } finally {
             setLoading(false);
         }

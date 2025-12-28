@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import FormRenderer from './FormBuilder/FormRenderer';
 import { FormField } from './FormBuilder/FormBuilder';
@@ -34,29 +35,39 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
   }, [isOpen]);
 
   async function loadAvailableJobs() {
-    const { data } = await supabase
-      .from('job_postings')
-      .select('id, job_title, status')
-      .in('status', ['draft', 'active'])
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('job_postings')
+        .select('id, job_title, status')
+        .in('status', ['draft', 'active'])
+        .order('created_at', { ascending: false });
 
-    if (data) {
-      setAvailableJobs(data);
+      if (error) throw error;
+      if (data) {
+        setAvailableJobs(data);
+      }
+    } catch (error) {
+      log.error('Error loading available jobs', error, { component: 'AddApplicationModal', action: 'loadAvailableJobs' });
     }
   }
 
   async function loadFormSchema() {
-    // Load the active form template.
-    const { data } = await supabase
-      .from('form_templates')
-      .select('schema')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    try {
+      // Load the active form template.
+      const { data, error } = await supabase
+        .from('form_templates')
+        .select('schema')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-    if (data && data.schema) {
-      setFormSchema(data.schema);
+      if (error) throw error;
+      if (data && data.schema) {
+        setFormSchema(data.schema);
+      }
+    } catch (error) {
+      log.error('Error loading form schema', error, { component: 'AddApplicationModal', action: 'loadFormSchema' });
     }
   }
 
@@ -74,7 +85,7 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
       const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
       return data.publicUrl;
     } catch (error) {
-      console.error('File upload error:', error);
+      log.error('File upload error in application modal', error, { component: 'AddApplicationModal', action: 'uploadFile', metadata: { bucket, category } });
       return null;
     }
   }
@@ -184,6 +195,7 @@ export default function AddApplicationModal({ isOpen, onClose, onSuccess, onErro
       setSelectedPosition('');
 
     } catch (error: any) {
+      log.error('Failed to create application', error, { component: 'AddApplicationModal', action: 'handleFinalSubmit', metadata: { position: selectedPosition, applicant: basicInfo.applicant_email } });
       onError(error.message || 'Failed to create application');
     } finally {
       setLoading(false);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { Loader2 } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
@@ -27,7 +28,7 @@ export default function PerformanceReports() {
             setData(reportData);
             setLastUpdated(new Date());
         } catch (error) {
-            console.error('Error loading reports:', error);
+            log.error('Error loading reports', error, { component: 'PerformanceReports', action: 'loadReports' });
             setData(null);
         } finally {
             setLoading(false);
@@ -50,7 +51,7 @@ export default function PerformanceReports() {
             // Reload reports after generating data
             await loadReports();
         } catch (error: any) {
-            console.error('Error generating data:', error);
+            log.error('Error generating sample data', error, { component: 'PerformanceReports', action: 'generateData' });
             alert(`Failed to generate sample data: ${error.message}`);
         } finally {
             setLoading(false);

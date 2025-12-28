@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { log } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AdminSetup() {
@@ -9,7 +10,7 @@ export default function AdminSetup() {
 
   const setupAdmin = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const { error } = await supabase
@@ -29,7 +30,7 @@ export default function AdminSetup() {
         }, 2000);
       }
     } catch (error) {
-      console.error('Error setting admin role:', error);
+      log.error('Error setting admin role', error, { component: 'AdminSetup', action: 'setupAdmin' });
     } finally {
       setLoading(false);
     }

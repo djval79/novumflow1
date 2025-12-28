@@ -7,8 +7,9 @@ import AddJobModal from '@/components/AddJobModal';
 import AddApplicationModal from '@/components/AddApplicationModal';
 import AddInterviewModal from '@/components/AddInterviewModal';
 import Toast from '@/components/Toast';
-import { X, MessageSquare, Clock } from 'lucide-react';
+import { X, MessageSquare, Clock, Zap } from 'lucide-react';
 import { callEmployeeCrud } from '@/lib/employeeCrud';
+import { log } from '@/lib/logger';
 
 type TabType = 'jobs' | 'applications' | 'interviews';
 type ViewType = 'list' | 'board';
@@ -188,6 +189,9 @@ export default function RecruitmentPage() {
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
+  const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
+  const [isScreeningBulk, setIsScreeningBulk] = useState(false);
+  const [screeningProgress, setScreeningProgress] = useState({ current: 0, total: 0 });
   const { user } = useAuth();
 
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -197,7 +201,25 @@ export default function RecruitmentPage() {
   useEffect(() => {
     loadData();
     loadWorkflowsAndStages();
+    triggerAutomationPulse();
   }, [activeTab]);
+
+  async function triggerAutomationPulse() {
+    // Only trigger once per session or periodically
+    try {
+      // 1. Check for upcoming interview reminders
+      await supabase.functions.invoke('automation-engine', {
+        body: { action: 'CHECK_REMINDERS' }
+      });
+
+      // 2. Process all pending tasks (emails, etc.)
+      await supabase.functions.invoke('automation-engine', {
+        body: { action: 'PROCESS_PENDING' }
+      });
+    } catch (err) {
+      console.error('Automation pulse failed:', err);
+    }
+  }
 
   async function loadWorkflowsAndStages() {
     const { data: wfData } = await supabase.from('recruitment_workflows').select('*');
@@ -243,7 +265,7 @@ export default function RecruitmentPage() {
           break;
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      log.error('Error loading data', error, { component: 'RecruitmentPage', action: 'loadData' });
     } finally {
       setLoading(false);
     }
@@ -314,7 +336,7 @@ export default function RecruitmentPage() {
             .insert(automationLogs);
 
           if (logError) {
-            console.error('Failed to schedule automations:', logError);
+            log.error('Failed to schedule automations', logError, { component: 'RecruitmentPage', action: 'updateApplicationStage', metadata: { stageId } });
             setToast({ message: 'Stage updated, but failed to trigger automations', type: 'warning' });
           } else {
             // Notify user
@@ -334,7 +356,7 @@ export default function RecruitmentPage() {
           }
         }
       } catch (err) {
-        console.error('Error executing automations:', err);
+        log.error('Error executing automations', err, { component: 'RecruitmentPage', action: 'updateApplicationStage' });
       }
 
     } else {
@@ -422,6 +444,63 @@ export default function RecruitmentPage() {
       loadData(); // Refresh the application data to show the new score and summary
     } catch (error: any) {
       setToast({ message: error.message || 'Failed to start AI screening', type: 'error' });
+    }
+  }
+
+  async function handleBulkAiScreen() {
+    if (selectedApplications.length === 0) return;
+
+    setIsScreeningBulk(true);
+    setScreeningProgress({ current: 0, total: selectedApplications.length });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Process in small batches to avoid hitting rate limits too aggressively
+    const batchSize = 3;
+    for (let i = 0; i < selectedApplications.length; i += batchSize) {
+      const batch = selectedApplications.slice(i, i + batchSize);
+
+      await Promise.all(batch.map(async (appId) => {
+        try {
+          const { data, error } = await supabase.functions.invoke('ai-screen-resume', {
+            body: { application_id: appId },
+          });
+
+          if (!error && (!data || !data.error)) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          failCount++;
+        } finally {
+          setScreeningProgress(prev => ({ ...prev, current: prev.current + 1 }));
+        }
+      }));
+    }
+
+    setToast({
+      message: `Bulk screening complete. Success: ${successCount}, Failed: ${failCount}`,
+      type: successCount > 0 ? 'success' : 'error'
+    });
+
+    setIsScreeningBulk(false);
+    setSelectedApplications([]);
+    loadData();
+  }
+
+  function toggleApplicationSelection(appId: string) {
+    setSelectedApplications(prev =>
+      prev.includes(appId) ? prev.filter(id => id !== appId) : [...prev, appId]
+    );
+  }
+
+  function toggleSelectAll(apps: any[]) {
+    if (selectedApplications.length === apps.length) {
+      setSelectedApplications([]);
+    } else {
+      setSelectedApplications(apps.map(app => app.id));
     }
   }
 
@@ -662,7 +741,7 @@ export default function RecruitmentPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
         ) : (
-          <>
+          <div key={`${activeTab}-${viewType}`}>
             {/* Job Postings Table */}
             {activeTab === 'jobs' && (
               <div className="overflow-x-auto">
@@ -752,6 +831,14 @@ export default function RecruitmentPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-6 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
+                          onChange={() => toggleSelectAll(filteredApplications)}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied Date</th>
@@ -765,7 +852,15 @@ export default function RecruitmentPage() {
                       filteredApplications.map((app) => {
                         const appStages = getStagesForApp(app);
                         return (
-                          <tr key={app.id} className="hover:bg-gray-50">
+                          <tr key={app.id} className={`hover:bg-gray-50 ${selectedApplications.includes(app.id) ? 'bg-indigo-50' : ''}`}>
+                            <td className="px-6 py-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedApplications.includes(app.id)}
+                                onChange={() => toggleApplicationSelection(app.id)}
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                            </td>
                             <td className="px-6 py-4">
                               <div className="text-sm font-medium text-gray-900">
                                 {app.applicant_first_name} {app.applicant_last_name}
@@ -827,7 +922,7 @@ export default function RecruitmentPage() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
+                        <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
                           No applications found
                         </td>
                       </tr>
@@ -876,11 +971,22 @@ export default function RecruitmentPage() {
                               >
                                 <div className="flex justify-between items-start mb-2">
                                   <h4 className="font-medium text-gray-900">{app.applicant_first_name} {app.applicant_last_name}</h4>
-                                  {app.score && (
-                                    <span className="text-xs font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded">
-                                      {app.score}%
-                                    </span>
-                                  )}
+                                  <div className="flex flex-col items-end gap-1">
+                                    {app.ai_score !== undefined && app.ai_score !== null && (
+                                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center ${app.ai_score >= 80 ? 'bg-green-100 text-green-700 border border-green-200' :
+                                        app.ai_score >= 50 ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                          'bg-gray-100 text-gray-600 border border-gray-200'
+                                        }`}>
+                                        <Zap className="w-2 h-2 mr-0.5" />
+                                        {app.ai_score}%
+                                      </span>
+                                    )}
+                                    {app.score && !app.ai_score && (
+                                      <span className="text-[10px] font-semibold bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded border border-gray-100">
+                                        {app.score}%
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <p className="text-xs text-gray-500 mb-2">{app.job_postings?.job_title}</p>
                                 <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-50">
@@ -988,52 +1094,92 @@ export default function RecruitmentPage() {
                 </table>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 
-      {/* Modals */}
-      <AddJobModal
-        isOpen={showAddJobModal}
-        onClose={() => setShowAddJobModal(false)}
-        onSuccess={handleSuccess}
-        onError={handleError}
-        job={selectedJob}
-      />
-      <AddApplicationModal
-        isOpen={showAddApplicationModal}
-        onClose={() => setShowAddApplicationModal(false)}
-        onSuccess={handleSuccess}
-        onError={handleError}
-      />
-      <AddInterviewModal
-        isOpen={showAddInterviewModal}
-        onClose={() => setShowAddInterviewModal(false)}
-        onSuccess={handleSuccess}
-        onError={handleError}
-        interview={selectedInterview}
-      />
-      <ApplicationDetailsModal
-        application={selectedApplication}
-        isOpen={!!selectedApplication}
-        onClose={() => setSelectedApplication(null)}
-        onUpdate={() => {
-          loadData();
-          // Keep modal open to show updated notes
-        }}
-        onAiScreen={handleAiScreen}
-        onConvertToEmployee={handleConvertToEmployee}
-        onGenerateDocument={handleGenerateDocument}
-      />
-
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
+      {/* Modals & Overlays */}
+      <div key="modals-and-overlays">
+        <AddJobModal
+          isOpen={showAddJobModal}
+          onClose={() => setShowAddJobModal(false)}
+          onSuccess={handleSuccess}
+          onError={handleError}
+          job={selectedJob}
         />
-      )}
+        <AddApplicationModal
+          isOpen={showAddApplicationModal}
+          onClose={() => setShowAddApplicationModal(false)}
+          onSuccess={handleSuccess}
+          onError={handleError}
+        />
+        <AddInterviewModal
+          isOpen={showAddInterviewModal}
+          onClose={() => setShowAddInterviewModal(false)}
+          onSuccess={handleSuccess}
+          onError={handleError}
+          interview={selectedInterview}
+        />
+        <ApplicationDetailsModal
+          application={selectedApplication}
+          isOpen={!!selectedApplication}
+          onClose={() => setSelectedApplication(null)}
+          onUpdate={() => {
+            loadData();
+          }}
+          onAiScreen={handleAiScreen}
+          onConvertToEmployee={handleConvertToEmployee}
+          onGenerateDocument={handleGenerateDocument}
+        />
+
+        {/* Bulk Action Bar */}
+        {selectedApplications.length > 0 && (
+          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 bg-white shadow-2xl rounded-full px-6 py-4 border border-indigo-100 flex items-center space-x-6 animate-in slide-in-from-bottom-8">
+            <div className="flex items-center space-x-2">
+              <span className="bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                {selectedApplications.length}
+              </span>
+              <span className="text-sm font-medium text-gray-700">Selected</span>
+            </div>
+            <div className="h-6 w-px bg-gray-200"></div>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleBulkAiScreen}
+                disabled={isScreeningBulk}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700 transition disabled:opacity-50"
+              >
+                {isScreeningBulk ? (
+                  <>
+                    <Clock className="w-4 h-4 mr-2 animate-spin" />
+                    Screening {screeningProgress.current}/{screeningProgress.total}...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    AI Screen Bulk
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setSelectedApplications([])}
+                className="text-sm text-gray-500 hover:text-gray-700 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </div>
     </div>
   );
 }
+

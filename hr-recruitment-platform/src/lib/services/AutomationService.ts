@@ -1,21 +1,54 @@
 import { supabase } from '@/lib/supabase';
 import { EmailService } from './EmailService';
 import { InterviewService } from './InterviewService';
+import { log } from '@/lib/logger';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+
+// ============================================
+// TYPES
+// ============================================
+
+interface AutomationLog {
+    id: string;
+    trigger_data: {
+        action_type: 'send_email' | 'schedule_interview' | 'ai_interview';
+        action_config: Record<string, unknown>;
+        application_id: string;
+    };
+    execution_status: 'pending' | 'completed' | 'failed';
+    execution_duration_ms?: number;
+    error_message?: string;
+}
+
+interface AutomationResult {
+    success: boolean;
+    skipped?: boolean;
+    error?: string;
+}
+
+// ============================================
+// AUTOMATION SERVICE
+// ============================================
 
 export class AutomationService {
-    private subscription: any;
+    private subscription: RealtimeChannel | null = null;
 
     constructor() {
         this.startListening();
     }
 
-    private startListening() {
+    private startListening(): void {
         if (!supabase) {
-            console.warn('⚠️ AutomationService: Supabase client not initialized. Skipping listener.');
+            log.warn('AutomationService: Supabase client not initialized', {
+                component: 'AutomationService'
+            });
             return;
         }
 
-        console.log('Starting Automation Service listener...');
+        log.info('Starting Automation Service listener...', {
+            component: 'AutomationService'
+        });
+
         try {
             this.subscription = supabase
                 .channel('automation_execution_logs_changes')
@@ -28,88 +61,137 @@ export class AutomationService {
                         filter: 'execution_status=eq.pending'
                     },
                     (payload) => {
-                        console.log('New automation log received:', payload);
-                        this.processAutomationLog(payload.new);
+                        log.debug('New automation log received', {
+                            component: 'AutomationService',
+                            metadata: { logId: (payload.new as AutomationLog).id }
+                        });
+                        this.processAutomationLog(payload.new as AutomationLog);
                     }
                 )
                 .subscribe();
         } catch (err) {
-            console.error('❌ AutomationService: Failed to start listener:', err);
+            log.error('Failed to start AutomationService listener', err, {
+                component: 'AutomationService'
+            });
         }
     }
 
-    private async processAutomationLog(log: any) {
-        if (!supabase) return;
+    private async processAutomationLog(logEntry: AutomationLog): Promise<AutomationResult> {
+        if (!supabase) {
+            return { success: false, error: 'Supabase not initialized' };
+        }
 
-        const { id, trigger_data } = log;
+        const { id, trigger_data } = logEntry;
         const { action_type, action_config, application_id } = trigger_data;
+        const startTime = performance.now();
 
-        console.log(`Processing automation ${id}: ${action_type}`);
+        log.info(`Processing automation: ${action_type}`, {
+            component: 'AutomationService',
+            action: action_type,
+            metadata: { automationId: id, applicationId: application_id }
+        });
 
         try {
-            let result;
+            let result: AutomationResult = { success: false };
 
             // Execute action based on type
             switch (action_type) {
-                case 'send_email':
-                    // Fetch applicant email if needed, or assume it's passed in trigger_data or we fetch it
-                    // For now, let's fetch the application to get the email
-                    const { data: app } = await supabase.from('applications').select('applicant_email').eq('id', application_id).single();
-                    if (app) {
-                        result = await EmailService.sendEmail(app.applicant_email, action_config.subject || 'Update', action_config.template_id, action_config);
+                case 'send_email': {
+                    const { data: app } = await supabase
+                        .from('applications')
+                        .select('applicant_email')
+                        .eq('id', application_id)
+                        .single();
+
+                    if (app?.applicant_email) {
+                        await EmailService.sendEmail(
+                            app.applicant_email,
+                            (action_config.subject as string) || 'Update',
+                            action_config.template_id as string,
+                            action_config
+                        );
+                        result = { success: true };
                     } else {
-                        throw new Error('Application not found');
+                        throw new Error('Application not found or missing email');
                     }
                     break;
+                }
 
                 case 'schedule_interview':
-                    result = await InterviewService.scheduleInterview(application_id, action_config.type, action_config);
+                    await InterviewService.scheduleInterview(
+                        application_id,
+                        action_config.type as string,
+                        action_config
+                    );
+                    result = { success: true };
                     break;
 
                 case 'ai_interview':
-                    result = await InterviewService.startAIInterview(application_id, action_config);
+                    await InterviewService.startAIInterview(application_id, action_config);
+                    result = { success: true };
                     break;
 
                 default:
-                    console.warn(`Unknown action type: ${action_type}`);
-                    result = { skipped: true };
+                    log.warn(`Unknown automation action type: ${action_type}`, {
+                        component: 'AutomationService'
+                    });
+                    result = { success: false, skipped: true };
             }
+
+            const duration = performance.now() - startTime;
 
             // Update log status to success
             await supabase
                 .from('automation_execution_logs')
                 .update({
                     execution_status: 'completed',
-                    execution_duration_ms: 0, // We could calculate this
+                    execution_duration_ms: Math.round(duration),
                     error_message: null
                 })
                 .eq('id', id);
 
-            console.log(`Automation ${id} completed successfully.`);
+            log.performance(`Automation ${action_type}`, duration, {
+                component: 'AutomationService',
+                metadata: { automationId: id }
+            });
 
-        } catch (error: any) {
-            console.error(`Automation ${id} failed:`, error);
+            return result;
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+            log.error(`Automation failed: ${action_type}`, error, {
+                component: 'AutomationService',
+                metadata: { automationId: id, applicationId: application_id }
+            });
 
             // Update log status to failed
             await supabase
                 .from('automation_execution_logs')
                 .update({
                     execution_status: 'failed',
-                    error_message: error.message || 'Unknown error'
+                    error_message: errorMessage
                 })
                 .eq('id', id);
+
+            return { success: false, error: errorMessage };
         }
     }
 
-    public stopListening() {
+    public stopListening(): void {
         if (this.subscription) {
             supabase.removeChannel(this.subscription);
+            this.subscription = null;
+            log.info('AutomationService listener stopped', {
+                component: 'AutomationService'
+            });
         }
     }
 
-    public cleanup() {
+    public cleanup(): void {
         this.stopListening();
     }
 }
 
 export const automationService = new AutomationService();
+

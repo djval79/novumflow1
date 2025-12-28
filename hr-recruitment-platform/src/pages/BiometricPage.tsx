@@ -4,13 +4,41 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 import { Capacitor } from '@capacitor/core';
+import { log } from '@/lib/logger';
+
+interface BiometricEnrollment {
+  id: string;
+  employee_id: string;
+  biometric_type: string;
+  enrollment_date: string;
+  quality_score: number;
+  enrollment_status: string;
+}
+
+interface AttendanceLog {
+  id: string;
+  employee_id: string;
+  log_type: string;
+  log_timestamp: string;
+  confidence_score: string;
+  verification_status: string;
+}
+
+interface SecurityEvent {
+  id: string;
+  event_type: string;
+  event_description: string;
+  event_timestamp: string;
+  severity_level: string;
+  investigation_status: string;
+}
 
 export default function BiometricPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [enrolledEmployees, setEnrolledEmployees] = useState<any[]>([]);
-  const [recentAttendance, setRecentAttendance] = useState<any[]>([]);
-  const [securityEvents, setSecurityEvents] = useState<any[]>([]);
+  const [enrolledEmployees, setEnrolledEmployees] = useState<BiometricEnrollment[]>([]);
+  const [recentAttendance, setRecentAttendance] = useState<AttendanceLog[]>([]);
+  const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [isNativeBiometricAvailable, setIsNativeBiometricAvailable] = useState(false);
 
@@ -42,7 +70,7 @@ export default function BiometricPage() {
       setRecentAttendance(attendance || []);
       setSecurityEvents(events || []);
     } catch (error) {
-      console.error('Error loading biometric data:', error);
+      log.error('Error loading biometric data', error, { component: 'BiometricPage', action: 'loadBiometricData' });
     }
   }
 
@@ -77,7 +105,7 @@ export default function BiometricPage() {
       alert('Biometric enrollment successful!');
       loadBiometricData();
     } catch (error) {
-      console.error('Error enrolling biometric:', error);
+      log.error('Error enrolling biometric', error, { component: 'BiometricPage', action: 'handleEnrollEmployee', metadata: { employeeId, biometricType } });
       alert('Enrollment failed');
     } finally {
       setLoading(false);
@@ -86,7 +114,7 @@ export default function BiometricPage() {
 
   async function checkNativeBiometric() {
     if (!Capacitor.isNativePlatform()) {
-      console.log('Native biometric not available: Web platform');
+      log.debug('Native biometric not available: Web platform', { component: 'BiometricPage' });
       setIsNativeBiometricAvailable(false);
       return;
     }
@@ -95,7 +123,7 @@ export default function BiometricPage() {
       const result = await NativeBiometric.isAvailable();
       setIsNativeBiometricAvailable(result.isAvailable);
     } catch (error) {
-      console.log('Native biometric not available:', error);
+      log.debug('Native biometric not available', { component: 'BiometricPage', metadata: { error } });
       setIsNativeBiometricAvailable(false);
     }
   }
@@ -146,7 +174,7 @@ export default function BiometricPage() {
       alert('Attendance logged successfully!');
       loadBiometricData();
     } catch (error) {
-      console.error('Error logging attendance:', error);
+      log.error('Error logging attendance', error, { component: 'BiometricPage', action: 'handleLogAttendance', metadata: { employeeId } });
       alert('Failed to log attendance');
     } finally {
       setLoading(false);
@@ -155,8 +183,8 @@ export default function BiometricPage() {
 
   const successfulAttendance = recentAttendance.filter(a => a.verification_status === 'success').length;
   const averageConfidence = recentAttendance.length > 0
-    ? (recentAttendance.reduce((sum, a) => sum + parseFloat(a.confidence_score || 0), 0) / recentAttendance.length).toFixed(1)
-    : 0;
+    ? (recentAttendance.reduce((sum, a) => sum + parseFloat(a.confidence_score || '0'), 0) / recentAttendance.length).toFixed(1)
+    : '0';
 
   return (
     <div className="space-y-6">

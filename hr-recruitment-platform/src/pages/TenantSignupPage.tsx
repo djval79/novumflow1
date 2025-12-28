@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
 import { supabase } from '@/lib/supabase';
 import { Building2, User, CreditCard, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 interface TenantSignupData {
     // Step 1: Organization Details
@@ -165,7 +166,7 @@ export default function TenantSignupPage() {
                     return;
                 }
             } catch (err) {
-                console.error('Error checking subdomain:', err);
+                log.error('Error checking subdomain', err, { component: 'TenantSignupPage', action: 'handleNext', metadata: { step: 1, subdomain: formData.subdomain } });
                 setError('Failed to verify subdomain availability');
                 setLoading(false);
                 return;
@@ -228,7 +229,7 @@ export default function TenantSignupPage() {
                     }
                 });
             } catch (emailError) {
-                console.error('Failed to send welcome email:', emailError);
+                log.error('Failed to send welcome email', emailError, { component: 'TenantSignupPage', action: 'handleSubmit', metadata: { email: formData.adminEmail } });
                 // Don't block signup flow on email failure
             }
 
@@ -242,7 +243,7 @@ export default function TenantSignupPage() {
                 navigate('/login');
             }
         } catch (err: any) {
-            console.error('Signup error:', err);
+            log.error('Signup error', err, { component: 'TenantSignupPage', action: 'handleSubmit' });
             if (err.message && err.message.includes('confirmation email')) {
                 setError('Email service is temporarily busy. Your account and organization may have been created—please try logging in, or wait a few minutes and try again.');
             } else if (err.message && err.message.includes('rate limit')) {

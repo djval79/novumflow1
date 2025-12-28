@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { log } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { Shield, User, Settings } from 'lucide-react';
 
@@ -31,7 +32,7 @@ export default function AdminPrivilegeSetup() {
         setUserRole('No profile found');
       }
     } catch (error) {
-      console.error('Error checking role:', error);
+      log.error('Error checking role', error, { component: 'AdminPrivilegeSetup', action: 'checkCurrentRole' });
       setUserRole('Error checking role');
     } finally {
       setChecking(false);
@@ -89,8 +90,8 @@ export default function AdminPrivilegeSetup() {
         window.location.reload();
       }, 2000);
 
-    } catch (error) {
-      console.error('Error setting admin privileges:', error);
+    } catch (error: any) {
+      log.error('Error setting admin privileges', error, { component: 'AdminPrivilegeSetup', action: 'setupFullAdminAccess' });
       alert('Failed to grant admin access: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);

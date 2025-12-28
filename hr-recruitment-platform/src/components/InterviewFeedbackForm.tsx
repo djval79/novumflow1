@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
 import {
@@ -97,8 +98,8 @@ export default function InterviewFeedbackForm({
                         >
                             <Star
                                 className={`w-8 h-8 ${star <= value
-                                        ? 'fill-yellow-400 text-yellow-400'
-                                        : 'text-gray-300 hover:text-yellow-300'
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-gray-300 hover:text-yellow-300'
                                     }`}
                             />
                         </button>
@@ -140,7 +141,7 @@ export default function InterviewFeedbackForm({
 
             setTimeout(() => onClose(), 2000);
         } catch (err: any) {
-            console.error('Error submitting feedback:', err);
+            log.error('Error submitting feedback', err, { component: 'InterviewFeedbackForm', action: 'handleSubmit', metadata: { interviewId } });
             setError(err.message || 'Failed to submit feedback');
         } finally {
             setLoading(false);
@@ -250,8 +251,8 @@ export default function InterviewFeedbackForm({
                                             type="button"
                                             onClick={() => setFeedback({ ...feedback, recommendation: option.value as any })}
                                             className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition ${feedback.recommendation === option.value
-                                                    ? `${option.color} text-white`
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                ? `${option.color} text-white`
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                         >
                                             {option.icon}

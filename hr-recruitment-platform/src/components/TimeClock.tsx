@@ -4,16 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { Clock, Play, Square, Coffee, Calendar, TrendingUp, Users, MapPin } from 'lucide-react';
 import { format, differenceInMinutes, startOfWeek, endOfWeek, eachDayOfInterval, isToday, parseISO } from 'date-fns';
+import { log } from '@/lib/logger';
 
 interface TimeEntry {
     id: string;
     employee_id: string;
-    clock_in: string;
-    clock_out?: string;
-    break_minutes: number;
+    tenant_id: string;
+    check_in_time: string;
+    check_out_time?: string;
+    break_duration_minutes: number;
     notes?: string;
     location?: string;
-    status: 'active' | 'completed';
+    status: 'active' | 'present' | 'late' | 'excused' | 'absent';
 }
 
 interface AttendanceStats {
@@ -53,11 +55,14 @@ export default function TimeClock() {
         try {
             // Try to get current active entry
             const { data: activeEntry } = await supabase
-                .from('time_entries')
+                .from('attendance_records')
                 .select('*')
                 .eq('employee_id', user?.id)
+                .eq('tenant_id', currentTenant?.id)
                 .eq('status', 'active')
-                .single();
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
             if (activeEntry) {
                 setCurrentEntry(activeEntry);
@@ -66,16 +71,17 @@ export default function TimeClock() {
             // Get recent entries
             const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
             const { data: entries } = await supabase
-                .from('time_entries')
+                .from('attendance_records')
                 .select('*')
                 .eq('employee_id', user?.id)
-                .gte('clock_in', weekStart.toISOString())
-                .order('clock_in', { ascending: false });
+                .eq('tenant_id', currentTenant?.id)
+                .gte('check_in_time', weekStart.toISOString())
+                .order('check_in_time', { ascending: false });
 
             setRecentEntries(entries || []);
             calculateStats(entries || []);
         } catch (error) {
-            console.error('Error loading attendance:', error);
+            log.error('Error loading attendance', error, { component: 'TimeClock', action: 'loadAttendanceData' });
             // Generate mock data for demo
             generateMockData();
         } finally {
@@ -94,10 +100,11 @@ export default function TimeClock() {
                 mockEntries.push({
                     id: `mock-${i}`,
                     employee_id: user?.id || '',
-                    clock_in: new Date(day.setHours(9, Math.floor(Math.random() * 15), 0)).toISOString(),
-                    clock_out: i === 0 ? undefined : new Date(day.setHours(17, 30, 0)).toISOString(),
-                    break_minutes: 30,
-                    status: i === 0 ? 'active' : 'completed',
+                    tenant_id: currentTenant?.id || '',
+                    check_in_time: new Date(day.setHours(9, Math.floor(Math.random() * 15), 0)).toISOString(),
+                    check_out_time: i === 0 ? undefined : new Date(day.setHours(17, 30, 0)).toISOString(),
+                    break_duration_minutes: 30,
+                    status: i === 0 ? 'active' : 'present',
                     location: 'Office'
                 });
             }
@@ -114,27 +121,27 @@ export default function TimeClock() {
     function calculateStats(entries: TimeEntry[]) {
         const today = new Date();
         const todayEntries = entries.filter(e =>
-            format(parseISO(e.clock_in), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
+            format(parseISO(e.check_in_time), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
         );
 
         let totalMinutesToday = 0;
         todayEntries.forEach(entry => {
-            const clockIn = parseISO(entry.clock_in);
-            const clockOut = entry.clock_out ? parseISO(entry.clock_out) : new Date();
-            totalMinutesToday += differenceInMinutes(clockOut, clockIn) - entry.break_minutes;
+            const clockIn = parseISO(entry.check_in_time);
+            const clockOut = entry.check_out_time ? parseISO(entry.check_out_time) : new Date();
+            totalMinutesToday += differenceInMinutes(clockOut, clockIn) - entry.break_duration_minutes;
         });
 
         let totalMinutesWeek = 0;
         entries.forEach(entry => {
-            if (entry.clock_out) {
-                const clockIn = parseISO(entry.clock_in);
-                const clockOut = parseISO(entry.clock_out);
-                totalMinutesWeek += differenceInMinutes(clockOut, clockIn) - entry.break_minutes;
+            if (entry.check_out_time) {
+                const clockIn = parseISO(entry.check_in_time);
+                const clockOut = parseISO(entry.check_out_time);
+                totalMinutesWeek += differenceInMinutes(clockOut, clockIn) - entry.break_duration_minutes;
             }
         });
 
-        const clockInTimes = entries.filter(e => e.clock_in).map(e => {
-            const d = parseISO(e.clock_in);
+        const clockInTimes = entries.filter(e => e.check_in_time).map(e => {
+            const d = parseISO(e.check_in_time);
             return d.getHours() * 60 + d.getMinutes();
         });
         const avgMinutes = clockInTimes.length > 0
@@ -164,14 +171,16 @@ export default function TimeClock() {
 
             const newEntry: Partial<TimeEntry> = {
                 employee_id: user?.id,
-                clock_in: new Date().toISOString(),
-                break_minutes: 0,
+                tenant_id: currentTenant?.id,
+                date: new Date().toISOString().split('T')[0],
+                check_in_time: new Date().toISOString(),
+                break_duration_minutes: 0,
                 status: 'active',
                 location: location || 'Office'
             };
 
             const { data, error } = await supabase
-                .from('time_entries')
+                .from('attendance_records')
                 .insert(newEntry)
                 .select()
                 .single();
@@ -181,15 +190,18 @@ export default function TimeClock() {
             setCurrentEntry(data);
             setRecentEntries(prev => [data, ...prev]);
         } catch (error) {
-            console.error('Clock in error:', error);
+            log.error('Clock in error', error, { component: 'TimeClock', action: 'handleClockIn' });
             // Create mock entry for demo
             const mockEntry: TimeEntry = {
                 id: `mock-${Date.now()}`,
                 employee_id: user?.id || '',
-                clock_in: new Date().toISOString(),
-                break_minutes: 0,
+                tenant_id: currentTenant?.id || '',
+                check_in_time: new Date().toISOString(),
+                break_duration_minutes: 0,
                 status: 'active',
-                location: 'Office'
+                location: 'Office',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             };
             setCurrentEntry(mockEntry);
             setRecentEntries(prev => [mockEntry, ...prev]);
@@ -204,11 +216,11 @@ export default function TimeClock() {
 
         try {
             const { error } = await supabase
-                .from('time_entries')
+                .from('attendance_records')
                 .update({
-                    clock_out: new Date().toISOString(),
-                    status: 'completed',
-                    break_minutes: currentEntry.break_minutes
+                    check_out_time: new Date().toISOString(),
+                    status: 'present',
+                    break_duration_minutes: currentEntry.break_duration_minutes
                 })
                 .eq('id', currentEntry.id);
 
@@ -217,11 +229,11 @@ export default function TimeClock() {
             setCurrentEntry(null);
             loadAttendanceData();
         } catch (error) {
-            console.error('Clock out error:', error);
+            log.error('Clock out error', error, { component: 'TimeClock', action: 'handleClockOut' });
             // Update mock entry
             setRecentEntries(prev => prev.map(e =>
                 e.id === currentEntry.id
-                    ? { ...e, clock_out: new Date().toISOString(), status: 'completed' as const }
+                    ? { ...e, check_out_time: new Date().toISOString(), status: 'present' as const }
                     : e
             ));
             setCurrentEntry(null);
@@ -237,7 +249,7 @@ export default function TimeClock() {
                 const breakMinutes = differenceInMinutes(new Date(), breakStart);
                 setCurrentEntry({
                     ...currentEntry,
-                    break_minutes: currentEntry.break_minutes + breakMinutes
+                    break_duration_minutes: currentEntry.break_duration_minutes + breakMinutes
                 });
             }
             setOnBreak(false);
@@ -251,7 +263,7 @@ export default function TimeClock() {
 
     function getElapsedTime(): string {
         if (!currentEntry) return '00:00:00';
-        const clockIn = parseISO(currentEntry.clock_in);
+        const clockIn = parseISO(currentEntry.check_in_time);
         const elapsed = differenceInMinutes(currentTime, clockIn);
         const hours = Math.floor(elapsed / 60);
         const minutes = elapsed % 60;
@@ -300,7 +312,7 @@ export default function TimeClock() {
                                 <div>
                                     <p className="text-sm text-indigo-200">Clocked in at</p>
                                     <p className="text-lg font-semibold">
-                                        {format(parseISO(currentEntry.clock_in), 'HH:mm')}
+                                        {format(parseISO(currentEntry.check_in_time), 'HH:mm')}
                                     </p>
                                 </div>
                                 <div className="text-right">
@@ -310,9 +322,9 @@ export default function TimeClock() {
                                     </p>
                                 </div>
                             </div>
-                            {currentEntry.break_minutes > 0 && (
+                            {currentEntry.break_duration_minutes > 0 && (
                                 <p className="text-xs text-indigo-200 mt-2">
-                                    Break time: {currentEntry.break_minutes} minutes
+                                    Break time: {currentEntry.break_duration_minutes} minutes
                                 </p>
                             )}
                         </div>
@@ -321,8 +333,8 @@ export default function TimeClock() {
                             <button
                                 onClick={handleBreakToggle}
                                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition ${onBreak
-                                        ? 'bg-yellow-500 text-yellow-900 hover:bg-yellow-400'
-                                        : 'bg-white/20 hover:bg-white/30'
+                                    ? 'bg-yellow-500 text-yellow-900 hover:bg-yellow-400'
+                                    : 'bg-white/20 hover:bg-white/30'
                                     }`}
                             >
                                 <Coffee className="w-5 h-5" />
@@ -422,10 +434,10 @@ export default function TimeClock() {
                                     {format(day, 'EEE')}
                                 </p>
                                 <div className={`relative p-3 rounded-lg ${isCurrentDay
-                                        ? 'bg-indigo-100 ring-2 ring-indigo-500'
-                                        : dayEntry
-                                            ? 'bg-green-50'
-                                            : 'bg-gray-50'
+                                    ? 'bg-indigo-100 ring-2 ring-indigo-500'
+                                    : dayEntry
+                                        ? 'bg-green-50'
+                                        : 'bg-gray-50'
                                     }`}>
                                     <p className={`text-sm font-medium ${isCurrentDay ? 'text-indigo-700' : 'text-gray-700'
                                         }`}>
@@ -433,9 +445,9 @@ export default function TimeClock() {
                                     </p>
                                     {dayEntry && (
                                         <p className="text-xs text-gray-500 mt-1">
-                                            {dayEntry.clock_out
-                                                ? `${format(parseISO(dayEntry.clock_in), 'HH:mm')}-${format(parseISO(dayEntry.clock_out), 'HH:mm')}`
-                                                : format(parseISO(dayEntry.clock_in), 'HH:mm')
+                                            {dayEntry.check_out_time
+                                                ? `${format(parseISO(dayEntry.check_in_time), 'HH:mm')}-${format(parseISO(dayEntry.check_out_time), 'HH:mm')}`
+                                                : format(parseISO(dayEntry.check_in_time), 'HH:mm')
                                             }
                                         </p>
                                     )}
@@ -456,19 +468,19 @@ export default function TimeClock() {
                         <div key={entry.id} className="px-6 py-4 flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-gray-900">
-                                    {format(parseISO(entry.clock_in), 'EEEE, MMM d')}
+                                    {format(parseISO(entry.check_in_time), 'EEEE, MMM d')}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                    {format(parseISO(entry.clock_in), 'HH:mm')}
-                                    {entry.clock_out && ` - ${format(parseISO(entry.clock_out), 'HH:mm')}`}
-                                    {entry.break_minutes > 0 && ` (${entry.break_minutes}m break)`}
+                                    {format(parseISO(entry.check_in_time), 'HH:mm')}
+                                    {entry.check_out_time && ` - ${format(parseISO(entry.check_out_time), 'HH:mm')}`}
+                                    {entry.break_duration_minutes > 0 && ` (${entry.break_duration_minutes}m break)`}
                                 </p>
                             </div>
                             <div className="text-right">
-                                {entry.clock_out ? (
+                                {entry.check_out_time ? (
                                     <>
                                         <p className="text-sm font-semibold text-gray-900">
-                                            {Math.round((differenceInMinutes(parseISO(entry.clock_out), parseISO(entry.clock_in)) - entry.break_minutes) / 60 * 10) / 10}h
+                                            {Math.round((differenceInMinutes(parseISO(entry.check_out_time), parseISO(entry.check_in_time)) - entry.break_duration_minutes) / 60 * 10) / 10}h
                                         </p>
                                         <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
                                             Completed

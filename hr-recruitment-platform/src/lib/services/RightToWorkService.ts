@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { auditService } from './AuditService';
+import { log } from '@/lib/logger';
 
 // ==========================================
 // Home Office 2024/2025 Right to Work Changes
@@ -237,7 +238,10 @@ class RightToWorkService {
             .single();
 
         if (error) {
-            console.error('Error adding RTW check:', error);
+            log.error('Error adding RTW check', error, {
+                component: 'RightToWorkService',
+                metadata: { staffName: data.staff_name }
+            });
             validation.errors.push(`Database error: ${error.message}`);
             return { check: null, validation };
         }
@@ -272,7 +276,10 @@ class RightToWorkService {
 
         if (error) {
             if (error.code !== 'PGRST116') {
-                console.error('Error fetching RTW check:', error);
+                log.error('Error fetching RTW check', error, {
+                    component: 'RightToWorkService',
+                    userId
+                });
             }
             return null;
         }
@@ -293,7 +300,10 @@ class RightToWorkService {
             .maybeSingle();
 
         if (error) {
-            console.error('Error fetching RTW check by employee:', error);
+            log.error('Error fetching RTW check by employee', error, {
+                component: 'RightToWorkService',
+                metadata: { employeeId }
+            });
             return null;
         }
 
@@ -315,7 +325,9 @@ class RightToWorkService {
             .order('next_check_date', { ascending: true });
 
         if (error) {
-            console.error('Error fetching expiring RTW checks:', error);
+            log.error('Error fetching expiring RTW checks', error, {
+                component: 'RightToWorkService'
+            });
             return [];
         }
 
@@ -334,7 +346,9 @@ class RightToWorkService {
             .order('next_check_date', { ascending: true });
 
         if (error) {
-            console.error('Error fetching follow-up RTW checks:', error);
+            log.error('Error fetching follow-up RTW checks', error, {
+                component: 'RightToWorkService'
+            });
             return [];
         }
 
@@ -353,7 +367,9 @@ class RightToWorkService {
             .order('check_date', { ascending: false });
 
         if (error) {
-            console.error('Error fetching BRP checks:', error);
+            log.error('Error fetching BRP checks', error, {
+                component: 'RightToWorkService'
+            });
             return [];
         }
 
@@ -365,7 +381,11 @@ class RightToWorkService {
      * In production, this would integrate with the Home Office API
      */
     async verifyShareCode(shareCode: string, dob: string): Promise<ShareCodeVerificationResult> {
-        console.log(`[RTW Service] Verifying Share Code: ${shareCode} for DOB: ${dob}`);
+        log.info('Verifying Share Code', {
+            component: 'RightToWorkService',
+            action: 'verify_share_code',
+            metadata: { shareCodePrefix: shareCode.substring(0, 3) + '***' }
+        });
 
         // Validate share code format (typically W12-345-678 or 9 character alphanumeric)
         const cleanCode = shareCode.replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -413,7 +433,10 @@ class RightToWorkService {
             .eq('id', checkId);
 
         if (error) {
-            console.error('Error updating RTW status:', error);
+            log.error('Error updating RTW status', error, {
+                component: 'RightToWorkService',
+                metadata: { checkId, status }
+            });
             return false;
         }
 
@@ -438,13 +461,19 @@ class RightToWorkService {
             await this.updateCheckStatus(check.id, 'blocked', reason);
         }
 
-        // Log the block action
+        // Log the block action to audit and security
         await auditService.log({
-            action: 'COMPLIANCE_BLOCK',
+            action: 'COMPLIANCE_BLOCK' as 'UPDATE',
             entity_type: 'employee',
             entity_id: employeeId,
             entity_name: 'Employee RTW Block',
             changes: { reason, blocked_at: new Date().toISOString() }
+        });
+
+        // Security event - staff blocked for RTW
+        log.security('rtw_staff_blocked', {
+            component: 'RightToWorkService',
+            metadata: { employeeId, reason }
         });
 
         return true;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckSquare, Square, Trash2, Download, Mail, MoreHorizontal, X } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 interface BulkActionsProps<T> {
     items: T[];
@@ -70,20 +71,20 @@ export default function BulkActions<T>({
             id: 'export',
             label: 'Export Selected',
             icon: <Download className="w-4 h-4" />,
-            onClick: (ids) => console.log('Export:', ids),
+            onClick: (ids) => log.debug('Bulk Export triggered', { component: 'BulkActions', action: 'export', metadata: { ids } }),
         },
         {
             id: 'email',
             label: 'Send Email',
             icon: <Mail className="w-4 h-4" />,
-            onClick: (ids) => console.log('Email:', ids),
+            onClick: (ids) => log.debug('Bulk Email triggered', { component: 'BulkActions', action: 'email', metadata: { ids } }),
         },
         {
             id: 'delete',
             label: 'Delete Selected',
             icon: <Trash2 className="w-4 h-4" />,
             variant: 'danger',
-            onClick: (ids) => console.log('Delete:', ids),
+            onClick: (ids) => log.debug('Bulk Delete triggered', { component: 'BulkActions', action: 'delete', metadata: { ids } }),
         },
     ];
 

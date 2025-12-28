@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Plus, Filter, Pin, Eye, CheckCircle, AlertTriangle, Calendar, User, X } from 'lucide-react';
 import { supabase, supabaseUrl } from '../lib/supabase';
+import { log } from '@/lib/logger';
 
 interface Announcement {
   id: string;
@@ -99,7 +100,7 @@ export default function NoticeBoardPage() {
         setAnnouncements(result.announcements);
       }
     } catch (error) {
-      console.error('Failed to load announcements:', error);
+      log.error('Failed to load announcements', error, { component: 'NoticeBoardPage', action: 'loadAnnouncements' });
     } finally {
       setLoading(false);
     }
@@ -122,7 +123,7 @@ export default function NoticeBoardPage() {
         setUnreadCount(result.unread_count);
       }
     } catch (error) {
-      console.error('Failed to load unread count:', error);
+      log.error('Failed to load unread count', error, { component: 'NoticeBoardPage', action: 'loadUnreadCount' });
     }
   };
 
@@ -148,7 +149,7 @@ export default function NoticeBoardPage() {
       loadAnnouncements();
       loadUnreadCount();
     } catch (error) {
-      console.error('Failed to mark as viewed:', error);
+      log.error('Failed to mark as viewed', error, { component: 'NoticeBoardPage', action: 'markAsViewed', metadata: { announcementId } });
     }
   };
 
@@ -165,7 +166,7 @@ export default function NoticeBoardPage() {
       });
       loadAnnouncements();
     } catch (error) {
-      console.error('Failed to acknowledge:', error);
+      log.error('Failed to acknowledge', error, { component: 'NoticeBoardPage', action: 'acknowledgeAnnouncement', metadata: { announcementId } });
     }
   };
 
@@ -201,7 +202,7 @@ export default function NoticeBoardPage() {
         loadUnreadCount();
       }
     } catch (error) {
-      console.error('Failed to create announcement:', error);
+      log.error('Failed to create announcement', error, { component: 'NoticeBoardPage', action: 'createAnnouncement' });
     } finally {
       setLoading(false);
     }
@@ -279,8 +280,8 @@ export default function NoticeBoardPage() {
                 key={category.value}
                 onClick={() => setSelectedCategory(category.value)}
                 className={`px-4 py-2 rounded-lg transition-colors ${selectedCategory === category.value
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 {category.label}

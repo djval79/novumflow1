@@ -17,12 +17,21 @@ import ComplianceAlerts from '../components/ComplianceAlerts';
 import TrainingMatrix from '../components/TrainingMatrix';
 import DBSCheckForm from '../components/DBSCheckForm';
 import ComplianceReportSettings from '../components/ComplianceReportSettings';
+import { log } from '@/lib/logger';
+
+interface ComplianceReport {
+    total_staff: number;
+    compliant: number;
+    non_compliant: number;
+    average_score: number;
+    cqc_ready: number;
+}
 
 export default function ComplianceDashboardPage() {
     const navigate = useNavigate();
     const { currentTenant } = useTenant();
     const [loading, setLoading] = useState(true);
-    const [complianceReport, setComplianceReport] = useState<any>(null);
+    const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null);
     const [nonCompliantStaff, setNonCompliantStaff] = useState<ComplianceStatus[]>([]);
     const [activeTab, setActiveTab] = useState<'overview' | 'training' | 'settings'>('overview');
     const [showDBSModal, setShowDBSModal] = useState(false);
@@ -44,7 +53,7 @@ export default function ComplianceDashboardPage() {
             setComplianceReport(report);
             setNonCompliantStaff(nonCompliant);
         } catch (error) {
-            console.error('Error loading compliance data:', error);
+            log.error('Error loading compliance data', error, { component: 'ComplianceDashboardPage', action: 'loadComplianceData' });
         } finally {
             setLoading(false);
         }

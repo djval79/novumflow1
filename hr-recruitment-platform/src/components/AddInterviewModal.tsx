@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AddInterviewModalProps {
@@ -68,12 +69,12 @@ export default function AddInterviewModal({ isOpen, onClose, onSuccess, onError,
         .order('applied_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading applications:', error);
+        log.error('Error loading applications', error, { component: 'AddInterviewModal', action: 'loadApplications' });
       }
 
       setApplications(data || []);
     } catch (err) {
-      console.error('Failed to load applications:', err);
+      log.error('Failed to load applications', err, { component: 'AddInterviewModal', action: 'loadApplications' });
       setApplications([]);
     }
   }

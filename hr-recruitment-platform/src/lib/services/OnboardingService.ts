@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { log } from '@/lib/logger';
 
 export interface TenantOnboarding {
     id: string;
@@ -38,7 +39,7 @@ export const onboardingService = {
             .maybeSingle();
 
         if (error) {
-            console.error('Error fetching onboarding status:', error);
+            log.error('Error fetching onboarding status:', error, { component: 'OnboardingService' });
             return null;
         }
 
@@ -51,7 +52,7 @@ export const onboardingService = {
                 .single();
 
             if (createError) {
-                console.error('Error creating onboarding record:', createError);
+                log.error('Error creating onboarding record', createError, { component: 'OnboardingService' });
                 return null;
             }
             return newRecord;
@@ -72,7 +73,7 @@ export const onboardingService = {
             .eq('tenant_id', tenantId);
 
         if (error) {
-            console.error('Error updating onboarding step:', error);
+            log.error('Error updating onboarding step:', error, { component: 'OnboardingService' });
             return false;
         }
         return true;
@@ -147,7 +148,7 @@ export const onboardingService = {
             .eq('tenant_id', tenantId);
 
         if (onboardingError) {
-            console.error('Error completing onboarding:', onboardingError);
+            log.error('Error completing onboarding', onboardingError, { component: 'OnboardingService' });
             return false;
         }
 
@@ -160,7 +161,7 @@ export const onboardingService = {
             .eq('id', tenantId);
 
         if (tenantError) {
-            console.error('Error updating tenant onboarding status:', tenantError);
+            log.error('Error updating tenant onboarding status', tenantError, { component: 'OnboardingService' });
             return false;
         }
 
@@ -168,7 +169,7 @@ export const onboardingService = {
     },
 
     /** Get all tenants with onboarding status */
-    async getAllTenantsWithOnboarding(): Promise<any[]> {
+    async getAllTenantsWithOnboarding(): Promise<TenantOnboarding[]> {
         const { data, error } = await supabase
             .from('tenants')
             .select(`
@@ -177,7 +178,7 @@ export const onboardingService = {
             `);
 
         if (error) {
-            console.error('Error fetching tenants with onboarding:', error);
+            log.error('Error fetching tenants with onboarding:', error, { component: 'OnboardingService' });
             return [];
         }
         return data || [];

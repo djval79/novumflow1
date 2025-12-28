@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { log } from './logger';
 
 // Environment-based configuration
 const isDevelopment = import.meta.env.MODE === 'development';
@@ -16,16 +17,17 @@ export function getSupabaseClient() {
 
   // Validate required configuration
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+    log.error('Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.', undefined, { component: 'SupabaseClient' });
     return null;
   }
 
-  // Development-only logging (removed in production)
+  // Development-only logging (handled by the logger)
   if (isDevelopment) {
-    console.log('🔗 Supabase Configuration:');
-    console.log('📍 URL:', supabaseUrl);
-    console.log('🔑 Key:', supabaseAnonKey.substring(0, 20) + '...');
-    console.log('🏗️ Environment:', import.meta.env.MODE);
+    log.debug('Supabase Configuration', {
+      url: supabaseUrl,
+      key: supabaseAnonKey.substring(0, 20) + '...',
+      environment: import.meta.env.MODE
+    });
   }
 
   // Create Supabase client with optimized configuration
@@ -33,7 +35,7 @@ export function getSupabaseClient() {
   // using <any, "public", any> to define Database, SchemaName, and Schema as permissive
 
   if (typeof createClient === 'undefined') {
-    console.error('❌ Supabase createClient is undefined. Check your dependencies.');
+    log.error('Supabase createClient is undefined. Check your dependencies.', undefined, { component: 'SupabaseClient' });
     return null;
   }
 
@@ -73,7 +75,7 @@ export function getSupabaseClient() {
       }
     }) as SupabaseClient<any, "public", any>;
   } catch (err) {
-    console.error('❌ Failed to initialize Supabase client:', err);
+    log.error('Failed to initialize Supabase client', err, { component: 'SupabaseClient' });
     return null;
   }
 
@@ -125,9 +127,7 @@ export const getCurrentUser = async () => {
 
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) {
-    if (isDevelopment) {
-      console.error('Error getting current user:', error);
-    }
+    log.error('Error getting current user', error, { component: 'SupabaseClient', action: 'getCurrentUser' });
     return null;
   }
   return user;
@@ -147,9 +147,7 @@ export const getCurrentUserProfile = async () => {
     .single();
 
   if (error) {
-    if (isDevelopment) {
-      console.error('Error getting user profile:', error);
-    }
+    log.error('Error getting user profile', error, { component: 'SupabaseClient', action: 'getCurrentUserProfile', metadata: { userId: user.id } });
     return null;
   }
 
@@ -168,20 +166,14 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
       .limit(1);
 
     if (error) {
-      if (isDevelopment) {
-        console.error('❌ Supabase connection test failed:', error);
-      }
+      log.error('Supabase connection test failed', error, { component: 'SupabaseClient', action: 'testSupabaseConnection' });
       return false;
     }
 
-    if (isDevelopment) {
-      console.log('✅ Supabase connection successful');
-    }
+    log.info('Supabase connection successful');
     return true;
   } catch (error) {
-    if (isDevelopment) {
-      console.error('❌ Supabase connection error:', error);
-    }
+    log.error('Supabase connection error', error, { component: 'SupabaseClient', action: 'testSupabaseConnection' });
     return false;
   }
 };

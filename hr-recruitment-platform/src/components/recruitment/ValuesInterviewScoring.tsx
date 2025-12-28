@@ -16,6 +16,7 @@ import {
     Users,
     Shield
 } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 // ==========================================
 // CQC Values-Based Recruitment
@@ -379,7 +380,7 @@ export default function ValuesInterviewScoring({
 
             onSuccess();
         } catch (error) {
-            console.error('Error submitting evaluation:', error);
+            log.error('Error submitting evaluation', error, { component: 'ValuesInterviewScoring', action: 'handleSubmit' });
             alert('Failed to submit evaluation. Please try again.');
         } finally {
             setLoading(false);
@@ -433,8 +434,8 @@ export default function ValuesInterviewScoring({
                                         key={value.id}
                                         onClick={() => setActiveValue(index)}
                                         className={`w-full text-left p-3 rounded-lg mb-1 flex items-center gap-3 transition-all ${activeValue === index
-                                                ? 'bg-white shadow-md border border-gray-200'
-                                                : 'hover:bg-white/50'
+                                            ? 'bg-white shadow-md border border-gray-200'
+                                            : 'hover:bg-white/50'
                                             }`}
                                     >
                                         <div className={`p-2 rounded-lg ${value.bgColor}`}>
@@ -467,8 +468,8 @@ export default function ValuesInterviewScoring({
                             <button
                                 onClick={() => setActiveValue(-1)}
                                 className={`w-full p-3 rounded-lg flex items-center gap-3 transition-all ${activeValue === -1
-                                        ? 'bg-purple-100 border border-purple-300'
-                                        : 'bg-white border border-gray-200 hover:border-purple-300'
+                                    ? 'bg-purple-100 border border-purple-300'
+                                    : 'bg-white border border-gray-200 hover:border-purple-300'
                                     }`}
                             >
                                 <Award className="w-5 h-5 text-purple-600" />
@@ -546,8 +547,8 @@ export default function ValuesInterviewScoring({
                                                     key={score}
                                                     onClick={() => updateValueScore(currentValue.id, 'score', score)}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${currentScore?.score === score
-                                                            ? 'bg-purple-600 text-white shadow-lg'
-                                                            : 'bg-white border border-gray-300 hover:border-purple-400'
+                                                        ? 'bg-purple-600 text-white shadow-lg'
+                                                        : 'bg-white border border-gray-300 hover:border-purple-400'
                                                         }`}
                                                 >
                                                     {score}
@@ -793,8 +794,8 @@ export default function ValuesInterviewScoring({
                                                     type="button"
                                                     onClick={() => setFormData(prev => ({ ...prev, recommendation: opt.value as any }))}
                                                     className={`p-4 rounded-xl border-2 transition-all ${formData.recommendation === opt.value
-                                                            ? `${opt.color} text-white border-transparent shadow-lg`
-                                                            : 'bg-white border-gray-200 hover:border-gray-300'
+                                                        ? `${opt.color} text-white border-transparent shadow-lg`
+                                                        : 'bg-white border-gray-200 hover:border-gray-300'
                                                         }`}
                                                 >
                                                     <Icon className="w-6 h-6 mx-auto mb-2" />

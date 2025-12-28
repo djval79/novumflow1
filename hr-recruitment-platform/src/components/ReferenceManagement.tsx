@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Mail, Phone, CheckCircle, Clock, Send, Plus, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 
 interface Reference {
   id: string;
@@ -60,7 +61,7 @@ export default function ReferenceManagement({ applicationId, applicantName }: Re
         setReferences(data.data);
       }
     } catch (error) {
-      console.error('Error loading references:', error);
+      log.error('Error loading references', error, { component: 'ReferenceManagement', action: 'loadReferences' });
     }
   }
 
@@ -96,7 +97,7 @@ export default function ReferenceManagement({ applicationId, applicantName }: Re
       setShowAddForm(false);
       await loadReferences();
     } catch (error) {
-      console.error('Error adding reference:', error);
+      log.error('Error adding reference', error, { component: 'ReferenceManagement', action: 'handleAddReference' });
       alert('Failed to add reference');
     } finally {
       setLoading(false);
@@ -121,7 +122,7 @@ export default function ReferenceManagement({ applicationId, applicantName }: Re
       alert('Verification request sent successfully');
       await loadReferences();
     } catch (error) {
-      console.error('Error requesting verification:', error);
+      log.error('Error requesting verification', error, { component: 'ReferenceManagement', action: 'handleRequestVerification' });
       alert('Failed to send verification request');
     }
   }
@@ -147,7 +148,7 @@ export default function ReferenceManagement({ applicationId, applicantName }: Re
       alert('Reference verified successfully');
       await loadReferences();
     } catch (error) {
-      console.error('Error verifying reference:', error);
+      log.error('Error verifying reference', error, { component: 'ReferenceManagement', action: 'handleVerifyReference' });
       alert('Failed to verify reference');
     }
   }

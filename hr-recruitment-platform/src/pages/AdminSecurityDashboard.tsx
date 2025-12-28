@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Shield, AlertTriangle, Users, Lock, RefreshCw, Filter } from 'lucide-react';
 import { format } from 'date-fns';
+import { log } from '@/lib/logger';
 import {
     BarChart,
     Bar,
@@ -53,9 +54,9 @@ export default function AdminSecurityDashboard() {
     async function loadData() {
         setLoading(true);
         try {
-            // Fetch recent events
+            // Fetch recent events from security_audit_logs
             let query = supabase
-                .from('security_events')
+                .from('security_audit_logs')
                 .select('*')
                 .order('created_at', { ascending: false })
                 .limit(100);
@@ -67,16 +68,24 @@ export default function AdminSecurityDashboard() {
             const { data: eventData, error } = await query;
 
             if (error) {
-                console.error('Error fetching security events:', error);
-                // Fallback for development if table doesn't exist yet or RLS blocks
+                log.error('Error fetching security audit logs', error, { component: 'AdminSecurityDashboard', action: 'loadData' });
                 setEvents([]);
             } else {
-                setEvents(eventData || []);
+                // Map the data to fit the SecurityEvent interface if field names differ
+                const mappedEvents: SecurityEvent[] = (eventData || []).map(e => ({
+                    id: e.id,
+                    event_type: e.event_type || 'Unknown',
+                    event_category: (e.details?.category || 'system') as any,
+                    severity: (e.severity === 'low' ? 'info' : e.severity === 'medium' ? 'warning' : e.severity) as any,
+                    description: e.details?.description || e.event_type || 'No description',
+                    email: e.user_email || 'System',
+                    ip_address: e.ip_address || '0.0.0.0',
+                    created_at: e.created_at
+                }));
+                setEvents(mappedEvents);
             }
 
-            // Fetch stats (optimally would be RPC calls or separate count queries)
-            // For MVP, we'll calculate from a larger fetch or separate count queries
-
+            // Fetch stats
             const { count: failedCount } = await supabase
                 .from('login_attempts')
                 .select('*', { count: 'exact', head: true })
@@ -87,15 +96,15 @@ export default function AdminSecurityDashboard() {
                 .select('*', { count: 'exact', head: true })
                 .eq('is_active', true);
 
-            // For total events and suspicious, we can just fetch counts from security_events
             const { count: totalCount } = await supabase
-                .from('security_events')
+                .from('security_audit_logs')
                 .select('*', { count: 'exact', head: true });
 
+            // Suspicious activities could be high/critical severity events
             const { count: suspCount } = await supabase
-                .from('security_events')
+                .from('security_audit_logs')
                 .select('*', { count: 'exact', head: true })
-                .eq('event_category', 'suspicious');
+                .in('severity', ['high', 'critical']);
 
             setStats({
                 totalEvents: totalCount || 0,
@@ -105,7 +114,7 @@ export default function AdminSecurityDashboard() {
             });
 
         } catch (err) {
-            console.error('Unexpected error loading dashboard:', err);
+            log.error('Unexpected error loading dashboard', err, { component: 'AdminSecurityDashboard', action: 'loadData' });
         } finally {
             setLoading(false);
         }

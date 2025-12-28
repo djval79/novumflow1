@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auditService, AuditLog, AuditSearchFilters } from '@/lib/services/AuditService';
 import { useTenant } from '@/contexts/TenantContext';
+import { log } from '@/lib/logger';
 import {
     History,
     Search,
@@ -34,7 +35,7 @@ export default function AuditLogPage() {
             const data = await auditService.search(filters);
             setLogs(data);
         } catch (error) {
-            console.error('Error loading audit logs:', error);
+            log.error('Error loading audit logs', error, { component: 'AuditLogPage', action: 'loadAuditLogs' });
         } finally {
             setLoading(false);
         }

@@ -9,8 +9,8 @@
  */
 
 import { supabase } from '../supabase';
-import { 
-  ALL_COMPLIANCE_DOCUMENTS, 
+import {
+  ALL_COMPLIANCE_DOCUMENTS,
   COMPLIANCE_FOLDER_STRUCTURE,
   STAGE_REQUIREMENTS,
   COMPLIANCE_AUTOMATIONS,
@@ -20,6 +20,7 @@ import {
   UrgencyLevel,
   calculateComplianceScore
 } from './complianceTypes';
+import { log } from '../logger';
 
 // ===========================================
 // TYPES
@@ -87,6 +88,7 @@ export interface ComplianceDocument {
   extracted_data?: Record<string, any>;
   storage_bucket?: string;
   storage_path?: string;
+  compliance_document_folders?: { folder_id: string }[];
 }
 
 export interface ComplianceChecklistItem {
@@ -181,7 +183,7 @@ class ComplianceService {
         .single();
 
       if (personError) {
-        console.error('Failed to create compliance person:', personError);
+        log.error('Failed to create compliance person', personError, { component: 'ComplianceService', action: 'createPerson', metadata: { personData } });
         return null;
       }
 
@@ -193,7 +195,7 @@ class ComplianceService {
 
       return person;
     } catch (error) {
-      console.error('Error creating compliance person:', error);
+      log.error('Error creating compliance person', error, { component: 'ComplianceService', action: 'createPerson' });
       return null;
     }
   }
@@ -213,7 +215,7 @@ class ComplianceService {
 
       if (applicantError || !applicant) {
         // Applicants table might not exist - log but continue
-        console.warn('Could not fetch from applicants table:', applicantError?.message);
+        log.warn('Could not fetch from applicants table', { component: 'ComplianceService', action: 'createFromApplicant', metadata: { applicantId, error: applicantError?.message } });
         // Return null to indicate caller should use createPerson() directly
         return null;
       }
@@ -228,7 +230,7 @@ class ComplianceService {
         externalApplicantId: applicantId
       });
     } catch (error) {
-      console.error('Error creating compliance person from applicant:', error);
+      log.error('Error creating compliance person from applicant', error, { component: 'ComplianceService', action: 'createFromApplicant', metadata: { applicantId } });
       return null;
     }
   }
@@ -269,7 +271,7 @@ class ComplianceService {
       // Determine next stage
       const stageOrder: ComplianceStage[] = ['APPLICATION', 'PRE_EMPLOYMENT', 'ONBOARDING', 'ONGOING'];
       const currentIndex = stageOrder.indexOf(person.current_stage);
-      
+
       if (currentIndex >= stageOrder.length - 1) {
         return { success: false, message: 'Already at final stage' };
       }
@@ -305,7 +307,7 @@ class ComplianceService {
 
       return { success: true, newStage: nextStage, message: `Progressed to ${nextStage}` };
     } catch (error) {
-      console.error('Error progressing stage:', error);
+      log.error('Error progressing stage', error, { component: 'ComplianceService', action: 'progressToNextStage', metadata: { personId } });
       return { success: false, message: 'Internal error' };
     }
   }
@@ -336,7 +338,7 @@ class ComplianceService {
 
       return true;
     } catch (error) {
-      console.error('Error converting to employee:', error);
+      log.error('Error converting to employee', error, { component: 'ComplianceService', action: 'convertToEmployee', metadata: { personId } });
       return false;
     }
   }
@@ -428,7 +430,7 @@ class ComplianceService {
 
       return document;
     } catch (error) {
-      console.error('Error uploading document:', error);
+      log.error('Error uploading document', error, { component: 'ComplianceService', action: 'uploadDocument', metadata: { personId, documentTypeId } });
       return null;
     }
   }
@@ -488,7 +490,7 @@ class ComplianceService {
 
       return true;
     } catch (error) {
-      console.error('Error verifying document:', error);
+      log.error('Error verifying document', error, { component: 'ComplianceService', action: 'verifyDocument', metadata: { documentId } });
       return false;
     }
   }
@@ -559,7 +561,7 @@ class ComplianceService {
 
       return true;
     } catch (error) {
-      console.error('Error rejecting document:', error);
+      log.error('Error rejecting document', error, { component: 'ComplianceService', action: 'rejectDocument', metadata: { documentId } });
       return false;
     }
   }
@@ -592,14 +594,14 @@ class ComplianceService {
         internal: documents.filter(d => d.authority === 'INTERNAL')
       };
     } catch (error) {
-      console.error('Error getting documents by authority:', error);
+      log.error('Error getting documents by authority', error, { component: 'ComplianceService', action: 'getDocumentsByAuthority', metadata: { personId } });
       return { homeOffice: [], cqc: [], shared: [], internal: [] };
     }
   }
 
   private getStorageBucket(documentTypeId?: string): string {
     if (!documentTypeId) return 'compliance-documents';
-    
+
     const docType = ALL_COMPLIANCE_DOCUMENTS[documentTypeId as keyof typeof ALL_COMPLIANCE_DOCUMENTS];
     if (!docType) return 'compliance-documents';
 
@@ -638,7 +640,7 @@ class ComplianceService {
       // Create root folders for each authority
       for (const [key, folderDef] of Object.entries(COMPLIANCE_FOLDER_STRUCTURE)) {
         const authority = key as ComplianceAuthority;
-        
+
         // Create root folder
         const { data: rootFolder, error: rootError } = await supabase
           .from('compliance_folders')
@@ -665,13 +667,13 @@ class ComplianceService {
             authority: authority,
             color: folderDef.color,
             is_system_folder: true,
-            auto_assign_document_types: subfolder.documents,
-            sort_order: folderDef.subfolders.indexOf(subfolder)
+            auto_assign_document_types: subfolder.documents as any,
+            sort_order: (folderDef.subfolders as any).indexOf(subfolder)
           });
         }
       }
     } catch (error) {
-      console.error('Error creating folder structure:', error);
+      log.error('Error creating folder structure', error, { component: 'ComplianceService', action: 'ensureFolderStructure', metadata: { tenantId } });
     }
   }
 
@@ -699,20 +701,20 @@ class ComplianceService {
           .select('*, compliance_document_folders(*)')
           .eq('person_id', personId)
           .eq('is_current', true);
-        
+
         documents = docs || [];
       }
 
       // Build folder tree
       const rootFolders = folders.filter(f => !f.parent_folder_id);
-      
+
       return rootFolders.map(root => ({
         ...root,
         subfolders: folders
           .filter(f => f.parent_folder_id === root.id)
           .map(sub => ({
             ...sub,
-            documents: documents.filter(d => 
+            documents: documents.filter(d =>
               d.compliance_document_folders?.some((df: any) => df.folder_id === sub.id)
             )
           })),
@@ -721,7 +723,7 @@ class ComplianceService {
         )
       }));
     } catch (error) {
-      console.error('Error getting folder structure:', error);
+      log.error('Error getting folder structure', error, { component: 'ComplianceService', action: 'getFolderStructure', metadata: { tenantId, personId } });
       return [];
     }
   }
@@ -746,7 +748,7 @@ class ComplianceService {
         });
       }
     } catch (error) {
-      console.error('Error auto-assigning folder:', error);
+      log.error('Error auto-assigning folder', error, { component: 'ComplianceService', action: 'autoAssignToFolder', metadata: { documentId: document.id } });
     }
   }
 
@@ -765,7 +767,8 @@ class ComplianceService {
       const checklistItems: Partial<ComplianceChecklistItem>[] = [];
 
       // Add required documents
-      for (const docTypeId of stageReqs.requiredDocs || []) {
+      const requiredDocs = (stageReqs as any).requiredDocs || (stageReqs as any).monitoredDocs || [];
+      for (const docTypeId of requiredDocs) {
         const docType = ALL_COMPLIANCE_DOCUMENTS[docTypeId as keyof typeof ALL_COMPLIANCE_DOCUMENTS];
         if (docType) {
           checklistItems.push({
@@ -782,7 +785,8 @@ class ComplianceService {
       }
 
       // Add optional documents
-      for (const docTypeId of stageReqs.optionalDocs || []) {
+      const optionalDocs = (stageReqs as any).optionalDocs || [];
+      for (const docTypeId of optionalDocs) {
         const docType = ALL_COMPLIANCE_DOCUMENTS[docTypeId as keyof typeof ALL_COMPLIANCE_DOCUMENTS];
         if (docType) {
           checklistItems.push({
@@ -798,8 +802,9 @@ class ComplianceService {
         }
       }
 
-      // Add conditional documents (will need applicability check)
-      for (const docTypeId of stageReqs.conditionalDocs || []) {
+      // Add conditional documents
+      const conditionalDocs = (stageReqs as any).conditionalDocs || [];
+      for (const docTypeId of conditionalDocs) {
         const docType = ALL_COMPLIANCE_DOCUMENTS[docTypeId as keyof typeof ALL_COMPLIANCE_DOCUMENTS];
         if (docType) {
           checklistItems.push({
@@ -822,7 +827,7 @@ class ComplianceService {
           .upsert(checklistItems, { onConflict: 'person_id,document_type_id,stage' });
       }
     } catch (error) {
-      console.error('Error initializing checklist:', error);
+      log.error('Error initializing checklist', error, { component: 'ComplianceService', action: 'initializeChecklist', metadata: { personId, stage } });
     }
   }
 
@@ -844,13 +849,13 @@ class ComplianceService {
       const { data, error } = await query.order('is_required', { ascending: false });
 
       if (error) {
-        console.error('Error getting checklist:', error);
+        log.error('Error getting checklist', error, { component: 'ComplianceService', action: 'getChecklist', metadata: { personId, stage } });
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error getting checklist:', error);
+      log.error('Error getting checklist', error, { component: 'ComplianceService', action: 'getChecklist', metadata: { personId, stage } });
       return [];
     }
   }
@@ -876,7 +881,7 @@ class ComplianceService {
         .eq('person_id', personId)
         .eq('document_type_id', documentTypeId);
     } catch (error) {
-      console.error('Error updating checklist:', error);
+      log.error('Error updating checklist', error, { component: 'ComplianceService', action: 'updateChecklistWithDocument', metadata: { personId, documentId } });
     }
   }
 
@@ -899,7 +904,7 @@ class ComplianceService {
       // Update based on nationality (for visa/BRP requirements)
       if ('nationality' in conditions) {
         const needsVisa = !['British', 'Irish'].includes(person.nationality || '');
-        
+
         await supabase
           .from('compliance_checklists')
           .update({ is_applicable: needsVisa })
@@ -919,7 +924,7 @@ class ComplianceService {
       // Recalculate compliance score
       await this.recalculateComplianceScore(personId);
     } catch (error) {
-      console.error('Error updating conditional applicability:', error);
+      log.error('Error updating conditional applicability', error, { component: 'ComplianceService', action: 'updateConditionalApplicability', metadata: { personId, conditions } });
     }
   }
 
@@ -960,7 +965,7 @@ class ComplianceService {
         })
         .eq('id', personId);
     } catch (error) {
-      console.error('Error recalculating compliance score:', error);
+      log.error('Error recalculating compliance score', error, { component: 'ComplianceService', action: 'recalculateComplianceScore', metadata: { personId } });
     }
   }
 
@@ -1036,7 +1041,7 @@ class ComplianceService {
         recentActivity: recentActivity || []
       };
     } catch (error) {
-      console.error('Error getting dashboard:', error);
+      log.error('Error getting dashboard', error, { component: 'ComplianceService', action: 'getComplianceDashboard', metadata: { tenantId } });
       return {
         totalPersons: 0,
         compliant: 0,
@@ -1068,7 +1073,7 @@ class ComplianceService {
 
     try {
       const result = await this.progressToNextStage(personId);
-      
+
       if (result.success && result.newStage) {
         // Log auto-progression
         await this.logAudit('AUTO_STAGE_PROGRESS', 'compliance_persons', personId, {
@@ -1076,7 +1081,7 @@ class ComplianceService {
         });
       }
     } catch (error) {
-      console.error('Error in auto-progression:', error);
+      log.error('Error in auto-progression', error, { component: 'ComplianceService', action: 'checkAutoProgression', metadata: { personId } });
     }
   }
 
@@ -1113,7 +1118,7 @@ class ComplianceService {
         }
       }
     } catch (error) {
-      console.error('Error scheduling reminders:', error);
+      log.error('Error scheduling reminders', error, { component: 'ComplianceService', action: 'scheduleExpiryReminders', metadata: { documentId: document.id } });
     }
   }
 
@@ -1165,7 +1170,7 @@ class ComplianceService {
 
       return expiredDocs.length;
     } catch (error) {
-      console.error('Error processing expired documents:', error);
+      log.error('Error processing expired documents', error, { component: 'ComplianceService', action: 'processExpiredDocuments', metadata: { tenantId } });
       return 0;
     }
   }
@@ -1189,13 +1194,13 @@ class ComplianceService {
         .single();
 
       if (error) {
-        console.error('Error creating task:', error);
+        log.error('Error creating task', error, { component: 'ComplianceService', action: 'createTask', metadata: { taskData } });
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error creating task:', error);
+      log.error('Error creating task', error, { component: 'ComplianceService', action: 'createTask' });
       return null;
     }
   }
@@ -1223,7 +1228,7 @@ class ComplianceService {
       if (error) return [];
       return data || [];
     } catch (error) {
-      console.error('Error getting tasks:', error);
+      log.error('Error getting tasks', error, { component: 'ComplianceService', action: 'getTasks', metadata: { tenantId, personId } });
       return [];
     }
   }
@@ -1253,7 +1258,7 @@ class ComplianceService {
         in_app_sent: true
       });
     } catch (error) {
-      console.error('Error sending notification:', error);
+      log.error('Error sending notification', error, { component: 'ComplianceService', action: 'sendNotification', metadata: { notification } });
     }
   }
 
@@ -1314,7 +1319,7 @@ class ComplianceService {
 
       return true;
     } catch (error) {
-      console.error('Error syncing to CareFlow:', error);
+      log.error('Error syncing to CareFlow', error, { component: 'ComplianceService', action: 'syncToCareFlow', metadata: { personId } });
       return false;
     }
   }
@@ -1350,7 +1355,7 @@ class ComplianceService {
 
       return documents.length;
     } catch (error) {
-      console.error('Error syncing documents to CareFlow:', error);
+      log.error('Error syncing documents to CareFlow', error, { component: 'ComplianceService', action: 'syncDocumentsToCareFlow', metadata: { personId } });
       return 0;
     }
   }
@@ -1370,7 +1375,7 @@ class ComplianceService {
   ): Promise<void> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       await supabase.from('compliance_audit_log').insert({
         tenant_id: details?.tenant_id,
         action,
@@ -1381,7 +1386,7 @@ class ComplianceService {
         new_values: details
       });
     } catch (error) {
-      console.error('Error logging audit:', error);
+      log.error('Error logging audit', error, { component: 'ComplianceService', action: 'logAudit', metadata: { action, entityType, entityId } });
     }
   }
 
@@ -1415,7 +1420,7 @@ class ComplianceService {
       if (error) return [];
       return data || [];
     } catch (error) {
-      console.error('Error getting audit history:', error);
+      log.error('Error getting audit history', error, { component: 'ComplianceService', action: 'getAuditHistory', metadata: { tenantId } });
       return [];
     }
   }

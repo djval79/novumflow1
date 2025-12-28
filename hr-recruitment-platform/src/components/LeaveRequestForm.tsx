@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { Calendar, Clock, FileText, Send, X, AlertCircle, CheckCircle } from 'lucide-react';
@@ -112,7 +113,7 @@ export default function LeaveRequestForm({ onClose, onSubmit }: LeaveRequestForm
                 onClose();
             }, 2000);
         } catch (err: any) {
-            console.error('Error submitting leave request:', err);
+            log.error('Error submitting leave request', err, { component: 'LeaveRequestForm', action: 'handleSubmit' });
             setError(err.message || 'Failed to submit leave request');
         } finally {
             setLoading(false);
@@ -166,8 +167,8 @@ export default function LeaveRequestForm({ onClose, onSubmit }: LeaveRequestForm
                                             type="button"
                                             onClick={() => setFormData({ ...formData, type: type.value as any })}
                                             className={`p-3 rounded-lg border-2 text-left transition ${formData.type === type.value
-                                                    ? 'border-indigo-500 bg-indigo-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-indigo-500 bg-indigo-50'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                         >
                                             <p className="text-sm font-medium text-gray-900">{type.label}</p>
@@ -220,8 +221,8 @@ export default function LeaveRequestForm({ onClose, onSubmit }: LeaveRequestForm
                                             type="button"
                                             onClick={() => setFormData({ ...formData, half_day: null })}
                                             className={`flex-1 py-2 px-4 rounded-lg border-2 text-sm font-medium transition ${formData.half_day === null
-                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                                : 'border-gray-200 text-gray-600 hover:border-gray-300'
                                                 }`}
                                         >
                                             Full Day
@@ -230,8 +231,8 @@ export default function LeaveRequestForm({ onClose, onSubmit }: LeaveRequestForm
                                             type="button"
                                             onClick={() => setFormData({ ...formData, half_day: 'morning' })}
                                             className={`flex-1 py-2 px-4 rounded-lg border-2 text-sm font-medium transition ${formData.half_day === 'morning'
-                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                                : 'border-gray-200 text-gray-600 hover:border-gray-300'
                                                 }`}
                                         >
                                             Morning
@@ -240,8 +241,8 @@ export default function LeaveRequestForm({ onClose, onSubmit }: LeaveRequestForm
                                             type="button"
                                             onClick={() => setFormData({ ...formData, half_day: 'afternoon' })}
                                             className={`flex-1 py-2 px-4 rounded-lg border-2 text-sm font-medium transition ${formData.half_day === 'afternoon'
-                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                                : 'border-gray-200 text-gray-600 hover:border-gray-300'
                                                 }`}
                                         >
                                             Afternoon

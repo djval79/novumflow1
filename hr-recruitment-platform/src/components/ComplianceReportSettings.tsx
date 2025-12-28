@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '@/contexts/TenantContext';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import {
     Mail,
     CalendarClock,
@@ -126,7 +127,7 @@ export default function ComplianceReportSettings() {
             if (error) throw error;
             toast.success('Compliance report settings saved');
         } catch (error) {
-            console.error('Error saving settings:', error);
+            log.error('Error saving settings', error, { component: 'ComplianceReportSettings', action: 'handleSave' });
             toast.error('Failed to save settings');
         } finally {
             setSaving(false);
@@ -150,7 +151,7 @@ export default function ComplianceReportSettings() {
             toast.success('Compliance report generated and sent!');
             loadReportHistory();
         } catch (error) {
-            console.error('Error sending report:', error);
+            log.error('Error sending report', error, { component: 'ComplianceReportSettings', action: 'handleSendTestReport' });
             toast.error('Failed to send report. Check function logs.');
         } finally {
             setSendingReport(false);

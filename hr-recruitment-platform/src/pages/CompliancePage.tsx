@@ -1,12 +1,60 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, AlertTriangle, CheckCircle, Clock, FileText, Download, Plus } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Clock, FileText, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { log } from '@/lib/logger';
+
+interface VisaRecord {
+  id: string;
+  visa_type: string;
+  issue_date: string;
+  expiry_date: string;
+  current_status: string;
+}
+
+interface DBSCertificate {
+  id: string;
+  applicant_name: string;
+  certificate_type: string;
+  issue_date: string;
+  status: string;
+}
+
+interface RTWCheck {
+  id: string;
+  check_type: string;
+  check_date: string;
+  check_method?: string;
+  check_result: string;
+}
+
+interface ComplianceAlert {
+  id: string;
+  alert_title: string;
+  alert_message: string;
+  alert_priority: 'critical' | 'high' | 'medium' | 'low';
+  due_date: string;
+}
+
+interface DashboardData {
+  summary: {
+    compliance_score?: number;
+    total_alerts?: number;
+    critical_alerts?: number;
+    total_visa_records?: number;
+    expiring_visas?: number;
+    total_rtw_checks?: number;
+  };
+  alerts: ComplianceAlert[];
+  visa_records: VisaRecord[];
+  dbs_certificates: DBSCertificate[];
+  rtw_checks: RTWCheck[];
+}
 
 export default function CompliancePage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -27,7 +75,7 @@ export default function CompliancePage() {
       if (error) throw error;
       setDashboardData(data.data);
     } catch (error) {
-      console.error('Error loading compliance data:', error);
+      log.error('Error loading compliance data', error, { component: 'CompliancePage', action: 'loadComplianceData' });
     } finally {
       setLoading(false);
     }
@@ -50,7 +98,7 @@ export default function CompliancePage() {
 
       loadComplianceData();
     } catch (error) {
-      console.error('Error acknowledging alert:', error);
+      log.error('Error acknowledging alert', error, { component: 'CompliancePage', action: 'handleAcknowledgeAlert', metadata: { alertId } });
     }
   }
 
@@ -65,7 +113,7 @@ export default function CompliancePage() {
           data: {
             pack_name: `Audit Pack ${new Date().toLocaleDateString()}`,
             pack_type: 'compliance_review',
-            date_range_start: new Date(Date.now() - 90*24*60*60*1000).toISOString().split('T')[0],
+            date_range_start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             date_range_end: new Date().toISOString().split('T')[0]
           }
         },
@@ -77,7 +125,7 @@ export default function CompliancePage() {
       alert('Audit pack generated successfully!');
       loadComplianceData();
     } catch (error) {
-      console.error('Error generating audit pack:', error);
+      log.error('Error generating audit pack', error, { component: 'CompliancePage', action: 'handleGenerateAuditPack' });
       alert('Failed to generate audit pack');
     }
   }
@@ -119,12 +167,10 @@ export default function CompliancePage() {
               <p className="text-sm text-gray-600">Compliance Score</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">{summary.compliance_score || 0}%</p>
             </div>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-              (summary.compliance_score || 0) >= 90 ? 'bg-green-100' : 'bg-yellow-100'
-            }`}>
-              <Shield className={`w-6 h-6 ${
-                (summary.compliance_score || 0) >= 90 ? 'text-green-600' : 'text-yellow-600'
-              }`} />
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${(summary.compliance_score || 0) >= 90 ? 'bg-green-100' : 'bg-yellow-100'
+              }`}>
+              <Shield className={`w-6 h-6 ${(summary.compliance_score || 0) >= 90 ? 'text-green-600' : 'text-yellow-600'
+                }`} />
             </div>
           </div>
         </div>
@@ -176,11 +222,10 @@ export default function CompliancePage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 text-sm font-medium border-b-2 ${
-                  activeTab === tab
+                className={`px-6 py-3 text-sm font-medium border-b-2 ${activeTab === tab
                     ? 'border-indigo-600 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 {tab.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </button>
@@ -195,14 +240,13 @@ export default function CompliancePage() {
               {alerts.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No active alerts</p>
               ) : (
-                alerts.map((alert: any) => (
+                alerts.map((alert: ComplianceAlert) => (
                   <div
                     key={alert.id}
-                    className={`border-l-4 p-4 rounded-r-lg ${
-                      alert.alert_priority === 'critical' ? 'border-red-500 bg-red-50' :
-                      alert.alert_priority === 'high' ? 'border-orange-500 bg-orange-50' :
-                      'border-yellow-500 bg-yellow-50'
-                    }`}
+                    className={`border-l-4 p-4 rounded-r-lg ${alert.alert_priority === 'critical' ? 'border-red-500 bg-red-50' :
+                        alert.alert_priority === 'high' ? 'border-orange-500 bg-orange-50' :
+                          'border-yellow-500 bg-yellow-50'
+                      }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -243,15 +287,14 @@ export default function CompliancePage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {visaRecords.map((record: any) => (
+                  {visaRecords.map((record: VisaRecord) => (
                     <tr key={record.id}>
                       <td className="px-6 py-4 text-sm text-gray-900">{record.visa_type}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{new Date(record.issue_date).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{new Date(record.expiry_date).toLocaleDateString()}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          record.current_status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs rounded-full ${record.current_status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
                           {record.current_status}
                         </span>
                       </td>
@@ -274,15 +317,14 @@ export default function CompliancePage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {dbsCertificates.map((cert: any) => (
+                  {dbsCertificates.map((cert: DBSCertificate) => (
                     <tr key={cert.id}>
                       <td className="px-6 py-4 text-sm text-gray-900">{cert.applicant_name}</td>
                       <td className="px-6 py-4 text-sm text-gray-500 capitalize">{cert.certificate_type.replace('_', ' ')}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{new Date(cert.issue_date).toLocaleDateString()}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          cert.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs rounded-full ${cert.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
                           {cert.status}
                         </span>
                       </td>
@@ -305,15 +347,14 @@ export default function CompliancePage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {rtwChecks.map((check: any) => (
+                  {rtwChecks.map((check: RTWCheck) => (
                     <tr key={check.id}>
                       <td className="px-6 py-4 text-sm text-gray-900 capitalize">{check.check_type.replace('_', ' ')}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{new Date(check.check_date).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-sm text-gray-500 capitalize">{check.check_method?.replace('_', ' ')}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          check.check_result === 'pass' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs rounded-full ${check.check_result === 'pass' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
                           {check.check_result}
                         </span>
                       </td>

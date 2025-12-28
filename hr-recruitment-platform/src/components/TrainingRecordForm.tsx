@@ -5,6 +5,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { X, Upload, Save, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 
 interface TrainingRecordFormProps {
     userId?: string;
@@ -79,7 +80,7 @@ export default function TrainingRecordForm({ userId, staffName, initialData, onS
                 setError('Failed to save training record. Please try again.');
             }
         } catch (err) {
-            console.error('Error saving training record:', err);
+            log.error('Error saving training record', err, { component: 'TrainingRecordForm', action: 'onSubmit' });
             setError('An unexpected error occurred.');
         } finally {
             setIsSubmitting(false);

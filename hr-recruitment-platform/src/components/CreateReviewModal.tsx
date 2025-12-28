@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface CreateReviewModalProps {
@@ -45,7 +46,7 @@ export default function CreateReviewModal({ isOpen, onClose, onSuccess, onError 
                 .order('name');
             setReviewTypes(typeData || []);
         } catch (error) {
-            console.error('Error loading data:', error);
+            log.error('Error loading review context data', error, { component: 'CreateReviewModal', action: 'loadData' });
         }
     }
 
@@ -74,6 +75,7 @@ export default function CreateReviewModal({ isOpen, onClose, onSuccess, onError 
                 review_due_date: '',
             });
         } catch (error: any) {
+            log.error('Error creating performance review', error, { component: 'CreateReviewModal', action: 'handleSubmit', metadata: formData });
             onError(error.message);
         } finally {
             setLoading(false);

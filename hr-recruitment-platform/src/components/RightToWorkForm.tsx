@@ -4,6 +4,7 @@ import { rtwService, DocumentType, RTWValidationResult, RTW_CRITICAL_DATES } fro
 import { useTenant } from '@/contexts/TenantContext';
 import { Upload, CheckCircle, AlertTriangle, Loader2, XCircle, ExternalLink, Info, Shield, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 
 interface RightToWorkFormData {
     staff_name: string;
@@ -74,7 +75,7 @@ export default function RightToWorkForm({ employeeId, onSuccess, onCancel }: Rig
                 }
             }
         } catch (error) {
-            console.error('Verification failed', error);
+            log.error('Verification failed', error, { component: 'RightToWorkForm', action: 'handleVerifyShareCode' });
             setVerificationResult({ valid: false, error: 'Verification service unavailable' });
         } finally {
             setVerifying(false);
@@ -138,7 +139,7 @@ export default function RightToWorkForm({ employeeId, onSuccess, onCancel }: Rig
 
             onSuccess();
         } catch (error) {
-            console.error('Error submitting RTW check:', error);
+            log.error('Error submitting RTW check', error, { component: 'RightToWorkForm', action: 'onSubmit' });
             alert('Failed to submit check. Please try again.');
         } finally {
             setLoading(false);

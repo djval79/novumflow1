@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { Search, User, Mail, Phone, Building, MapPin, ChevronRight, Grid, List, Filter, SortAsc } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
@@ -20,6 +22,7 @@ interface Employee {
 }
 
 export default function TeamDirectory() {
+    const navigate = useNavigate();
     const { currentTenant } = useTenant();
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
@@ -50,7 +53,7 @@ export default function TeamDirectory() {
             if (error) throw error;
             setEmployees(data || []);
         } catch (error) {
-            console.error('Error loading employees:', error);
+            log.error('Error loading employees', error, { component: 'TeamDirectory', action: 'loadEmployees' });
             // Generate mock data
             setEmployees(generateMockEmployees());
         } finally {
@@ -133,6 +136,16 @@ export default function TeamDirectory() {
         ];
         const index = name.charCodeAt(0) % colors.length;
         return colors[index];
+    }
+
+    function handleSendMessage(employee: Employee) {
+        setSelectedEmployee(null);
+        navigate('/messaging', { state: { recipientEmail: employee.email, recipientName: `${employee.first_name} ${employee.last_name}` } });
+    }
+
+    function handleViewProfile(employee: Employee) {
+        setSelectedEmployee(null);
+        navigate('/hr', { state: { employeeId: employee.id } });
     }
 
     if (loading) {
@@ -367,10 +380,16 @@ export default function TeamDirectory() {
 
                         {/* Actions */}
                         <div className="px-6 py-4 bg-gray-50 flex space-x-3">
-                            <button className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            <button
+                                onClick={() => handleSendMessage(selectedEmployee)}
+                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                            >
                                 Send Message
                             </button>
-                            <button className="flex-1 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                            <button
+                                onClick={() => handleViewProfile(selectedEmployee)}
+                                className="flex-1 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                            >
                                 View Profile
                             </button>
                         </div>
@@ -380,3 +399,4 @@ export default function TeamDirectory() {
         </div>
     );
 }
+

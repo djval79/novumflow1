@@ -2,9 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Upload, Filter, Search } from 'lucide-react';
 import DragDropUpload from '@/components/DragDropUpload';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
+
+interface Document {
+  id: string;
+  document_name: string;
+  document_type: string;
+  file_size_bytes: number;
+  uploaded_at: string;
+  is_verified: boolean;
+}
 
 export default function DocumentsPage() {
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,7 +39,7 @@ export default function DocumentsPage() {
       if (error) throw error;
       setDocuments(data || []);
     } catch (error) {
-      console.error('Error loading documents:', error);
+      log.error('Error loading documents', error, { component: 'DocumentsPage', action: 'loadDocuments' });
     } finally {
       setLoading(false);
     }
@@ -165,8 +175,8 @@ export default function DocumentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 text-xs rounded-full ${doc.is_verified
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
                           }`}>
                           {doc.is_verified ? 'Verified' : 'Pending'}
                         </span>

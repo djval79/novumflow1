@@ -11,13 +11,14 @@
  */
 
 import { supabase } from '../supabase';
-import { 
-  COMPLIANCE_AUTOMATIONS, 
-  ComplianceAuthority, 
-  ComplianceStage, 
-  UrgencyLevel 
+import {
+  COMPLIANCE_AUTOMATIONS,
+  ComplianceAuthority,
+  ComplianceStage,
+  UrgencyLevel
 } from './complianceTypes';
 import { complianceService } from './ComplianceService';
+import { log } from '../logger';
 
 // ===========================================
 // TYPES
@@ -101,42 +102,41 @@ class AutomatedWorkflowEngine {
    * Start all automated workflows
    */
   start(): void {
-    console.log('Starting Automated Workflow Engine...');
-    
+    log.info('Starting Automated Workflow Engine...', { component: 'AutomatedWorkflowEngine', action: 'start' });
+
     // Daily expiry check at 6 AM
     this.scheduleRecurring('expiry_check', () => this.runExpiryChecks(), {
       hour: 6,
       minute: 0
     });
-    
+
     // Hourly reference chase check
     this.scheduleRecurring('reference_chase', () => this.runReferenceChasers(), {
       minute: 30 // Every hour at 30 minutes past
     });
-    
+
     // Real-time queue processing
     this.intervalIds.push(
       setInterval(() => this.processQueue(), 5000) // Every 5 seconds
     );
-    
-    console.log('Workflow Engine started successfully');
+
+    log.info('Workflow Engine started successfully', { component: 'AutomatedWorkflowEngine', action: 'start' });
   }
 
   /**
    * Stop all automated workflows
    */
   stop(): void {
-    this.intervalIds.forEach(id => clearInterval(id));
     this.intervalIds = [];
     this.isProcessing = false;
-    console.log('Workflow Engine stopped');
+    log.info('Workflow Engine stopped', { component: 'AutomatedWorkflowEngine', action: 'stop' });
   }
 
   /**
    * Schedule a recurring task
    */
   private scheduleRecurring(
-    name: string, 
+    name: string,
     fn: () => Promise<void>,
     schedule: { hour?: number; minute?: number }
   ): void {
@@ -146,10 +146,10 @@ class AutomatedWorkflowEngine {
         (schedule.hour === undefined || now.getHours() === schedule.hour) &&
         (schedule.minute === undefined || now.getMinutes() === schedule.minute)
       ) {
-        fn().catch(err => console.error(`Scheduled task ${name} failed:`, err));
+        fn().catch(err => log.error(`Scheduled task ${name} failed`, err, { component: 'AutomatedWorkflowEngine', action: 'scheduleRecurring', metadata: { name } }));
       }
     };
-    
+
     // Check every minute
     this.intervalIds.push(setInterval(checkAndRun, 60000));
   }
@@ -162,7 +162,8 @@ class AutomatedWorkflowEngine {
    * Run expiry checks for all documents
    */
   async runExpiryChecks(): Promise<{ processed: number; expired: number; reminded: number }> {
-    console.log('Running expiry checks...');
+    log.info('Running expiry checks...', { component: 'AutomatedWorkflowEngine', action: 'runExpiryChecks' });
+    const startTime = performance.now();
     let processed = 0;
     let expired = 0;
     let reminded = 0;
@@ -176,7 +177,7 @@ class AutomatedWorkflowEngine {
         .not('expiry_date', 'is', null);
 
       if (error || !documents) {
-        console.error('Failed to fetch documents for expiry check:', error);
+        log.error('Failed to fetch documents for expiry check', error, { component: 'AutomatedWorkflowEngine', action: 'runExpiryChecks' });
         return { processed: 0, expired: 0, reminded: 0 };
       }
 
@@ -199,10 +200,12 @@ class AutomatedWorkflowEngine {
         }
       }
 
-      console.log(`Expiry check complete: ${processed} processed, ${expired} expired, ${reminded} reminded`);
+      const duration = performance.now() - startTime;
+      log.info(`Expiry check complete: ${processed} processed, ${expired} expired, ${reminded} reminded`, { component: 'AutomatedWorkflowEngine', action: 'runExpiryChecks', metadata: { processed, expired, reminded } });
+      log.performance('runExpiryChecks', duration, { component: 'AutomatedWorkflowEngine' });
       return { processed, expired, reminded };
     } catch (error) {
-      console.error('Expiry check failed:', error);
+      log.error('Expiry check failed', error, { component: 'AutomatedWorkflowEngine', action: 'runExpiryChecks' });
       return { processed, expired, reminded };
     }
   }
@@ -276,7 +279,7 @@ class AutomatedWorkflowEngine {
 
     if (!existingReminder) {
       // Send reminder based on days until expiry
-      const recipients = daysUntilExpiry <= 7 
+      const recipients = daysUntilExpiry <= 7
         ? ['employee', 'hr_manager', 'compliance_officer']
         : ['employee', 'hr_manager'];
 
@@ -301,7 +304,8 @@ class AutomatedWorkflowEngine {
    * Run reference chaser for pending references
    */
   async runReferenceChasers(): Promise<{ chased: number }> {
-    console.log('Running reference chasers...');
+    log.info('Running reference chasers...', { component: 'AutomatedWorkflowEngine', action: 'runReferenceChasers' });
+    const startTime = performance.now();
     let chased = 0;
 
     try {
@@ -340,10 +344,12 @@ class AutomatedWorkflowEngine {
         }
       }
 
-      console.log(`Reference chase complete: ${chased} chased`);
+      const duration = performance.now() - startTime;
+      log.info(`Reference chase complete: ${chased} chased`, { component: 'AutomatedWorkflowEngine', action: 'runReferenceChasers', metadata: { chased } });
+      log.performance('runReferenceChasers', duration, { component: 'AutomatedWorkflowEngine' });
       return { chased };
     } catch (error) {
-      console.error('Reference chase failed:', error);
+      log.error('Reference chase failed', error, { component: 'AutomatedWorkflowEngine', action: 'runReferenceChasers' });
       return { chased: 0 };
     }
   }
@@ -352,8 +358,8 @@ class AutomatedWorkflowEngine {
    * Send reference chase email
    */
   private async sendReferenceChaser(ref: any, chaseType: 'first' | 'second'): Promise<void> {
-    const recipients = chaseType === 'first' 
-      ? ['referee'] 
+    const recipients = chaseType === 'first'
+      ? ['referee']
       : ['referee', 'applicant'];
 
     await this.sendNotifications({
@@ -399,7 +405,8 @@ class AutomatedWorkflowEngine {
    * Process training renewal reminders
    */
   async processTrainingRenewals(): Promise<{ scheduled: number }> {
-    console.log('Processing training renewals...');
+    log.info('Processing training renewals...', { component: 'AutomatedWorkflowEngine', action: 'processTrainingRenewals' });
+    const startTime = performance.now();
     let scheduled = 0;
 
     try {
@@ -442,10 +449,12 @@ class AutomatedWorkflowEngine {
         scheduled++;
       }
 
-      console.log(`Training renewals processed: ${scheduled} scheduled`);
+      const duration = performance.now() - startTime;
+      log.info(`Training renewals processed: ${scheduled} scheduled`, { component: 'AutomatedWorkflowEngine', action: 'processTrainingRenewals', metadata: { scheduled } });
+      log.performance('processTrainingRenewals', duration, { component: 'AutomatedWorkflowEngine' });
       return { scheduled };
     } catch (error) {
-      console.error('Training renewal processing failed:', error);
+      log.error('Training renewal processing failed', error, { component: 'AutomatedWorkflowEngine', action: 'processTrainingRenewals' });
       return { scheduled: 0 };
     }
   }
@@ -458,7 +467,8 @@ class AutomatedWorkflowEngine {
    * Check and progress stages for all persons
    */
   async checkStageProgressions(tenantId: string): Promise<{ progressed: number }> {
-    console.log('Checking stage progressions...');
+    log.info('Checking stage progressions...', { component: 'AutomatedWorkflowEngine', action: 'checkStageProgressions', metadata: { tenantId } });
+    const startTime = performance.now();
     let progressed = 0;
 
     try {
@@ -478,7 +488,7 @@ class AutomatedWorkflowEngine {
         const result = await complianceService.progressToNextStage(person.id);
         if (result.success) {
           progressed++;
-          
+
           // Send notification about stage progression
           await this.sendNotifications({
             tenantId,
@@ -492,10 +502,12 @@ class AutomatedWorkflowEngine {
         }
       }
 
-      console.log(`Stage progressions: ${progressed} advanced`);
+      const duration = performance.now() - startTime;
+      log.info(`Stage progressions: ${progressed} advanced`, { component: 'AutomatedWorkflowEngine', action: 'checkStageProgressions', metadata: { progressed } });
+      log.performance('checkStageProgressions', duration, { component: 'AutomatedWorkflowEngine' });
       return { progressed };
     } catch (error) {
-      console.error('Stage progression check failed:', error);
+      log.error('Stage progression check failed', error, { component: 'AutomatedWorkflowEngine', action: 'checkStageProgressions' });
       return { progressed: 0 };
     }
   }
@@ -508,7 +520,8 @@ class AutomatedWorkflowEngine {
    * Process annual Right to Work checks for limited leave employees
    */
   async processRTWAnnualChecks(): Promise<{ checked: number }> {
-    console.log('Processing RTW annual checks...');
+    log.info('Processing RTW annual checks...', { component: 'AutomatedWorkflowEngine', action: 'processRTWAnnualChecks' });
+    const startTime = performance.now();
     let checked = 0;
 
     try {
@@ -529,7 +542,7 @@ class AutomatedWorkflowEngine {
       for (const employee of employees) {
         // Check if annual check is due
         const lastCheck = await this.getLastRTWCheck(employee.id);
-        
+
         if (!lastCheck || new Date(lastCheck.created_at) < oneYearAgo) {
           // Create RTW check task
           await this.createTask({
@@ -556,10 +569,12 @@ class AutomatedWorkflowEngine {
         }
       }
 
-      console.log(`RTW annual checks: ${checked} due`);
+      const duration = performance.now() - startTime;
+      log.info(`RTW annual checks: ${checked} due`, { component: 'AutomatedWorkflowEngine', action: 'processRTWAnnualChecks', metadata: { checked } });
+      log.performance('processRTWAnnualChecks', duration, { component: 'AutomatedWorkflowEngine' });
       return { checked };
     } catch (error) {
-      console.error('RTW annual check failed:', error);
+      log.error('RTW annual check failed', error, { component: 'AutomatedWorkflowEngine', action: 'processRTWAnnualChecks' });
       return { checked: 0 };
     }
   }
@@ -573,7 +588,7 @@ class AutomatedWorkflowEngine {
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
-    
+
     return data;
   }
 
@@ -585,7 +600,8 @@ class AutomatedWorkflowEngine {
    * Process escalations for overdue tasks
    */
   async processEscalations(): Promise<{ escalated: number }> {
-    console.log('Processing escalations...');
+    log.info('Processing escalations...', { component: 'AutomatedWorkflowEngine', action: 'processEscalations' });
+    const startTime = performance.now();
     let escalated = 0;
 
     try {
@@ -634,10 +650,12 @@ class AutomatedWorkflowEngine {
         }
       }
 
-      console.log(`Escalations processed: ${escalated}`);
+      const duration = performance.now() - startTime;
+      log.info(`Escalations processed: ${escalated}`, { component: 'AutomatedWorkflowEngine', action: 'processEscalations', metadata: { escalated } });
+      log.performance('processEscalations', duration, { component: 'AutomatedWorkflowEngine' });
       return { escalated };
     } catch (error) {
-      console.error('Escalation processing failed:', error);
+      log.error('Escalation processing failed', error, { component: 'AutomatedWorkflowEngine', action: 'processEscalations' });
       return { escalated: 0 };
     }
   }
@@ -669,13 +687,13 @@ class AutomatedWorkflowEngine {
     if (this.isProcessing || this.taskQueue.length === 0) return;
 
     this.isProcessing = true;
-    
+
     try {
       const task = this.taskQueue.shift();
       if (!task) return;
 
       task.status = 'in_progress';
-      
+
       try {
         const result = await this.executeTask(task);
         task.status = 'completed';
@@ -684,7 +702,7 @@ class AutomatedWorkflowEngine {
       } catch (error) {
         task.retryCount++;
         task.error = String(error);
-        
+
         if (task.retryCount < task.maxRetries) {
           task.status = 'pending';
           this.taskQueue.push(task);
@@ -713,7 +731,7 @@ class AutomatedWorkflowEngine {
       case 'stage_progression':
         return complianceService.progressToNextStage(task.entityId);
       default:
-        console.warn(`Unknown task type: ${task.type}`);
+        log.warn(`Unknown task type: ${task.type}`, { component: 'AutomatedWorkflowEngine', action: 'executeTask' });
         return null;
     }
   }
@@ -756,7 +774,7 @@ class AutomatedWorkflowEngine {
       // - Push notifications for mobile app
 
     } catch (error) {
-      console.error('Failed to send notification:', error);
+      log.error('Failed to send notification', error, { component: 'AutomatedWorkflowEngine', action: 'sendNotifications' });
     }
   }
 
@@ -799,8 +817,8 @@ class AutomatedWorkflowEngine {
     stageProgressions: { progressed: number };
     escalations: { escalated: number };
   }> {
-    console.log('Running all workflows manually...');
-    
+    log.info('Running all workflows manually...', { component: 'AutomatedWorkflowEngine', action: 'runAllWorkflows', metadata: { tenantId } });
+
     const results = {
       expiryChecks: await this.runExpiryChecks(),
       referenceChase: await this.runReferenceChasers(),
@@ -809,7 +827,7 @@ class AutomatedWorkflowEngine {
       escalations: await this.processEscalations()
     };
 
-    console.log('All workflows complete:', results);
+    log.info('All workflows complete', { component: 'AutomatedWorkflowEngine', action: 'runAllWorkflows', metadata: { results } });
     return results;
   }
 }

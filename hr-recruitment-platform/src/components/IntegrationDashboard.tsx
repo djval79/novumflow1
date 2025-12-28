@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Plug, Mail, Calendar, DollarSign, Clock, Users, CheckCircle, AlertCircle, Settings, Zap, TrendingUp } from 'lucide-react';
+import { log } from '../lib/logger';
 import { integrationEngine, IntegrationConfig, CommunicationTemplate } from '../lib/integrationEngine';
 
 export default function IntegrationDashboard() {
@@ -18,12 +19,12 @@ export default function IntegrationDashboard() {
       const dashboard = integrationEngine.getIntegrationsDashboard();
       const integrationsList = integrationEngine.getAvailableIntegrations();
       const templatesList = integrationEngine.getCommunicationTemplates();
-      
+
       setDashboardData(dashboard);
       setIntegrations(integrationsList);
       setTemplates(templatesList);
     } catch (error) {
-      console.error('Failed to load integration data:', error);
+      log.error('Failed to load integration data', error, { component: 'IntegrationDashboard', action: 'loadDashboardData' });
     } finally {
       setLoading(false);
     }
@@ -41,30 +42,26 @@ export default function IntegrationDashboard() {
 
   const IntegrationCard = ({ integration }: { integration: IntegrationConfig }) => {
     const Icon = getIntegrationIcon(integration.type);
-    
+
     return (
-      <div className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all hover:shadow-md ${
-        integration.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200'
-      }`}>
+      <div className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all hover:shadow-md ${integration.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200'
+        }`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className={`p-3 rounded-lg ${
-              integration.isActive ? 'bg-green-100' : 'bg-gray-100'
-            }`}>
-              <Icon className={`w-6 h-6 ${
-                integration.isActive ? 'text-green-600' : 'text-gray-400'
-              }`} />
+            <div className={`p-3 rounded-lg ${integration.isActive ? 'bg-green-100' : 'bg-gray-100'
+              }`}>
+              <Icon className={`w-6 h-6 ${integration.isActive ? 'text-green-600' : 'text-gray-400'
+                }`} />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">{integration.name}</h3>
               <p className="text-sm text-gray-600 capitalize">{integration.type.replace('_', ' ')}</p>
             </div>
           </div>
-          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-            integration.isActive 
-              ? 'bg-green-100 text-green-800' 
+          <div className={`px-3 py-1 rounded-full text-sm font-medium ${integration.isActive
+              ? 'bg-green-100 text-green-800'
               : 'bg-gray-100 text-gray-600'
-          }`}>
+            }`}>
             {integration.isActive ? 'Connected' : 'Inactive'}
           </div>
         </div>
@@ -92,11 +89,10 @@ export default function IntegrationDashboard() {
             </div>
           )}
 
-          <button className={`w-full py-2 px-4 rounded-lg font-medium transition ${
-            integration.isActive
+          <button className={`w-full py-2 px-4 rounded-lg font-medium transition ${integration.isActive
               ? 'bg-red-100 text-red-600 hover:bg-red-200'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}>
+            }`}>
             {integration.isActive ? 'Disconnect' : 'Connect'}
           </button>
         </div>
@@ -108,21 +104,18 @@ export default function IntegrationDashboard() {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className={`p-2 rounded-lg ${
-            template.isActive ? 'bg-blue-100' : 'bg-gray-100'
-          }`}>
-            <Mail className={`w-5 h-5 ${
-              template.isActive ? 'text-blue-600' : 'text-gray-400'
-            }`} />
+          <div className={`p-2 rounded-lg ${template.isActive ? 'bg-blue-100' : 'bg-gray-100'
+            }`}>
+            <Mail className={`w-5 h-5 ${template.isActive ? 'text-blue-600' : 'text-gray-400'
+              }`} />
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">{template.name}</h3>
             <p className="text-sm text-gray-600 capitalize">{template.type.replace('_', ' ')}</p>
           </div>
         </div>
-        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-          template.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-        }`}>
+        <div className={`px-2 py-1 rounded-full text-xs font-medium ${template.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+          }`}>
           {template.isActive ? 'Active' : 'Inactive'}
         </div>
       </div>
@@ -202,11 +195,10 @@ export default function IntegrationDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeTab === tab.id
+              className={`px-4 py-2 rounded-lg font-medium transition ${activeTab === tab.id
                   ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -405,9 +397,8 @@ export default function IntegrationDashboard() {
                       <h3 className="font-semibold text-gray-900">{sequence.name}</h3>
                       <p className="text-sm text-gray-600">Trigger: {sequence.trigger.replace('_', ' ')}</p>
                     </div>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      sequence.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${sequence.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                      }`}>
                       {sequence.isActive ? 'Active' : 'Inactive'}
                     </div>
                   </div>

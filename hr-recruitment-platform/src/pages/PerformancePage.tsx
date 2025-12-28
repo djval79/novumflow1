@@ -27,6 +27,7 @@ import Modal from '@/components/Modal';
 import Toast from '@/components/Toast';
 import PerformanceReports from '@/components/PerformanceReports';
 import AddReviewTypeModal from '@/components/AddReviewTypeModal';
+import { log } from '@/lib/logger';
 import CreateReviewModal from '@/components/CreateReviewModal';
 import AddGoalModal from '@/components/AddGoalModal';
 import AddKPIModal from '@/components/AddKPIModal';
@@ -145,7 +146,7 @@ export default function PerformancePage() {
         .order('first_name');
       setEmployees(empData || []);
     } catch (error) {
-      console.error('Error loading supporting data:', error);
+      log.error('Error loading supporting data', error, { component: 'PerformancePage', action: 'loadSupportingData' });
     }
   }
 
@@ -235,7 +236,7 @@ export default function PerformancePage() {
           break;
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      log.error('Error loading data', error, { component: 'PerformancePage', action: 'loadData', metadata: { activeTab } });
       setToast({ message: 'Failed to load data', type: 'error' });
     } finally {
       setLoading(false);

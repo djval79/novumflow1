@@ -11,6 +11,7 @@
 
 import { supabase } from '../supabase';
 import { CompliancePerson, ComplianceDocument, ComplianceFolder } from './ComplianceService';
+import { log } from '../logger';
 
 // ===========================================
 // TYPES
@@ -25,7 +26,7 @@ export interface SyncConfig {
   userId?: string;
 }
 
-export type SyncType = 
+export type SyncType =
   | 'person'
   | 'document'
   | 'folder'
@@ -79,8 +80,9 @@ const PERSON_FIELD_MAPPINGS: SyncMapping[] = [
   { novumflow: 'department', careflow: 'department' },
   { novumflow: 'start_date', careflow: 'joinedDate' },
   { novumflow: 'overall_compliance_score', careflow: 'complianceScore' },
-  { novumflow: 'compliance_status', careflow: 'status', 
-    transform: (status: string) => status === 'COMPLIANT' ? 'Active' : 'At Risk' 
+  {
+    novumflow: 'compliance_status', careflow: 'status',
+    transform: (status: string) => status === 'COMPLIANT' ? 'Active' : 'At Risk'
   },
   { novumflow: 'visa_expiry_date', careflow: 'visaExpiry' },
   { novumflow: 'requires_nmc', careflow: 'requiresNMC' },
@@ -218,7 +220,7 @@ class CrossAppSyncService {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('Sync error:', error);
+      log.error('Sync error', error, { component: 'CrossAppSyncService', action: 'syncPersonToCareFlow', metadata: { personId, tenantId } });
       return this.createErrorResult('person', personId, String(error));
     }
   }
@@ -232,8 +234,8 @@ class CrossAppSyncService {
     for (const mapping of PERSON_FIELD_MAPPINGS) {
       const value = person[mapping.novumflow as keyof CompliancePerson];
       if (value !== undefined && value !== null) {
-        result[mapping.careflow] = mapping.transform 
-          ? mapping.transform(value) 
+        result[mapping.careflow] = mapping.transform
+          ? mapping.transform(value)
           : value;
       }
     }
@@ -272,8 +274,9 @@ class CrossAppSyncService {
       }
 
       return results;
+      return results;
     } catch (error) {
-      console.error('Document sync error:', error);
+      log.error('Document sync error', error, { component: 'CrossAppSyncService', action: 'syncDocumentsToCareFlow', metadata: { personId, tenantId } });
       return [this.createErrorResult('document', personId, String(error))];
     }
   }
@@ -456,21 +459,21 @@ class CrossAppSyncService {
   }
 
   private mapComplianceStatus(
-    status: string, 
+    status: string,
     expiryDate?: string
   ): 'Valid' | 'Due Soon' | 'Expired' {
     if (status === 'EXPIRED') return 'Expired';
     if (status === 'EXPIRING_SOON') return 'Due Soon';
-    
+
     if (expiryDate) {
       const expiry = new Date(expiryDate);
       const now = new Date();
       const daysUntil = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       if (daysUntil < 0) return 'Expired';
       if (daysUntil < 30) return 'Due Soon';
     }
-    
+
     return 'Valid';
   }
 
@@ -612,7 +615,7 @@ class CrossAppSyncService {
 
     for (const person of persons) {
       const result = await this.syncFullProfile(person.id, tenantId);
-      
+
       if (result.overall.success) {
         successful++;
       } else {
@@ -789,7 +792,7 @@ class CrossAppSyncService {
   async queueSync(config: SyncConfig): Promise<void> {
     const key = `${config.syncType}_${config.entityId}`;
     this.syncQueue.set(key, config);
-    
+
     if (!this.isProcessing) {
       this.processQueue();
     }
@@ -811,7 +814,7 @@ class CrossAppSyncService {
           try {
             await this.executeSyncConfig(config);
           } catch (error) {
-            console.error(`Sync failed for ${key}:`, error);
+            log.error(`Sync failed for ${key}`, error, { component: 'CrossAppSyncService', action: 'processQueue', metadata: { key, config } });
             this.retryQueue.push({
               id: crypto.randomUUID(),
               timestamp: new Date().toISOString(),
@@ -828,6 +831,7 @@ class CrossAppSyncService {
       }
     } finally {
       this.isProcessing = false;
+      log.info('Sync queue processing complete', { component: 'CrossAppSyncService', action: 'processQueue' });
     }
   }
 

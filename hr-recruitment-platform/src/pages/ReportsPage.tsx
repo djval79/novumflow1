@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTenant } from '@/contexts/TenantContext';
 import {
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { format, subDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { downloadCSV } from '@/components/ExportButton';
+import { log } from '@/lib/logger';
 
 interface ReportConfig {
     id: string;
@@ -26,7 +27,7 @@ export default function ReportsPage() {
         end: format(new Date(), 'yyyy-MM-dd'),
     });
     const [loading, setLoading] = useState(false);
-    const [reportData, setReportData] = useState<any[] | null>(null);
+    const [reportData, setReportData] = useState<Record<string, unknown>[] | null>(null);
     const [presets, setPresets] = useState<'last7' | 'last30' | 'thisMonth' | 'lastMonth' | 'custom'>('last30');
 
     const reports: ReportConfig[] = [
@@ -190,7 +191,7 @@ export default function ReportsPage() {
             if (error) throw error;
             setReportData(data || []);
         } catch (error) {
-            console.error('Error generating report:', error);
+            log.error('Error generating report', error, { component: 'ReportsPage', action: 'generateReport', metadata: { reportId: selectedReport.id, dataSource: selectedReport.dataSource } });
             // Generate mock data
             setReportData(generateMockData(selectedReport));
         } finally {
@@ -198,10 +199,10 @@ export default function ReportsPage() {
         }
     }
 
-    function generateMockData(report: ReportConfig): any[] {
+    function generateMockData(report: ReportConfig): Record<string, unknown>[] {
         const count = Math.floor(Math.random() * 20) + 10;
         return Array.from({ length: count }, (_, i) => {
-            const row: Record<string, any> = {};
+            const row: Record<string, unknown> = {};
             report.columns.forEach(col => {
                 if (col.key.includes('name')) {
                     row[col.key] = ['John Smith', 'Sarah Johnson', 'Michael Chen', 'Emma Wilson'][Math.floor(Math.random() * 4)];
@@ -454,7 +455,7 @@ export default function ReportsPage() {
                                                     <tr key={i} className="hover:bg-gray-50">
                                                         {selectedReport.columns.map(col => (
                                                             <td key={col.key} className="px-6 py-4 text-sm text-gray-700">
-                                                                {row[col.key] || '-'}
+                                                                {String(row[col.key] ?? '-')}
                                                             </td>
                                                         ))}
                                                     </tr>

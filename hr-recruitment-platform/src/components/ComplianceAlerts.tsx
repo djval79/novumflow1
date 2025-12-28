@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { complianceService, DBSCheck, TrainingRecord } from '@/lib/services/ComplianceService';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { AlertTriangle, Clock, AlertCircle, ChevronRight } from 'lucide-react';
 
@@ -26,7 +27,7 @@ export default function ComplianceAlerts() {
             setExpiringDBS(dbs);
             setExpiringTraining(training);
         } catch (error) {
-            console.error('Error loading compliance alerts:', error);
+            log.error('Error loading compliance alerts', error, { component: 'ComplianceAlerts', action: 'loadAlerts' });
         } finally {
             setLoading(false);
         }

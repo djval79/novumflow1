@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Check, X, Send, Eye, RefreshCw, Slack, Video, Mail, Calendar, HardDrive, Plus, Settings, Zap, CreditCard, Shield, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { log } from '@/lib/logger';
 
 interface Integration {
     id: string;
@@ -60,7 +61,7 @@ export default function IntegrationsPage() {
             if (error) throw error;
             setIntegrations(data || []);
         } catch (error) {
-            console.error('Error loading integrations:', error);
+            log.error('Error loading integrations', error, { component: 'IntegrationsPage', action: 'loadIntegrations' });
             toast.error('Failed to load integrations');
         } finally {
             setLoading(false);
@@ -83,7 +84,7 @@ export default function IntegrationsPage() {
             if (error) throw error;
             setLogs(data || []);
         } catch (error) {
-            console.error('Error loading logs:', error);
+            log.error('Error loading logs', error, { component: 'IntegrationsPage', action: 'loadLogs', metadata: { serviceName } });
         }
     }
 
@@ -111,6 +112,7 @@ export default function IntegrationsPage() {
                 : `Disconnected from ${integration.display_name}`
             );
         } catch (error: any) {
+            log.error('Failed to update connection', error, { component: 'IntegrationsPage', action: 'toggleConnection', metadata: { integrationId: integration.id } });
             toast.error('Failed to update connection: ' + error.message);
         }
     }
@@ -140,6 +142,7 @@ export default function IntegrationsPage() {
             setShowAddModal(false);
             toast.success(`${item.display_name} added successfully`);
         } catch (error: any) {
+            log.error('Failed to add integration', error, { component: 'IntegrationsPage', action: 'addIntegration', metadata: { serviceName: item.service_name } });
             toast.error('Failed to add integration: ' + error.message);
         }
     }
@@ -368,8 +371,8 @@ export default function IntegrationsPage() {
                                         onClick={() => !isAdded && addIntegration(item)}
                                         disabled={isAdded}
                                         className={`p-4 rounded-lg border-2 text-left transition-all ${isAdded
-                                                ? 'border-green-200 bg-green-50 cursor-not-allowed'
-                                                : 'border-gray-200 hover:border-cyan-500 hover:shadow-md'
+                                            ? 'border-green-200 bg-green-50 cursor-not-allowed'
+                                            : 'border-gray-200 hover:border-cyan-500 hover:shadow-md'
                                             }`}
                                     >
                                         <div className="flex items-center gap-3 mb-2">

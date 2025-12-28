@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, Search, Plus, Paperclip, X, Users, Check, CheckCheck } from 'lucide-react';
+import { MessageSquare, Send, Search, Plus, X, CheckCheck } from 'lucide-react';
 import { supabase, supabaseUrl } from '../lib/supabase';
+import { log } from '@/lib/logger';
 
 interface Message {
   id: string;
@@ -38,7 +39,7 @@ export default function MessagingPage() {
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [conversationTitle, setConversationTitle] = useState('');
   const [loading, setLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function MessagingPage() {
         setConversations(result.conversations);
       }
     } catch (error) {
-      console.error('Failed to load conversations:', error);
+      log.error('Failed to load conversations', error, { component: 'MessagingPage', action: 'loadConversations' });
     }
   };
 
@@ -100,7 +101,7 @@ export default function MessagingPage() {
         setMessages(result.messages);
       }
     } catch (error) {
-      console.error('Failed to load messages:', error);
+      log.error('Failed to load messages', error, { component: 'MessagingPage', action: 'loadMessages', metadata: { conversationId } });
     }
   };
 
@@ -117,7 +118,7 @@ export default function MessagingPage() {
       });
       loadConversations();
     } catch (error) {
-      console.error('Failed to mark as read:', error);
+      log.error('Failed to mark as read', error, { component: 'MessagingPage', action: 'markAsRead', metadata: { conversationId } });
     }
   };
 
@@ -149,7 +150,7 @@ export default function MessagingPage() {
         loadConversations();
       }
     } catch (error) {
-      console.error('Failed to send message:', error);
+      log.error('Failed to send message', error, { component: 'MessagingPage', action: 'sendMessage', metadata: { conversationId: selectedConversation } });
     } finally {
       setLoading(false);
     }
@@ -177,7 +178,7 @@ export default function MessagingPage() {
         setSearchResults(result.users);
       }
     } catch (error) {
-      console.error('Failed to search users:', error);
+      log.error('Failed to search users', error, { component: 'MessagingPage', action: 'searchUsers', metadata: { query } });
     }
   };
 
@@ -214,7 +215,7 @@ export default function MessagingPage() {
         setSelectedConversation(result.conversation.id);
       }
     } catch (error) {
-      console.error('Failed to create conversation:', error);
+      log.error('Failed to create conversation', error, { component: 'MessagingPage', action: 'createConversation', metadata: { title: conversationTitle, participantCount: selectedUsers.length } });
     } finally {
       setLoading(false);
     }
@@ -262,9 +263,8 @@ export default function MessagingPage() {
             <div
               key={conv.id}
               onClick={() => setSelectedConversation(conv.id)}
-              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                selectedConversation === conv.id ? 'bg-indigo-50' : ''
-              }`}
+              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${selectedConversation === conv.id ? 'bg-indigo-50' : ''
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -317,11 +317,10 @@ export default function MessagingPage() {
                   className={`flex ${msg.sender_id === currentUser?.id ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-md px-4 py-2 rounded-lg ${
-                      msg.sender_id === currentUser?.id
+                    className={`max-w-md px-4 py-2 rounded-lg ${msg.sender_id === currentUser?.id
                         ? 'bg-indigo-600 text-white'
                         : 'bg-gray-200 text-gray-900'
-                    }`}
+                      }`}
                   >
                     <p className="text-sm">{msg.content}</p>
                     <div className="flex items-center justify-end gap-1 mt-1">

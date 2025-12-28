@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useTenant } from '@/contexts/TenantContext';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import {
     Shield,
     CheckCircle,
@@ -242,7 +243,7 @@ export default function CharacterDeclarationForm({
 
             onSuccess();
         } catch (error) {
-            console.error('Error submitting character declaration:', error);
+            log.error('Error submitting character declaration', error, { component: 'CharacterDeclarationForm', action: 'onSubmit', metadata: { employeeId } });
             alert('Failed to submit declaration. Please try again.');
         } finally {
             setLoading(false);
@@ -255,10 +256,10 @@ export default function CharacterDeclarationForm({
                 <React.Fragment key={s}>
                     <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${s === step
-                                ? 'bg-cyan-600 text-white shadow-lg'
-                                : s < step
-                                    ? 'bg-green-500 text-white'
-                                    : 'bg-gray-200 text-gray-500'
+                            ? 'bg-cyan-600 text-white shadow-lg'
+                            : s < step
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-200 text-gray-500'
                             }`}
                     >
                         {s < step ? <CheckCircle className="w-5 h-5" /> : s}

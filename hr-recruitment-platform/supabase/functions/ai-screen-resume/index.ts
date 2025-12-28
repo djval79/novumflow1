@@ -66,69 +66,95 @@ Deno.serve(async (req: Request) => {
             throw new Error(`Application not found: ${appError?.message}`);
         }
 
-        // 2. Fetch resume content
+        // 2. Fetch resume content (Multimodal handling for PDFs/Images)
+        let resumePart: any = null;
         let resumeText = '';
+
         if (application.cv_url) {
             try {
+                const isPdf = application.cv_url.toLowerCase().endsWith('.pdf');
+                const isImage = /\.(jpg|jpeg|png|webp)$/i.test(application.cv_url);
+
                 if (application.cv_url.startsWith('http')) {
-                    // It's a full URL
                     console.log('Fetching resume from URL:', application.cv_url);
                     const res = await fetch(application.cv_url);
                     if (res.ok) {
-                        resumeText = await res.text();
-                    } else {
-                        console.error('Failed to fetch resume URL:', res.statusText);
+                        if (isPdf || isImage) {
+                            const blob = await res.blob();
+                            const buffer = await blob.arrayBuffer();
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+                            resumePart = {
+                                inlineData: {
+                                    data: base64,
+                                    mimeType: isPdf ? 'application/pdf' : blob.type
+                                }
+                            };
+                        } else {
+                            resumeText = await res.text();
+                        }
                     }
                 } else {
-                    // It's a storage path
                     console.log('Downloading resume from storage:', application.cv_url);
                     const { data: resumeFile, error: resumeError } = await supabase.storage
-                        .from('documents')
+                        .from('applicant-cvs') // Re-check bucket name
                         .download(application.cv_url);
 
                     if (!resumeError && resumeFile) {
-                        resumeText = await resumeFile.text();
-                    } else {
-                        console.error('Failed to download resume:', resumeError);
+                        if (isPdf || isImage) {
+                            const buffer = await resumeFile.arrayBuffer();
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+                            resumePart = {
+                                inlineData: {
+                                    data: base64,
+                                    mimeType: isPdf ? 'application/pdf' : resumeFile.type
+                                }
+                            };
+                        } else {
+                            resumeText = await resumeFile.text();
+                        }
                     }
                 }
             } catch (e) {
                 console.error('Error fetching resume:', e);
-                // Continue without resume text if it fails, just use job desc
             }
         }
 
         // 3. Construct prompt for LLM
-        const prompt = `
+        const promptText = `
             Please act as an expert recruitment consultant.
-            Analyze the following resume against the provided job description.
-            Provide a suitability score from 1 to 100, and a brief summary of the candidate's strengths and weaknesses.
+            Analyze the provided resume against the following job description.
             
-            If the resume content is missing or unreadable, please evaluate based on any available candidate info or return a score of 0 with a note.
-
             **Job Description:**
             ${application.job_postings?.description || 'No job description provided.'}
 
-            **Candidate's Resume Content:**
-            ${resumeText.substring(0, 10000) || 'No resume content available.'}
+            **Instructions:**
+            1. If a document (PDF/Image) is provided, read and analyze it thoroughly.
+            2. If only text is provided, use that.
+            3. Provide a suitability score from 1 to 100.
+            4. Provide a brief summary of the candidate's strengths and weaknesses relative to the role.
+            5. If the content is unreadable or missing, return a score of 0.
 
             **Output Format (JSON):**
             {
-                "score": <score_number>,
-                "summary": "<summary_text>"
+                "score": <number>,
+                "summary": "<string>"
             }
-            RETURN ONLY JSON. DO NOT USE MARKDOWN BLOCK.
+            RETURN ONLY JSON.
         `;
 
         // 4. Call Google Generative AI API (Gemini) with retry logic
         const genAI = new GoogleGenerativeAI(googleApiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Use 1.5-flash for multimodal
 
         let aiResponse: { score: number; summary: string };
 
         try {
             const result = await retryWithBackoff(async () => {
-                return await model.generateContent(prompt);
+                const parts = [promptText];
+                if (resumePart) parts.push(resumePart);
+                else if (resumeText) parts.push(resumeText);
+
+                return await model.generateContent(parts);
             }, 3, 2000);
 
             const response = await result.response;
@@ -136,7 +162,7 @@ Deno.serve(async (req: Request) => {
 
             console.log('Gemini response:', text);
 
-            // Clean up JSON (remove markdown code blocks if present)
+            // Clean up JSON
             const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
             aiResponse = JSON.parse(jsonString);
         } catch (aiError: any) {

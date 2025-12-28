@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AddKPIModalProps {
@@ -45,7 +46,7 @@ export default function AddKPIModal({ isOpen, onClose, onSuccess, onError }: Add
                 .order('name');
             setKpiDefinitions(kpiData || []);
         } catch (error) {
-            console.error('Error loading data:', error);
+            log.error('Error loading KPI context data', error, { component: 'AddKPIModal', action: 'loadData' });
         }
     }
 
@@ -76,6 +77,7 @@ export default function AddKPIModal({ isOpen, onClose, onSuccess, onError }: Add
                 target_value: '',
             });
         } catch (error: any) {
+            log.error('Error adding KPI target', error, { component: 'AddKPIModal', action: 'handleSubmit', metadata: formData });
             onError(error.message);
         } finally {
             setLoading(false);

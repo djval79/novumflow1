@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 
 // ============================================
 // TYPES
@@ -14,8 +15,8 @@ export interface AuditLog {
     entity_id: string;
     entity_name: string;
     changes?: {
-        before?: any;
-        after?: any;
+        before?: Record<string, unknown>;
+        after?: Record<string, unknown>;
         fields_changed?: string[];
     };
     ip_address?: string;
@@ -29,8 +30,8 @@ export interface AuditLogInput {
     entity_id: string;
     entity_name: string;
     changes?: {
-        before?: any;
-        after?: any;
+        before?: Record<string, unknown>;
+        after?: Record<string, unknown>;
         fields_changed?: string[];
     };
 }
@@ -55,14 +56,25 @@ class AuditService {
      */
     async log(input: AuditLogInput): Promise<boolean> {
         try {
+            const startTime = performance.now();
+
             // Get current user
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                console.error('No authenticated user for audit log');
+                log.warn('No authenticated user for audit log', {
+                    component: 'AuditService'
+                });
                 return false;
             }
 
-            console.log('AuditService: Attempting to log action', input.action, 'for user', user.id);
+            log.debug(`Logging audit action: ${input.action}`, {
+                component: 'AuditService',
+                action: input.action,
+                metadata: {
+                    entityType: input.entity_type,
+                    entityId: input.entity_id
+                }
+            });
 
             // Get user's tenant_id
             const { data: profile } = await supabase
@@ -71,16 +83,13 @@ class AuditService {
                 .eq('user_id', user.id)
                 .maybeSingle();
 
-            if (!profile) {
-                // Ideally we should have a profile, but if not, we can't log the tenant_id
-                // We'll log a warning but not fail the operation if it's critical, 
-                // or just return false if audit is required.
-                // For now, let's try to proceed without tenant_id if possible, or just return false without error spam
-                console.warn('No profile found for user, cannot log audit with tenant_id. User ID:', user.id);
+            if (!profile?.tenant_id) {
+                log.warn('No profile found for user, cannot log audit', {
+                    component: 'AuditService',
+                    userId: user.id
+                });
                 return false;
             }
-
-            console.log('AuditService: Found profile with tenant_id:', profile.tenant_id);
 
             // Create audit log entry
             const { error } = await supabase
@@ -94,17 +103,25 @@ class AuditService {
                     entity_id: input.entity_id,
                     entity_name: input.entity_name,
                     changes: input.changes || null,
-                    // IP and user agent would be captured on server-side in production
                 });
 
             if (error) {
-                console.error('Error creating audit log:', error);
+                log.error('Error creating audit log', error, {
+                    component: 'AuditService'
+                });
                 return false;
             }
 
+            const duration = performance.now() - startTime;
+            log.performance('Create audit log', duration, {
+                component: 'AuditService'
+            });
+
             return true;
         } catch (error) {
-            console.error('Error in audit log:', error);
+            log.error('Error in audit log', error, {
+                component: 'AuditService'
+            });
             return false;
         }
     }
@@ -121,7 +138,10 @@ class AuditService {
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error fetching entity history:', error);
+            log.error('Error fetching entity history', error, {
+                component: 'AuditService',
+                metadata: { entityType, entityId }
+            });
             return [];
         }
 
@@ -140,7 +160,10 @@ class AuditService {
             .limit(limit);
 
         if (error) {
-            console.error('Error fetching user activity:', error);
+            log.error('Error fetching user activity', error, {
+                component: 'AuditService',
+                userId
+            });
             return [];
         }
 
@@ -151,11 +174,16 @@ class AuditService {
      * Search audit logs with filters
      */
     async search(filters: AuditSearchFilters): Promise<AuditLog[]> {
+        const startTime = performance.now();
+
         let query = supabase
             .from('audit_logs')
             .select('*');
 
-        console.log('AuditService: Searching logs with filters:', filters);
+        log.debug('Searching audit logs', {
+            component: 'AuditService',
+            metadata: { filters }
+        });
 
         if (filters.entity_type) {
             query = query.eq('entity_type', filters.entity_type);
@@ -190,11 +218,18 @@ class AuditService {
         const { data, error } = await query;
 
         if (error) {
-            console.error('Error searching audit logs:', error);
+            log.error('Error searching audit logs', error, {
+                component: 'AuditService'
+            });
             return [];
         }
 
-        console.log('AuditService: Search returned logs:', data?.length);
+        const duration = performance.now() - startTime;
+        log.performance('Audit log search', duration, {
+            component: 'AuditService',
+            metadata: { resultsCount: data?.length || 0 }
+        });
+
         return data || [];
     }
 
@@ -209,7 +244,9 @@ class AuditService {
             .limit(limit);
 
         if (error) {
-            console.error('Error fetching recent activity:', error);
+            log.error('Error fetching recent activity', error, {
+                component: 'AuditService'
+            });
             return [];
         }
 
@@ -239,16 +276,18 @@ class AuditService {
         const { data, error } = await query;
 
         if (error) {
-            console.error('Error fetching audit statistics:', error);
+            log.error('Error fetching audit statistics', error, {
+                component: 'AuditService'
+            });
             return { total: 0, by_action: {}, by_entity_type: {} };
         }
 
         const by_action: Record<string, number> = {};
         const by_entity_type: Record<string, number> = {};
 
-        data?.forEach(log => {
-            by_action[log.action] = (by_action[log.action] || 0) + 1;
-            by_entity_type[log.entity_type] = (by_entity_type[log.entity_type] || 0) + 1;
+        data?.forEach(logEntry => {
+            by_action[logEntry.action] = (by_action[logEntry.action] || 0) + 1;
+            by_entity_type[logEntry.entity_type] = (by_entity_type[logEntry.entity_type] || 0) + 1;
         });
 
         return {
@@ -260,3 +299,4 @@ class AuditService {
 }
 
 export const auditService = new AuditService();
+

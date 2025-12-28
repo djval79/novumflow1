@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Plus, Trash2, Save, GripVertical, Settings, ChevronRight, Check, X, Mail, Calendar, Bot, FileText } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { log } from '@/lib/logger';
 
 interface Stage {
     id: string;
@@ -99,7 +100,7 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
 
             setStages(stagesWithAutomations);
         } catch (error: any) {
-            console.error('Error loading workflow:', error);
+            log.error('Error loading workflow', error, { component: 'WorkflowEditor', action: 'loadWorkflow' });
             alert(`Error loading workflow: ${error.message}`);
         } finally {
             setLoading(false);
@@ -186,7 +187,7 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                         .upsert(automationsToUpsert);
 
                     if (autoError) {
-                        console.error('Error saving automations for stage', savedStage.name, autoError);
+                        log.error('Error saving automations for stage', autoError, { component: 'WorkflowEditor', action: 'handleSave', metadata: { stageName: savedStage.name } });
                         throw autoError;
                     }
                 }
@@ -194,7 +195,7 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
 
             if (onSave) onSave();
         } catch (error: any) {
-            console.error('Error saving workflow:', error);
+            log.error('Error saving workflow', error, { component: 'WorkflowEditor', action: 'handleSave' });
             alert(`Failed to save workflow: ${error.message || JSON.stringify(error)}`);
         } finally {
             setSaving(false);
@@ -521,13 +522,13 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                                         <div className="flex items-center">
                                             <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${auto.action_type === 'send_email' ? 'bg-blue-100 text-blue-600' :
                                                 auto.action_type === 'ai_interview' ? 'bg-purple-100 text-purple-600' :
-                                                auto.action_type === 'schedule_interview' ? 'bg-green-100 text-green-600' :
-                                                    'bg-gray-100 text-gray-600'
+                                                    auto.action_type === 'schedule_interview' ? 'bg-green-100 text-green-600' :
+                                                        'bg-gray-100 text-gray-600'
                                                 }`}>
                                                 {auto.action_type === 'send_email' ? <Mail className="w-4 h-4" /> :
-                                                auto.action_type === 'ai_interview' ? <Bot className="w-4 h-4" /> :
-                                                auto.action_type === 'schedule_interview' ? <Calendar className="w-4 h-4" /> :
-                                                        <Settings className="w-4 h-4" />}
+                                                    auto.action_type === 'ai_interview' ? <Bot className="w-4 h-4" /> :
+                                                        auto.action_type === 'schedule_interview' ? <Calendar className="w-4 h-4" /> :
+                                                            <Settings className="w-4 h-4" />}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">{auto.name}</p>

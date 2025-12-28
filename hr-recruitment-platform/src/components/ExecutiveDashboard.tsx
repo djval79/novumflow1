@@ -63,6 +63,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
   return null;
 };
 import { TrendingUp, TrendingDown, Users, Clock, DollarSign, Brain, AlertTriangle, CheckCircle, Target, Zap } from 'lucide-react';
+import { log } from '../lib/logger';
 import { analyticsEngine } from '../lib/analyticsEngine';
 import { workflowEngine } from '../lib/workflowEngine';
 
@@ -75,7 +76,7 @@ export default function ExecutiveDashboard() {
 
   useEffect(() => {
     loadDashboardData();
-    
+
     // Real-time updates every 30 seconds
     const interval = setInterval(loadRealTimeData, 30000);
     return () => clearInterval(interval);
@@ -85,12 +86,12 @@ export default function ExecutiveDashboard() {
     try {
       const data = await analyticsEngine.generateExecutiveDashboard();
       const workflow = workflowEngine.getWorkflowAnalytics();
-      
+
       setDashboardData(data);
       setWorkflowStats(workflow);
       await loadRealTimeData();
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      log.error('Failed to load dashboard data', error, { component: 'ExecutiveDashboard', action: 'loadDashboardData' });
     } finally {
       setLoading(false);
     }
@@ -101,7 +102,7 @@ export default function ExecutiveDashboard() {
       const metrics = await analyticsEngine.getRealTimeMetrics();
       setRealTimeMetrics(metrics);
     } catch (error) {
-      console.error('Failed to load real-time metrics:', error);
+      log.error('Failed to load real-time metrics', error, { component: 'ExecutiveDashboard', action: 'loadRealTimeData' });
     }
   };
 
@@ -158,7 +159,7 @@ export default function ExecutiveDashboard() {
             </div>
           )}
         </div>
-        
+
         {/* Tab Navigation */}
         <div className="flex space-x-6 mt-4">
           {[
@@ -170,11 +171,10 @@ export default function ExecutiveDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeTab === tab.id
-                  ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition ${activeTab === tab.id
+                ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
             >
               {tab.label}
             </button>
@@ -364,17 +364,17 @@ export default function ExecutiveDashboard() {
                   {dashboardData.metrics.recruitmentEfficiency.source_effectiveness
                     .sort((a: any, b: any) => b.hire_rate - a.hire_rate)
                     .map((source: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">{source.source}</p>
-                        <p className="text-sm text-gray-600">Cost per hire: ${source.cost}</p>
+                      <div key={index} className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{source.source}</p>
+                          <p className="text-sm text-gray-600">Cost per hire: ${source.cost}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-green-600">{(source.hire_rate * 100).toFixed(1)}%</p>
+                          <p className="text-xs text-gray-500">Hire rate</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-green-600">{(source.hire_rate * 100).toFixed(1)}%</p>
-                        <p className="text-xs text-gray-500">Hire rate</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
@@ -388,8 +388,8 @@ export default function ExecutiveDashboard() {
                         <span className="text-sm text-green-600">{(trait.correlation_strength * 100).toFixed(0)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full" 
+                        <div
+                          className="bg-green-500 h-2 rounded-full"
                           style={{ width: `${trait.correlation_strength * 100}%` }}
                         ></div>
                       </div>
@@ -415,11 +415,10 @@ export default function ExecutiveDashboard() {
                     <p className="text-sm text-gray-600">New hires needed</p>
                     <p className="text-xs text-gray-500 mt-1">{dept.timeline}</p>
                     <div className="mt-2">
-                      <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                        dept.confidence > 0.8 ? 'bg-green-100 text-green-800' :
+                      <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${dept.confidence > 0.8 ? 'bg-green-100 text-green-800' :
                         dept.confidence > 0.6 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
+                          'bg-red-100 text-red-800'
+                        }`}>
                         {(dept.confidence * 100).toFixed(0)}% confidence
                       </div>
                     </div>
@@ -440,12 +439,11 @@ export default function ExecutiveDashboard() {
                           <h4 className="font-medium text-gray-900">{gap.skill}</h4>
                           <p className="text-sm text-gray-600">{gap.training_recommendation}</p>
                         </div>
-                        <div className={`px-2 py-1 rounded text-xs font-medium ${
-                          gap.gap_severity === 'critical' ? 'bg-red-100 text-red-800' :
+                        <div className={`px-2 py-1 rounded text-xs font-medium ${gap.gap_severity === 'critical' ? 'bg-red-100 text-red-800' :
                           gap.gap_severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                          gap.gap_severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
+                            gap.gap_severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                          }`}>
                           {gap.gap_severity}
                         </div>
                       </div>
@@ -455,8 +453,8 @@ export default function ExecutiveDashboard() {
                           <span>Required: {gap.required_level}/10</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-orange-500 h-2 rounded-full" 
+                          <div
+                            className="bg-orange-500 h-2 rounded-full"
                             style={{ width: `${(gap.current_level / gap.required_level) * 100}%` }}
                           ></div>
                         </div>
@@ -481,7 +479,7 @@ export default function ExecutiveDashboard() {
                       ${dashboardData.forecast.budget_projection.projected_cost.toLocaleString()}
                     </p>
                   </div>
-                  
+
                   <div className="border-t pt-4">
                     <h4 className="font-medium text-gray-900 mb-2">💡 Savings Opportunities</h4>
                     {dashboardData.forecast.budget_projection.savings_opportunities.map((opp: any, index: number) => (
@@ -512,11 +510,10 @@ export default function ExecutiveDashboard() {
                       <p className="text-sm text-gray-600">Risk factors: {risk.factors.join(', ')}</p>
                     </div>
                     <div className="text-right">
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        risk.risk_score > 0.7 ? 'bg-red-100 text-red-800' :
+                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${risk.risk_score > 0.7 ? 'bg-red-100 text-red-800' :
                         risk.risk_score > 0.4 ? 'bg-orange-100 text-orange-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
                         {(risk.risk_score * 100).toFixed(0)}% risk
                       </div>
                     </div>
@@ -556,8 +553,8 @@ export default function ExecutiveDashboard() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="department" />
                     <YAxis />
-                    <Tooltip 
-                      content={<CustomTooltip formatter={(value: any) => [`${value}%`, 'Retention Rate']} />} 
+                    <Tooltip
+                      content={<CustomTooltip formatter={(value: any) => [`${value}%`, 'Retention Rate']} />}
                     />
                     <Bar dataKey="rate" fill="#10B981" />
                   </BarChart>

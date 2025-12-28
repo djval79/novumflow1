@@ -47,6 +47,7 @@ import {
   CheckCheck,
   Loader2
 } from 'lucide-react';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import {
   useComplianceStats,
@@ -614,12 +615,12 @@ const TasksTab: React.FC<{
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${task.urgency === 'CRITICAL' ? 'bg-red-100' :
-                      task.urgency === 'HIGH' ? 'bg-orange-100' :
-                        task.urgency === 'MEDIUM' ? 'bg-yellow-100' : 'bg-green-100'
+                    task.urgency === 'HIGH' ? 'bg-orange-100' :
+                      task.urgency === 'MEDIUM' ? 'bg-yellow-100' : 'bg-green-100'
                     }`}>
                     <Activity className={`w-5 h-5 ${task.urgency === 'CRITICAL' ? 'text-red-600' :
-                        task.urgency === 'HIGH' ? 'text-orange-600' :
-                          task.urgency === 'MEDIUM' ? 'text-yellow-600' : 'text-green-600'
+                      task.urgency === 'HIGH' ? 'text-orange-600' :
+                        task.urgency === 'MEDIUM' ? 'text-yellow-600' : 'text-green-600'
                       }`} />
                   </div>
                   <div>
@@ -853,11 +854,11 @@ const ComplianceHubPage: React.FC = () => {
         alert(`Reminder sent successfully to ${doc.person_email}`);
       } else {
         const err = await response.json();
-        console.error('Send reminder error:', err);
+        log.error('Send reminder error', err, { component: 'ComplianceHubPage', action: 'handleSendReminder', metadata: { email: doc.person_email } });
         alert('Failed to send reminder. Please try again.');
       }
     } catch (error) {
-      console.error('Send reminder error:', error);
+      log.error('Send reminder error', error, { component: 'ComplianceHubPage', action: 'handleSendReminder' });
       alert('Failed to send reminder. Please check your connection.');
     }
   };
@@ -883,11 +884,11 @@ const ComplianceHubPage: React.FC = () => {
         await refetchStats();
       } else {
         const err = await response.json();
-        console.error('Sync error:', err);
+        log.error('Sync error', err, { component: 'ComplianceHubPage', action: 'handleSync' });
         alert('Sync failed. Please try again.');
       }
     } catch (error) {
-      console.error('Sync error:', error);
+      log.error('Sync error', error, { component: 'ComplianceHubPage', action: 'handleSync' });
       alert('Sync failed. Please check your connection.');
     }
   };
@@ -985,7 +986,7 @@ const ComplianceHubPage: React.FC = () => {
         setTimeout(() => printWindow.print(), 250);
       }
     } catch (error) {
-      console.error('Export error:', error);
+      log.error('Export error', error, { component: 'ComplianceHubPage', action: 'handleExportReport' });
       alert('Failed to generate report.');
     }
   };
@@ -1215,8 +1216,8 @@ const ComplianceHubPage: React.FC = () => {
                         if (tab.id !== 'people') setStageFilter(undefined);
                       }}
                       className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                          ? 'border-indigo-600 text-indigo-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-indigo-600 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         }`}
                     >
                       <tab.icon className="w-4 h-4" />

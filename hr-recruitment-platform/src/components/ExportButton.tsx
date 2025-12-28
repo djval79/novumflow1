@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Download, FileSpreadsheet, FileText, File, Loader2, Check, X } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 interface ExportOptions {
     format: 'csv' | 'xlsx' | 'pdf' | 'json';
@@ -54,7 +55,7 @@ export function ExportButton({ data, filename, columns, title, onExport, classNa
             setTimeout(() => setSuccess(null), 2000);
             onExport?.(format);
         } catch (error) {
-            console.error('Export error:', error);
+            log.error('Export error', error, { component: 'ExportButton', action: 'handleExport', metadata: { format, filename } });
             alert('Export failed. Please try again.');
         } finally {
             setExporting(null);

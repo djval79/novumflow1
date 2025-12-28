@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import {
     GraduationCap, CheckCircle, Clock, AlertTriangle, Award,
@@ -54,7 +55,7 @@ export default function TrainingTracker() {
             if (error) throw error;
             setRecords(data || []);
         } catch (error) {
-            console.error('Error loading training records:', error);
+            log.error('Error loading training records', error, { component: 'TrainingTracker', action: 'loadTrainingRecords' });
             setRecords(generateMockRecords());
         } finally {
             setLoading(false);
@@ -231,8 +232,8 @@ export default function TrainingTracker() {
                                 key={f}
                                 onClick={() => setFilter(f)}
                                 className={`px-3 py-1 text-xs rounded-lg transition ${filter === f
-                                        ? 'bg-indigo-100 text-indigo-700 font-medium'
-                                        : 'text-gray-600 hover:bg-gray-100'
+                                    ? 'bg-indigo-100 text-indigo-700 font-medium'
+                                    : 'text-gray-600 hover:bg-gray-100'
                                     }`}
                             >
                                 {f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -294,7 +295,7 @@ export default function TrainingTracker() {
                                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                                         <div
                                             className={`h-full rounded-full transition-all ${record.status === 'completed' ? 'bg-green-500' :
-                                                    record.status === 'expired' ? 'bg-red-500' : 'bg-indigo-500'
+                                                record.status === 'expired' ? 'bg-red-500' : 'bg-indigo-500'
                                                 }`}
                                             style={{ width: `${record.progress}%` }}
                                         />

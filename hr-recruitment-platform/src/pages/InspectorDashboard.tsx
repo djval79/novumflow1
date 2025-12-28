@@ -4,6 +4,7 @@ import { complianceService, ComplianceStatus, DBSCheck, TrainingRecord } from '@
 import { rtwService, RightToWorkCheck } from '@/lib/services/RightToWorkService';
 import { useTenant } from '@/contexts/TenantContext';
 import { Shield, CheckCircle, XCircle, FileText, ArrowLeft, Lock, Search, Eye } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 export default function InspectorDashboard() {
     const navigate = useNavigate();
@@ -26,24 +27,12 @@ export default function InspectorDashboard() {
         if (!currentTenant) return;
         setLoading(true);
         try {
-            // In a real app, we might want a specific "get all staff compliance" endpoint
-            // For now, we'll fetch non-compliant and potentially compliant if we had an endpoint
-            // Re-using getNonCompliantStaff for now but ideally we need ALL staff. 
-            // Let's assume we have a way to get all. 
-            // Since we don't have a "getAllStaffCompliance" method, we will mock it or fetch what we can.
-            // For this demo, let's fetch the non-compliant ones and assume others are compliant, 
-            // or better, let's just fetch the report and maybe a list of staff.
-
-            // ACTUALLY: Let's fetch the non-compliant list to show "Action Required" 
-            // and we would need a full list for the register. 
-            // I'll add a TODO to the service to fetch ALL staff status.
-            // For now, let's just use the non-compliant list as a placeholder for "Staff requiring attention" 
-            // and maybe mock a "Compliant Staff" list for the demo effect.
-
-            const nonCompliant = await complianceService.getNonCompliantStaff(currentTenant.id);
-            setStaffList(nonCompliant);
+            // Fetch ALL staff compliance status for the Inspector Evidence Register
+            // This gives inspectors a complete view of the workforce compliance
+            const allStaff = await complianceService.getAllStaffCompliance(currentTenant.id);
+            setStaffList(allStaff);
         } catch (error) {
-            console.error('Error loading inspector data:', error);
+            log.error('Error loading inspector data', error, { component: 'InspectorDashboard', action: 'loadData' });
         } finally {
             setLoading(false);
         }
@@ -62,7 +51,7 @@ export default function InspectorDashboard() {
 
             setEvidence({ dbs, rtw, training });
         } catch (error) {
-            console.error('Error fetching evidence:', error);
+            log.error('Error fetching evidence', error, { component: 'InspectorDashboard', action: 'handleViewEvidence', metadata: { staffName: staff.staff_name } });
         }
     };
 
@@ -319,12 +308,12 @@ function StatusBadge({ status }: { status: string }) {
 
     return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${isGood ? 'bg-green-100 text-green-800' :
-                isWarning ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
+            isWarning ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
             }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${isGood ? 'bg-green-500' :
-                    isWarning ? 'bg-yellow-500' :
-                        'bg-red-500'
+                isWarning ? 'bg-yellow-500' :
+                    'bg-red-500'
                 }`} />
             {status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
         </span>

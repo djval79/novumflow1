@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -91,7 +92,7 @@ export default function HRAnalyticsDashboard({ onLoadingChange, onError }: HRAna
       })));
 
     } catch (error: any) {
-      console.error('Error fetching analytics data:', error);
+      log.error('Error fetching analytics data', error, { component: 'HRAnalyticsDashboard', action: 'fetchAnalyticsData' });
       onError(error.message || 'Failed to load analytics data.');
     } finally {
       setLoading(false);

@@ -1,5 +1,5 @@
 -- ============================================================================
--- COMPLETE MULTI-TENANT ISOLATION FIX
+-- COMPLETE MULTI-TENANT ISOLATION FIX (v2 - Idempotent)
 -- Run this entire file in Supabase SQL Editor
 -- ============================================================================
 
@@ -82,8 +82,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- STEP 4: Drop old RLS policies
+-- STEP 4: Drop ALL RLS policies (Old and New) to ensure a clean slate
 -- ============================================================================
+-- Old names
 DROP POLICY IF EXISTS "Users can view their tenant's job postings" ON job_postings;
 DROP POLICY IF EXISTS "Users can insert job postings for their tenant" ON job_postings;
 DROP POLICY IF EXISTS "Users can update their tenant's job postings" ON job_postings;
@@ -96,6 +97,20 @@ DROP POLICY IF EXISTS "Users can view their tenant's interviews" ON interviews;
 DROP POLICY IF EXISTS "Users can insert interviews for their tenant" ON interviews;
 DROP POLICY IF EXISTS "Users can update their tenant's interviews" ON interviews;
 DROP POLICY IF EXISTS "Users can delete their tenant's interviews" ON interviews;
+
+-- New names (to handle re-runs)
+DROP POLICY IF EXISTS "Super admins see all job postings" ON job_postings;
+DROP POLICY IF EXISTS "Tenant users see their job postings" ON job_postings;
+DROP POLICY IF EXISTS "Super admins can modify all job postings" ON job_postings;
+DROP POLICY IF EXISTS "Tenant users can modify their job postings" ON job_postings;
+DROP POLICY IF EXISTS "Super admins see all applications" ON applications;
+DROP POLICY IF EXISTS "Tenant users see their applications" ON applications;
+DROP POLICY IF EXISTS "Super admins can modify all applications" ON applications;
+DROP POLICY IF EXISTS "Tenant users can modify their applications" ON applications;
+DROP POLICY IF EXISTS "Super admins see all interviews" ON interviews;
+DROP POLICY IF EXISTS "Tenant users see their interviews" ON interviews;
+DROP POLICY IF EXISTS "Super admins can modify all interviews" ON interviews;
+DROP POLICY IF EXISTS "Tenant users can modify their interviews" ON interviews;
 
 -- STEP 5: Create new RLS policies with super admin support
 -- ============================================================================

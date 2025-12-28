@@ -31,6 +31,7 @@ import {
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 
 // ============================================
 // TYPES
@@ -243,7 +244,7 @@ export default function InductionWorkflow({
             };
             setProgress(initialProgress);
         } catch (error) {
-            console.error('Error loading progress:', error);
+            log.error('Error loading progress', error, { component: 'InductionWorkflow', action: 'loadProgress', metadata: { employeeId } });
         } finally {
             setLoading(false);
         }
@@ -304,7 +305,7 @@ export default function InductionWorkflow({
 
             // In production, save to database here
         } catch (error) {
-            console.error('Error updating task:', error);
+            log.error('Error updating task', error, { component: 'InductionWorkflow', action: 'toggleTaskComplete', metadata: { employeeId, stageId, taskId } });
         } finally {
             setSavingTask(null);
         }
@@ -399,8 +400,8 @@ export default function InductionWorkflow({
                                     key={stage.id}
                                     onClick={() => setActiveStage(stage.id)}
                                     className={`w-full text-left p-3 rounded-lg mb-2 transition-all ${isActive
-                                            ? 'bg-emerald-100 border-emerald-300 border'
-                                            : 'bg-white border border-gray-200 hover:border-emerald-200'
+                                        ? 'bg-emerald-100 border-emerald-300 border'
+                                        : 'bg-white border border-gray-200 hover:border-emerald-200'
                                         }`}
                                 >
                                     <div className="flex items-center gap-2 mb-2">
@@ -418,8 +419,8 @@ export default function InductionWorkflow({
                                         <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all ${status === 'completed' ? 'bg-green-500' :
-                                                        status === 'overdue' ? 'bg-red-500' :
-                                                            status === 'in_progress' ? 'bg-blue-500' : 'bg-gray-300'
+                                                    status === 'overdue' ? 'bg-red-500' :
+                                                        status === 'in_progress' ? 'bg-blue-500' : 'bg-gray-300'
                                                     }`}
                                                 style={{ width: `${stageProgress.percentage}%` }}
                                             />
@@ -466,8 +467,8 @@ export default function InductionWorkflow({
                                                 <div
                                                     key={task.id}
                                                     className={`border rounded-lg p-4 transition-all ${isCompleted
-                                                            ? 'bg-green-50 border-green-200'
-                                                            : 'bg-white border-gray-200 hover:border-emerald-200'
+                                                        ? 'bg-green-50 border-green-200'
+                                                        : 'bg-white border-gray-200 hover:border-emerald-200'
                                                         }`}
                                                 >
                                                     <div className="flex items-start gap-3">
@@ -475,8 +476,8 @@ export default function InductionWorkflow({
                                                             onClick={() => toggleTaskComplete(stage.id, task.id)}
                                                             disabled={isSaving}
                                                             className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-all ${isCompleted
-                                                                    ? 'bg-green-500 text-white'
-                                                                    : 'bg-gray-200 text-gray-400 hover:bg-emerald-200'
+                                                                ? 'bg-green-500 text-white'
+                                                                : 'bg-gray-200 text-gray-400 hover:bg-emerald-200'
                                                                 }`}
                                                         >
                                                             {isSaving ? (

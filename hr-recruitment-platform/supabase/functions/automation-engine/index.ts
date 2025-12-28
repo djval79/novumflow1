@@ -154,6 +154,34 @@ Deno.serve(async (req: Request) => {
                                     }
                                     break;
 
+                                case 'update_stage':
+                                    const triggerDataUpdate = typeof data.trigger_data === 'string'
+                                        ? JSON.parse(data.trigger_data)
+                                        : data.trigger_data;
+
+                                    if (triggerDataUpdate.application_id && action.config.stage_id) {
+                                        console.log(`Updating application ${triggerDataUpdate.application_id} to stage ${action.config.stage_id}`);
+                                        const updateResponse = await fetch(`${supabaseUrl}/rest/v1/applications?id=eq.${triggerDataUpdate.application_id}`, {
+                                            method: 'PATCH',
+                                            headers: {
+                                                'Authorization': `Bearer ${serviceRoleKey}`,
+                                                'apikey': serviceRoleKey,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({
+                                                current_stage_id: action.config.stage_id,
+                                                updated_at: new Date().toISOString()
+                                            })
+                                        });
+
+                                        if (!updateResponse.ok) {
+                                            const errorText = await updateResponse.text();
+                                            throw new Error(`Failed to update application stage: ${errorText}`);
+                                        }
+                                        console.log('Application stage updated successfully');
+                                    }
+                                    break;
+
                                 case 'schedule_interview':
                                     // For now, we might just send an email with a link, or create a Zoom meeting
                                     // Let's assume we create a Zoom meeting link and email it
@@ -254,6 +282,186 @@ Deno.serve(async (req: Request) => {
                 }
 
                 result = await rulesListResponse.json();
+                break;
+
+            case 'PROCESS_PENDING':
+                // Fetch pending logs (hardcoded platform automations that don't have a rule_id)
+                const pendingLogsResponse = await fetch(`${supabaseUrl}/rest/v1/automation_execution_logs?execution_status=eq.pending&order=created_at.asc&limit=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                });
+
+                if (!pendingLogsResponse.ok) {
+                    const errorText = await pendingLogsResponse.text();
+                    throw new Error(`Failed to fetch pending logs: ${errorText}`);
+                }
+
+                const pendingLogs = await pendingLogsResponse.json();
+                const processedResults = [];
+
+                console.log(`Processing ${pendingLogs.length} pending automation tasks`);
+
+                for (const logItem of pendingLogs) {
+                    const processStartTime = Date.now();
+                    let status = 'success';
+                    let errorMessage = null;
+
+                    try {
+                        const triggerData = typeof logItem.trigger_data === 'string'
+                            ? JSON.parse(logItem.trigger_data)
+                            : logItem.trigger_data;
+
+                        console.log(`Processing event: ${logItem.trigger_event} for log ${logItem.id}`);
+
+                        switch (logItem.trigger_event) {
+                            case 'application_received':
+                                // Call integration-manager to send templated email
+                                const emailResponse = await fetch(`${supabaseUrl}/functions/v1/integration-manager`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${serviceRoleKey}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        action: 'email_send_template',
+                                        template_name: triggerData.template_name || 'application_confirmation',
+                                        to: triggerData.candidate_email,
+                                        variables: {
+                                            applicant_name: triggerData.candidate_name,
+                                            job_title: triggerData.job_title,
+                                            company_name: triggerData.company_name
+                                        },
+                                        triggered_by: 'system',
+                                        related_entity_type: 'applications',
+                                        related_entity_id: triggerData.application_id
+                                    })
+                                });
+
+                                if (!emailResponse.ok) {
+                                    const errorText = await emailResponse.text();
+                                    throw new Error(`Email failed: ${errorText}`);
+                                }
+                                console.log(`Acknowledgement email sent for application ${triggerData.application_id}`);
+                                break;
+
+                            case 'interview_reminder':
+                                // Similar logic for interview reminders
+                                console.log(`Sending interview reminder for ${triggerData.application_id}`);
+                                // To be implemented with specific template
+                                break;
+
+                            default:
+                                console.warn(`Unhandled trigger event: ${logItem.trigger_event}`);
+                                status = 'skipped';
+                        }
+                    } catch (err) {
+                        status = 'failed';
+                        errorMessage = (err as Error).message;
+                        console.error(`Failed to process log ${logItem.id}:`, err);
+                    }
+
+                    // Update log status
+                    await fetch(`${supabaseUrl}/rest/v1/automation_execution_logs?id=eq.${logItem.id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${serviceRoleKey}`,
+                            'apikey': serviceRoleKey,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            execution_status: status,
+                            error_message: errorMessage,
+                            execution_duration_ms: Date.now() - processStartTime,
+                            execution_timestamp: new Date().toISOString()
+                        })
+                    });
+
+                    processedResults.push({ id: logItem.id, status });
+                }
+
+                result = { processed_count: processedResults.length, details: processedResults };
+                break;
+
+            case 'CHECK_REMINDERS':
+                // 1. Get settings
+                const settingsRes = await fetch(`${supabaseUrl}/rest/v1/recruitment_settings?select=auto_schedule_reminders`, {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                });
+                const settings = await settingsRes.json();
+
+                if (!settings?.[0]?.auto_schedule_reminders) {
+                    result = { message: 'Auto reminders disabled' };
+                    break;
+                }
+
+                // 2. Find interviews in the next 24 hours
+                const now = new Date();
+                const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+                const interviewsRes = await fetch(`${supabaseUrl}/rest/v1/interviews?scheduled_date=eq.${tomorrowStr}&status=eq.Scheduled`, {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                });
+                const interviews = await interviewsRes.json();
+
+                const remindersScheduled = [];
+
+                for (const interview of interviews) {
+                    // Check if already scheduled
+                    const checkLogRes = await fetch(`${supabaseUrl}/rest/v1/automation_execution_logs?trigger_event=eq.interview_reminder&trigger_data->>interview_id=eq.${interview.id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${serviceRoleKey}`,
+                            'apikey': serviceRoleKey
+                        }
+                    });
+                    const existingLogs = await checkLogRes.json();
+
+                    if (existingLogs.length === 0) {
+                        // Get application info for email
+                        const appRes = await fetch(`${supabaseUrl}/rest/v1/applications?id=eq.${interview.application_id}&select=*,job_postings(job_title)`, {
+                            headers: {
+                                'Authorization': `Bearer ${serviceRoleKey}`,
+                                'apikey': serviceRoleKey
+                            }
+                        });
+                        const app = (await appRes.json())?.[0];
+
+                        if (app) {
+                            // Insert pending log
+                            await fetch(`${supabaseUrl}/rest/v1/automation_execution_logs`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${serviceRoleKey}`,
+                                    'apikey': serviceRoleKey,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    trigger_event: 'interview_reminder',
+                                    execution_status: 'pending',
+                                    trigger_data: {
+                                        interview_id: interview.id,
+                                        application_id: app.id,
+                                        candidate_name: `${app.applicant_first_name} ${app.applicant_last_name}`,
+                                        candidate_email: app.applicant_email,
+                                        job_title: app.job_postings?.job_title,
+                                        interview_time: `${interview.scheduled_date} ${interview.scheduled_time}`
+                                    }
+                                })
+                            });
+                            remindersScheduled.push(interview.id);
+                        }
+                    }
+                }
+
+                result = { scheduled_count: remindersScheduled.length };
                 break;
 
             case 'TOGGLE_RULE':

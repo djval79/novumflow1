@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { TrendingUp, TrendingDown, Users, Briefcase, Clock, Target, BarChart3, PieChart } from 'lucide-react';
 import { formatNumber, formatPercentage /* formatCurrency */ } from '@/lib/utils';
@@ -105,7 +106,7 @@ export default function DashboardAnalytics() {
 
             setData(analyticsData);
         } catch (error) {
-            console.error('Error loading analytics:', error);
+            log.error('Error loading analytics', error, { component: 'DashboardAnalytics', action: 'loadAnalytics', metadata: { tenantId: currentTenant?.id, timeRange } });
         } finally {
             setLoading(false);
         }
@@ -198,8 +199,8 @@ export default function DashboardAnalytics() {
                             key={range}
                             onClick={() => setTimeRange(range)}
                             className={`px-3 py-1 text-sm rounded-md transition ${timeRange === range
-                                    ? 'bg-white text-indigo-600 shadow-sm font-medium'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                ? 'bg-white text-indigo-600 shadow-sm font-medium'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                         >
                             {range.charAt(0).toUpperCase() + range.slice(1)}

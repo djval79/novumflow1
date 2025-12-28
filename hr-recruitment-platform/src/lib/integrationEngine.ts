@@ -4,6 +4,8 @@
  * Saves 15-20 hours per month on data synchronization
  */
 
+import { log } from './logger';
+
 export interface IntegrationConfig {
   id: string;
   name: string;
@@ -543,7 +545,7 @@ Learning & Development Team
       return { success: false, recordsProcessed: 0, errors: ['Integration not found or inactive'] };
     }
 
-    console.log(`Syncing with ${integration.name}...`);
+    log.info(`Syncing with ${integration.name}...`, { component: 'IntegrationEngine', action: 'syncWithIntegration', metadata: { integrationId, direction } });
 
     // Mock sync process - in production this would call actual APIs
     return {
@@ -571,7 +573,7 @@ Learning & Development Team
     }
 
     // Mock sending - in production this would use actual email/SMS services
-    console.log(`Sending ${template.type} communication to ${recipient}:`, { subject, body });
+    log.info(`Sending ${template.type} communication to ${recipient}`, { component: 'IntegrationEngine', action: 'sendCommunication', metadata: { templateId, recipient, subject } });
 
     return true;
   }
@@ -583,7 +585,7 @@ Learning & Development Team
       return;
     }
 
-    console.log(`Executing sequence: ${sequence.name}`);
+    log.info(`Executing sequence: ${sequence.name}`, { component: 'IntegrationEngine', action: 'executeSequence', metadata: { sequenceId } });
 
     for (let i = 0; i < sequence.steps.length; i++) {
       const step = sequence.steps[i];
@@ -602,13 +604,13 @@ Learning & Development Team
         await this.sendCommunication(step.parameters.template, data.recipient_email, data);
         break;
       case 'task':
-        console.log(`Creating task: ${step.action} for ${step.parameters.assignee}`);
+        log.info(`Creating task: ${step.action} for ${step.parameters.assignee}`, { component: 'IntegrationEngine', action: 'executeSequenceStep', metadata: { step, data } });
         break;
       case 'calendar':
-        console.log(`Scheduling calendar event: ${step.action}`);
+        log.info(`Scheduling calendar event: ${step.action}`, { component: 'IntegrationEngine', action: 'executeSequenceStep', metadata: { step, data } });
         break;
       case 'document':
-        console.log(`Generating document: ${step.action}`);
+        log.info(`Generating document: ${step.action}`, { component: 'IntegrationEngine', action: 'executeSequenceStep', metadata: { step, data } });
         break;
       case 'integration':
         await this.syncWithIntegration(step.parameters.integration_id);

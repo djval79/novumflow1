@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, UserProfile } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import ServiceUnavailablePage from '@/pages/ServiceUnavailablePage';
 
 interface AuthContextType {
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
 
       if (!supabase) {
-        console.error('❌ AuthContext: Supabase client is not initialized (missing config)');
+        log.error('Supabase client is not initialized (missing config)', undefined, { component: 'AuthContext' });
         setIsServiceUnavailable(true);
         setLoading(false);
         return;
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(profileData);
         }
       } catch (err: any) {
-        console.error('Unexpected error loading user:', err);
+        log.error('Unexpected error loading user', err, { component: 'AuthContext', action: 'loadUser' });
         if (
           err.message?.includes('Failed to fetch') ||
           err.message?.includes('NetworkError') ||
@@ -156,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     function checkInactivity() {
       const now = Date.now();
       if (user && now - lastActivityTime > INACTIVITY_LIMIT) {
-        console.log('User inactive for 30 minutes, signing out...');
+        log.info('User inactive for 30 minutes, signing out', { component: 'AuthContext', action: 'checkInactivity' });
         signOut();
         alert('You have been signed out due to inactivity.');
       }

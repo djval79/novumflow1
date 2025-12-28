@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import {
     Target, CheckCircle, Circle, Plus, ChevronDown, ChevronRight,
@@ -52,7 +53,7 @@ export default function GoalsTracker() {
             if (error) throw error;
             setGoals(data || []);
         } catch (error) {
-            console.error('Error loading goals:', error);
+            log.error('Error loading goals', error, { component: 'GoalsTracker', action: 'loadGoals' });
             setGoals(generateMockGoals());
         } finally {
             setLoading(false);
@@ -205,8 +206,8 @@ export default function GoalsTracker() {
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`px-3 py-1 text-xs rounded-lg transition ${filter === f
-                                    ? 'bg-indigo-100 text-indigo-700 font-medium'
-                                    : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-indigo-100 text-indigo-700 font-medium'
+                                : 'text-gray-600 hover:bg-gray-100'
                                 }`}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -291,7 +292,7 @@ export default function GoalsTracker() {
                                                 <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                                                     <div
                                                         className={`h-full rounded-full ${goal.status === 'completed' ? 'bg-green-500' :
-                                                                goal.status === 'at_risk' ? 'bg-red-500' : 'bg-indigo-500'
+                                                            goal.status === 'at_risk' ? 'bg-red-500' : 'bg-indigo-500'
                                                             }`}
                                                         style={{ width: `${goal.progress}%` }}
                                                     />

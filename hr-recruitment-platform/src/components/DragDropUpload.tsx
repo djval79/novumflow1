@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, X, FileText, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 
 interface FileWithPreview {
   file: File;
@@ -103,7 +104,7 @@ export default function DragDropUpload({ employeeId, applicationId, onUploadComp
       const filesToUpload = files.filter(f => f.status === 'pending');
 
       // Update status to uploading
-      setFiles(prev => prev.map(f => 
+      setFiles(prev => prev.map(f =>
         f.status === 'pending' ? { ...f, status: 'uploading' as const } : f
       ));
 
@@ -164,8 +165,8 @@ export default function DragDropUpload({ employeeId, applicationId, onUploadComp
       }
 
     } catch (error) {
-      console.error('Upload error:', error);
-      setFiles(prev => prev.map(f => 
+      log.error('Upload error', error, { component: 'DragDropUpload', action: 'uploadFiles' });
+      setFiles(prev => prev.map(f =>
         f.status === 'uploading' ? { ...f, status: 'error' as const, error: 'Upload failed' } : f
       ));
     } finally {
@@ -211,11 +212,10 @@ export default function DragDropUpload({ employeeId, applicationId, onUploadComp
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          isDragging
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
             ? 'border-indigo-600 bg-indigo-50'
             : 'border-gray-300 hover:border-gray-400'
-        }`}
+          }`}
       >
         <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-indigo-600' : 'text-gray-400'}`} />
         <p className="text-lg font-medium text-gray-900 mb-2">

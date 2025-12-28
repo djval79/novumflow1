@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { log } from '../lib/logger';
 import { Shield, Settings } from 'lucide-react';
 
 export default function QuickAdminSetup() {
@@ -60,7 +61,7 @@ export default function QuickAdminSetup() {
           });
 
         if (profileError) {
-          console.error('Profile setup error:', profileError);
+          log.error('Profile setup error', profileError, { component: 'QuickAdminSetup', action: 'createAdminAccount' });
           // Continue anyway, as the main account is created
         }
 
@@ -82,7 +83,7 @@ export default function QuickAdminSetup() {
         }, 3000);
       }
     } catch (error: any) {
-      console.error('Error creating admin account:', error);
+      log.error('Error creating admin account', error, { component: 'QuickAdminSetup', action: 'createAdminAccount' });
       setError(error.message || 'Failed to create admin account');
     } finally {
       setLoading(false);

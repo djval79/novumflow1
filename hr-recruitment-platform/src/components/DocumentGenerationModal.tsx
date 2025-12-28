@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
+import { log } from '../lib/logger';
 import { documentEngine, DocumentTemplate } from '../lib/documentEngine';
 import { FileText, Download, Eye, Printer } from 'lucide-react';
 
@@ -30,13 +31,13 @@ export default function DocumentGenerationModal({
 
   const handleGenerateDocument = async () => {
     setLoading(true);
-    
+
     try {
       let document = '';
-      
+
       if (type === 'employee_packet' && employeeData) {
         const packet = await documentEngine.generateEmployeePacket(employeeData, jobData);
-        document = Object.entries(packet).map(([name, content]) => 
+        document = Object.entries(packet).map(([name, content]) =>
           `=== ${name.toUpperCase()} ===\n\n${content}\n\n`
         ).join('\n');
       } else if (type === 'offer_letter' && candidateData && jobData) {
@@ -49,11 +50,11 @@ export default function DocumentGenerationModal({
         };
         document = documentEngine.generateDocument(selectedTemplate, data);
       }
-      
+
       setGeneratedDocument(document);
       setPreviewMode('preview');
     } catch (error) {
-      console.error('Document generation failed:', error);
+      log.error('Document generation failed', error, { component: 'DocumentGenerationModal', action: 'handleGenerateDocument', metadata: { type, selectedTemplate } });
     } finally {
       setLoading(false);
     }

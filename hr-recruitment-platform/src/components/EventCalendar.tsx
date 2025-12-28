@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Users, MapPin, Video, X } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, parseISO } from 'date-fns';
@@ -66,7 +67,7 @@ export default function EventCalendar() {
 
             setEvents(calendarEvents);
         } catch (error) {
-            console.error('Error loading events:', error);
+            log.error('Error loading calendar events', error, { component: 'EventCalendar', action: 'loadEvents', metadata: { month: currentMonth.toISOString() } });
             setEvents(generateMockEvents(currentMonth));
         } finally {
             setLoading(false);
@@ -207,10 +208,10 @@ export default function EventCalendar() {
                                 key={index}
                                 onClick={() => setSelectedDate(day)}
                                 className={`h-24 p-1 rounded-lg border cursor-pointer transition ${isCurrentDay
-                                        ? 'border-indigo-500 bg-indigo-50'
-                                        : isSelected
-                                            ? 'border-indigo-300 bg-indigo-25'
-                                            : 'border-gray-100 hover:border-gray-300'
+                                    ? 'border-indigo-500 bg-indigo-50'
+                                    : isSelected
+                                        ? 'border-indigo-300 bg-indigo-25'
+                                        : 'border-gray-100 hover:border-gray-300'
                                     }`}
                             >
                                 <div className={`text-sm font-medium mb-1 ${isCurrentDay ? 'text-indigo-600' : 'text-gray-700'

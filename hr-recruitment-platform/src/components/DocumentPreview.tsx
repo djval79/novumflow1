@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import {
     FileText, Download, Printer, ChevronLeft, ChevronRight,
@@ -56,7 +57,7 @@ export default function DocumentPreview({
                 setUrl(urlData.publicUrl);
             }
         } catch (err) {
-            console.error('Error loading document:', err);
+            log.error('Error loading document', err, { component: 'DocumentPreview', action: 'loadDocument', metadata: { documentId } });
             setError('Failed to load document');
         } finally {
             setLoading(false);

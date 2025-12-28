@@ -6,7 +6,6 @@ import {
   Briefcase,
   Calendar,
   AlertTriangle,
-  TrendingUp,
   Clock,
   CheckCircle,
   FileText
@@ -15,6 +14,7 @@ import { format } from 'date-fns';
 import AdminPrivilegeSetup from '../components/AdminPrivilegeSetup';
 import DashboardAnalytics from '../components/DashboardAnalytics';
 import UKComplianceDashboardWidget from '../components/UKComplianceDashboardWidget';
+import { log } from '@/lib/logger';
 
 interface DashboardStats {
   totalEmployees: number;
@@ -35,7 +35,7 @@ export default function DashboardPage() {
     todayAttendance: 0,
     pendingLeaveRequests: 0,
   });
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<{ id: string; action: string; entity_type: string; timestamp: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -82,14 +82,36 @@ export default function DashboardPage() {
         .eq('is_current_version', true);
 
       // Get today's attendance for current tenant
-      // NOTE: attendance_records table doesn't have tenant_id column yet
-      // TODO: Add tenant_id column to attendance_records table
-      const attendanceCount = 0; // Disabled until table has tenant_id
+      // Uses tenant_id column - run migration 015 if this fails
+      let attendanceCount = 0;
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const { count } = await supabase
+          .from('attendance_records')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .eq('date', today)
+          .eq('status', 'present');
+        attendanceCount = count || 0;
+      } catch (error) {
+        // Table may not have tenant_id column yet - migration needed
+        log.debug('attendance_records query failed - run migration 015', { component: 'DashboardPage' });
+      }
 
       // Get pending leave requests for current tenant
-      // NOTE: leave_requests table doesn't have tenant_id column yet
-      // TODO: Add tenant_id column to leave_requests table
-      const leaveCount = 0; // Disabled until table has tenant_id
+      // Uses tenant_id column - run migration 015 if this fails
+      let leaveCount = 0;
+      try {
+        const { count } = await supabase
+          .from('leave_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .eq('status', 'pending');
+        leaveCount = count || 0;
+      } catch (error) {
+        // Table may not have tenant_id column yet - migration needed
+        log.debug('leave_requests query failed - run migration 015', { component: 'DashboardPage' });
+      }
 
       // Get recent audit logs for current tenant
       const { data: logs } = await supabase
@@ -110,7 +132,7 @@ export default function DashboardPage() {
 
       setRecentActivities(logs || []);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      log.error('Error loading dashboard data', error, { component: 'DashboardPage', action: 'loadDashboardData' });
     } finally {
       setLoading(false);
     }

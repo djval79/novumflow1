@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { log } from '@/lib/logger';
 import { usePWAUpdate } from '@/lib/pwaUpdater';
 
 export function PWAUpdateNotification() {
@@ -15,24 +16,24 @@ export function PWAUpdateNotification() {
   useEffect(() => {
     if (needRefresh || offlineReady) {
       setIsVisible(true);
-      
+
       // Log the event
       if (needRefresh) {
-        console.log('PWA update available');
+        log.info('PWA update available', { component: 'PWAUpdateNotification' });
       }
       if (offlineReady) {
-        console.log('PWA offline ready');
+        log.info('PWA offline ready', { component: 'PWAUpdateNotification' });
       }
     }
   }, [needRefresh, offlineReady]);
 
   const handleUpdate = async () => {
-    console.log('pwa_update_clicked');
+    log.debug('PWA update clicked', { component: 'PWAUpdateNotification', action: 'handleUpdate' });
     await update();
   };
 
   const handleClose = () => {
-    console.log('pwa_notification_dismissed');
+    log.debug('PWA notification dismissed', { component: 'PWAUpdateNotification', action: 'handleClose' });
     setIsVisible(false);
     close();
   };
@@ -70,7 +71,7 @@ export function PWAUpdateNotification() {
                 </div>
               </>
             )}
-            
+
             {offlineReady && !needRefresh && (
               <>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
@@ -88,7 +89,7 @@ export function PWAUpdateNotification() {
               </>
             )}
           </div>
-          
+
           <button
             onClick={handleClose}
             className="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"

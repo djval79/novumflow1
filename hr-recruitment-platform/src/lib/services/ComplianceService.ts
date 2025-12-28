@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { auditService } from './AuditService';
 
 // ============================================
@@ -108,7 +109,7 @@ class ComplianceService {
             .single();
 
         if (error) {
-            console.error('Error adding DBS check:', error);
+            log.error('Error adding DBS check:', error, { component: 'ComplianceService' });
             return null;
         }
 
@@ -134,7 +135,7 @@ class ComplianceService {
             .single();
 
         if (error) {
-            console.error('Error fetching DBS check:', error);
+            log.error('Error fetching DBS check:', error, { component: 'ComplianceService' });
             return null;
         }
 
@@ -153,7 +154,7 @@ class ComplianceService {
             .order('expiry_date', { ascending: true });
 
         if (error) {
-            console.error('Error fetching expiring DBS checks:', error);
+            log.error('Error fetching expiring DBS checks:', error, { component: 'ComplianceService' });
             return [];
         }
 
@@ -172,7 +173,7 @@ class ComplianceService {
             .single();
 
         if (error) {
-            console.error('Error adding reference:', error);
+            log.error('Error adding reference:', error, { component: 'ComplianceService' });
             return null;
         }
 
@@ -196,7 +197,7 @@ class ComplianceService {
             .order('reference_number', { ascending: true });
 
         if (error) {
-            console.error('Error fetching references:', error);
+            log.error('Error fetching references:', error, { component: 'ComplianceService' });
             return [];
         }
 
@@ -221,7 +222,7 @@ class ComplianceService {
             .single();
 
         if (error) {
-            console.error('Error adding training record:', error);
+            log.error('Error adding training record:', error, { component: 'ComplianceService' });
             return null;
         }
 
@@ -246,7 +247,7 @@ class ComplianceService {
             .single();
 
         if (error) {
-            console.error('Error updating training record:', error);
+            log.error('Error updating training record:', error, { component: 'ComplianceService' });
             return null;
         }
 
@@ -276,7 +277,7 @@ class ComplianceService {
             .eq('id', id);
 
         if (error) {
-            console.error('Error deleting training record:', error);
+            log.error('Error deleting training record:', error, { component: 'ComplianceService' });
             return false;
         }
 
@@ -302,7 +303,7 @@ class ComplianceService {
             .order('completion_date', { ascending: false });
 
         if (error) {
-            console.error('Error fetching training records:', error);
+            log.error('Error fetching training records:', error, { component: 'ComplianceService' });
             return [];
         }
 
@@ -359,7 +360,7 @@ class ComplianceService {
             .order('expiry_date', { ascending: true });
 
         if (error) {
-            console.error('Error fetching expiring certificates:', error);
+            log.error('Error fetching expiring certificates:', error, { component: 'ComplianceService' });
             return [];
         }
 
@@ -378,7 +379,7 @@ class ComplianceService {
             .single();
 
         if (error) {
-            console.error('Error fetching compliance status:', error);
+            log.error('Error fetching compliance status:', error, { component: 'ComplianceService' });
             return null;
         }
 
@@ -398,7 +399,7 @@ class ComplianceService {
             .eq('tenant_id', tenantId);
 
         if (error) {
-            console.error('Error fetching tenant compliance report:', error);
+            log.error('Error fetching tenant compliance report:', error, { component: 'ComplianceService' });
             return {
                 total_staff: 0,
                 compliant: 0,
@@ -432,7 +433,26 @@ class ComplianceService {
             .order('overall_compliance_score', { ascending: true });
 
         if (error) {
-            console.error('Error fetching non-compliant staff:', error);
+            log.error('Error fetching non-compliant staff:', error, { component: 'ComplianceService' });
+            return [];
+        }
+
+        return data || [];
+    }
+
+    /**
+     * Get ALL staff compliance status for a tenant
+     * Used for Inspector Dashboard / CQC Evidence Register
+     */
+    async getAllStaffCompliance(tenantId: string): Promise<ComplianceStatus[]> {
+        const { data, error } = await supabase
+            .from('staff_compliance_status')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .order('staff_name', { ascending: true });
+
+        if (error) {
+            log.error('Error fetching all staff compliance:', error, { component: 'ComplianceService' });
             return [];
         }
 
@@ -479,7 +499,7 @@ class ComplianceService {
             .single();
 
         if (error) {
-            console.error('Error fetching company settings:', error);
+            log.error('Error fetching company settings:', error, { component: 'ComplianceService' });
             return {
                 dbs_renewal_months: 36,
                 rtw_check_frequency_months: 12,
@@ -512,7 +532,7 @@ class ComplianceService {
             .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all (usually just one row)
 
         if (error) {
-            console.error('Error updating compliance settings:', error);
+            log.error('Error updating compliance settings:', error, { component: 'ComplianceService' });
             return false;
         }
 
