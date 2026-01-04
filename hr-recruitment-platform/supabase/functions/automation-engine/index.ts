@@ -650,7 +650,7 @@ Deno.serve(async (req: Request) => {
                 });
                 const rtwChecks = await rtwRes.json();
 
-                // 3. Process each check and create log if not already notified
+                // 3. Process RTW and create logs
                 for (const check of rtwChecks) {
                     await fetch(`${supabaseUrl}/rest/v1/automation_execution_logs`, {
                         method: 'POST',
@@ -670,7 +670,37 @@ Deno.serve(async (req: Request) => {
                     });
                 }
 
-                result = { rtw_alerts_created: rtwChecks.length };
+                // 4. Check general documents (DBS, Training, etc.)
+                const docsRes = await fetch(`${supabaseUrl}/rest/v1/documents?expiry_date=lte.${dateLimitStr}&is_current_version=eq.true&verification_status=eq.verified`, {
+                    headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+                });
+                const documents = await docsRes.json();
+
+                for (const doc of documents) {
+                    // Get employee name if possible (this might need a join or separate fetch if not in the doc record)
+                    // Assuming for now the doc has employee info or we just use doc info
+                    await fetch(`${supabaseUrl}/rest/v1/automation_execution_logs`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            trigger_event: 'document_expiry_warning',
+                            execution_status: 'pending',
+                            tenant_id: doc.tenant_id,
+                            trigger_data: {
+                                document_id: doc.id,
+                                employee_id: doc.employee_id,
+                                document_name: doc.document_name,
+                                document_type: doc.document_type,
+                                expiry_date: doc.expiry_date
+                            }
+                        })
+                    });
+                }
+
+                result = {
+                    rtw_alerts_created: rtwChecks.length,
+                    doc_alerts_created: documents.length
+                };
                 break;
 
 

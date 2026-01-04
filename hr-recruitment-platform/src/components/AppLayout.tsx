@@ -41,6 +41,7 @@ import NotificationCenter from './NotificationCenter';
 import GlobalSearch from './GlobalSearch';
 import QuickActions from './QuickActions';
 import HelpCenter from './HelpCenter';
+import PWAInstallPrompt from './PWAInstallPrompt';
 
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
@@ -266,11 +267,33 @@ export default function AppLayout() {
             </div>
           </div>
         </main>
+
+        {/* Mobile Bottom Navigation */}
+        <div className="lg:hidden fixed bottom-10 left-4 right-4 z-40">
+          <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-lg px-6 py-3 flex justify-between items-center">
+            {navigation.slice(0, 5).map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`flex flex-col items-center space-y-1 ${isActive ? 'text-cyan-600' : 'text-gray-400'
+                    }`}
+                >
+                  <item.icon className="w-6 h-6" />
+                  <span className="text-[10px] font-medium">{item.name.split(' ')[0]}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
         <BrandedFooter />
       </div>
 
-      {/* Quick Actions FAB */}
       <QuickActions />
+      <HelpCenter />
+      <PWAInstallPrompt />
     </div>
   );
 }

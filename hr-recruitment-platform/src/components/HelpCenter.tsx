@@ -1,12 +1,34 @@
 
-import React, { useState, useMemo } from 'react';
-import { HelpCircle, Search, X, ChevronRight, MessageCircle, ExternalLink, Book } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { HelpCircle, Search, X, ChevronRight, MessageCircle, ExternalLink, Book, Sparkles } from 'lucide-react';
 import { helpTopics } from '../data/helpContent';
+import { useHelp } from '@/contexts/HelpContext';
+import { useLocation } from 'react-router-dom';
 
 export default function HelpCenter() {
-    const [isOpen, setIsOpen] = useState(false);
+    const { isOpen, closeHelp, openHelp, currentTopicId, openTopic } = useHelp();
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+    const location = useLocation();
+
+    // Context-aware suggestions based on current path
+    const suggestedTopics = useMemo(() => {
+        const path = location.pathname;
+        if (path.includes('/recruitment')) return helpTopics.filter(t => t.category === 'Recruitment');
+        if (path.includes('/compliance') || path.includes('/sponsor-guardian')) return helpTopics.filter(t => t.category === 'Compliance');
+        if (path.includes('/hr') || path.includes('/team') || path.includes('/shifts')) return helpTopics.filter(t => t.category === 'HR' || t.category === 'Onboarding');
+        if (path.includes('/automation')) return helpTopics.filter(t => t.category === 'Automation');
+
+        // Admin & Settings pages
+        if (path.includes('/settings') ||
+            path.includes('/admin') ||
+            path.includes('/billing') ||
+            path.includes('/tenant') ||
+            path.includes('/audit')) {
+            return helpTopics.filter(t => t.category === 'Admin');
+        }
+
+        return [];
+    }, [location.pathname]);
 
     const filteredTopics = useMemo(() => {
         if (!searchQuery) return helpTopics;
@@ -19,19 +41,23 @@ export default function HelpCenter() {
 
     const categories = useMemo(() => {
         const cats: Record<string, typeof helpTopics> = {};
-        filteredTopics.forEach(topic => {
+
+        // If searching, show search results grouped
+        const sourceTopics = searchQuery ? filteredTopics : helpTopics;
+
+        sourceTopics.forEach(topic => {
             if (!cats[topic.category]) cats[topic.category] = [];
             cats[topic.category].push(topic);
         });
         return cats;
-    }, [filteredTopics]);
+    }, [filteredTopics, searchQuery]);
 
-    const activeTopic = helpTopics.find(t => t.id === selectedTopic);
+    const activeTopic = helpTopics.find(t => t.id === currentTopicId);
 
     return (
         <>
             <button
-                onClick={() => setIsOpen(true)}
+                onClick={() => openHelp()}
                 className="p-2 text-gray-500 hover:text-cyan-600 transition-colors rounded-full hover:bg-cyan-50 relative group"
                 title="Help & Support"
             >
@@ -45,7 +71,7 @@ export default function HelpCenter() {
             {isOpen && (
                 <div
                     className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 transition-opacity"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => closeHelp()}
                 />
             )}
 
@@ -59,7 +85,7 @@ export default function HelpCenter() {
                             Help Center
                         </h2>
                         <button
-                            onClick={() => setIsOpen(false)}
+                            onClick={() => closeHelp()}
                             className="text-white/80 hover:text-white transition-colors"
                         >
                             <X className="w-6 h-6" />
@@ -68,10 +94,10 @@ export default function HelpCenter() {
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto">
-                        {selectedTopic ? (
+                        {currentTopicId ? (
                             <div className="p-6">
                                 <button
-                                    onClick={() => setSelectedTopic(null)}
+                                    onClick={() => openTopic('')} // This clears the current topic effectively if handled in context or we pass null
                                     className="mb-4 text-sm text-cyan-600 hover:text-cyan-700 flex items-center font-medium"
                                 >
                                     <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
@@ -111,6 +137,33 @@ export default function HelpCenter() {
                                 </div>
 
                                 <div className="space-y-6">
+                                    {/* Suggested Topics Section */}
+                                    {!searchQuery && suggestedTopics.length > 0 && (
+                                        <div>
+                                            <h3 className="text-xs font-semibold text-cyan-600 uppercase tracking-wider mb-3 flex items-center">
+                                                <Sparkles className="w-3 h-3 mr-1" />
+                                                Recommended for you
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {suggestedTopics.map(topic => (
+                                                    <button
+                                                        key={topic.id}
+                                                        onClick={() => openTopic(topic.id)}
+                                                        className="w-full text-left p-3 rounded-lg bg-cyan-50 border border-cyan-100 hover:bg-cyan-100 transition-colors group"
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-medium text-cyan-900">
+                                                                {topic.title}
+                                                            </span>
+                                                            <ChevronRight className="w-4 h-4 text-cyan-400 group-hover:text-cyan-600" />
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="my-6 border-b border-gray-100" />
+                                        </div>
+                                    )}
+
                                     {Object.entries(categories).map(([category, topics]) => (
                                         <div key={category}>
                                             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -120,7 +173,7 @@ export default function HelpCenter() {
                                                 {topics.map(topic => (
                                                     <button
                                                         key={topic.id}
-                                                        onClick={() => setSelectedTopic(topic.id)}
+                                                        onClick={() => openTopic(topic.id)}
                                                         className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100 hover:border-cyan-100 group"
                                                     >
                                                         <div className="flex items-center justify-between">

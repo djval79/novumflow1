@@ -296,7 +296,8 @@ export default function HRModulePage() {
             {/* Employees Table */}
             {activeTab === 'employees' && (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                {/* Desktop Table */}
+                <table className="min-w-full divide-y divide-gray-200 hidden md:table">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
@@ -362,13 +363,6 @@ export default function HRModulePage() {
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleGenerateDocument(emp, '2')} // Using hardcoded template ID '2' for contract
-                              className="text-gray-600 hover:text-gray-900 p-1 rounded"
-                              title="Generate Document"
-                            >
-                              <FileText className="w-4 h-4" />
-                            </button>
                             <CompactSyncButton employeeId={emp.id} onSuccess={loadData} />
                           </td>
                         </tr>
@@ -382,13 +376,54 @@ export default function HRModulePage() {
                     )}
                   </tbody>
                 </table>
+
+                {/* Mobile Card List */}
+                <div className="md:hidden divide-y divide-gray-200">
+                  {filteredEmployees.length > 0 ? (
+                    filteredEmployees.map((emp) => (
+                      <div key={emp.id} className="p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {emp.first_name} {emp.last_name}
+                            </div>
+                            <div className="text-xs text-gray-500">{emp.email}</div>
+                          </div>
+                          <span className={`inline-flex px-2 py-1 text-[10px] font-semibold rounded-full ${emp.status === 'active' ? 'bg-green-100 text-green-800' :
+                            emp.status === 'on_leave' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                            {emp.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <p className="text-gray-500">ID: <span className="text-gray-900">{emp.employee_number}</span></p>
+                            <p className="text-gray-500">Dept: <span className="text-gray-900">{emp.department || 'N/A'}</span></p>
+                          </div>
+                          <div className="text-right">
+                            <OnboardingProgressBadge employeeId={emp.id} />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                          <button onClick={() => viewEmployeeDetails(emp)} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><User className="w-4 h-4" /></button>
+                          <button onClick={() => editEmployee(emp)} className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                          <button onClick={() => deleteEmployee(emp.id)} className="p-2 text-red-600 bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                          <CompactSyncButton employeeId={emp.id} onSuccess={loadData} />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-sm text-gray-500">No employees found</div>
+                  )}
+                </div>
               </div>
             )}
 
             {/* Documents Table */}
             {activeTab === 'documents' && (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 hidden md:table">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Name</th>
@@ -440,13 +475,46 @@ export default function HRModulePage() {
                     )}
                   </tbody>
                 </table>
+
+                {/* Mobile Documents List */}
+                <div className="md:hidden divide-y divide-gray-200">
+                  {documents.length > 0 ? (
+                    documents.map((doc) => (
+                      <div key={doc.id} className="p-4 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div className="text-sm font-medium text-gray-900">{doc.document_name}</div>
+                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full ${doc.is_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {doc.is_verified ? 'Verified' : 'Pending'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>{doc.document_type}</span>
+                          <span>Due: {doc.expiry_date ? format(new Date(doc.expiry_date), 'MMM dd') : 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-end pt-2">
+                          <button
+                            onClick={() => {
+                              const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(doc.file_path);
+                              window.open(publicUrl, '_blank');
+                            }}
+                            className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-sm text-gray-500">No documents found</div>
+                  )}
+                </div>
               </div>
             )}
 
             {/* Leave Requests Table */}
             {activeTab === 'leaves' && (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 hidden md:table">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
@@ -507,6 +575,49 @@ export default function HRModulePage() {
                     )}
                   </tbody>
                 </table>
+
+                {/* Mobile Leaves List */}
+                <div className="md:hidden divide-y divide-gray-200">
+                  {leaves.length > 0 ? (
+                    leaves.map((leave) => (
+                      <div key={leave.id} className="p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 capitalize">{leave.leave_type?.replace('_', ' ') || 'Leave'}</div>
+                            <div className="text-xs text-gray-500">{leave.employee_id.substring(0, 8)}...</div>
+                          </div>
+                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full ${leave.status === 'approved' ? 'bg-green-100 text-green-800' :
+                            leave.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                            {leave.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-700">
+                          {format(new Date(leave.start_date), 'MMM dd')} - {format(new Date(leave.end_date), 'MMM dd')} ({leave.total_days} days)
+                        </p>
+                        {leave.status === 'pending' && (
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50">
+                            <button
+                              onClick={() => handleApproveLeave(leave.id)}
+                              className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg font-medium"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectLeave(leave.id)}
+                              className="px-4 py-2 bg-red-600 text-white text-xs rounded-lg font-medium"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-sm text-gray-500">No leave requests found</div>
+                  )}
+                </div>
               </div>
             )}
 

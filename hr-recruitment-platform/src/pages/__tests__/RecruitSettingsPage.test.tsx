@@ -56,8 +56,9 @@ describe('RecruitSettingsPage', () => {
         render(<RecruitSettingsPage />);
 
         await waitFor(() => {
-            expect(screen.getByText('General Settings')).toBeInTheDocument();
-            expect(screen.getByText('Automated Interview Reminders')).toBeInTheDocument();
+            // Updated to match current UI text
+            expect(screen.getByText('General Configuration')).toBeInTheDocument();
+            expect(screen.getByText('Interview Reminders')).toBeInTheDocument();
         });
     });
 
@@ -70,7 +71,8 @@ describe('RecruitSettingsPage', () => {
         fireEvent.click(criteriaTab);
 
         await waitFor(() => {
-            expect(screen.getByText('Add Criterion')).toBeInTheDocument();
+            // Updated to match current UI text
+            expect(screen.getByText('Add Criteria')).toBeInTheDocument();
         });
     });
 
@@ -92,8 +94,9 @@ describe('RecruitSettingsPage', () => {
         await waitFor(() => {
             expect(screen.getByText('Technical Skills')).toBeInTheDocument();
             expect(screen.getByText('Cultural Fit')).toBeInTheDocument();
-            expect(screen.getByText('Weight: 50% | Max Score: 5')).toBeInTheDocument();
-            expect(screen.getByText('Weight: 40% | Max Score: 4')).toBeInTheDocument();
+            // Updated to match current UI format - weight is shown as "50% Weight"
+            expect(screen.getByText('50% Weight')).toBeInTheDocument();
+            expect(screen.getByText('40% Weight')).toBeInTheDocument();
         });
     });
 

@@ -82,36 +82,20 @@ export default function DashboardPage() {
         .eq('is_current_version', true);
 
       // Get today's attendance for current tenant
-      // Uses tenant_id column - run migration 015 if this fails
-      let attendanceCount = 0;
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const { count } = await supabase
-          .from('attendance_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .eq('date', today)
-          .eq('status', 'present');
-        attendanceCount = count || 0;
-      } catch (error) {
-        // Table may not have tenant_id column yet - migration needed
-        log.debug('attendance_records query failed - run migration 015', { component: 'DashboardPage' });
-      }
+      const today = new Date().toISOString().split('T')[0];
+      const { count: attendanceCount } = await supabase
+        .from('attendance_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id)
+        .eq('date', today)
+        .eq('status', 'present');
 
       // Get pending leave requests for current tenant
-      // Uses tenant_id column - run migration 015 if this fails
-      let leaveCount = 0;
-      try {
-        const { count } = await supabase
-          .from('leave_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .eq('status', 'pending');
-        leaveCount = count || 0;
-      } catch (error) {
-        // Table may not have tenant_id column yet - migration needed
-        log.debug('leave_requests query failed - run migration 015', { component: 'DashboardPage' });
-      }
+      const { count: leaveCount } = await supabase
+        .from('leave_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id)
+        .eq('status', 'pending');
 
       // Get recent audit logs for current tenant
       const { data: logs } = await supabase
