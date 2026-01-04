@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Settings, Sliders, CheckSquare, FileText, Users, Plus, Edit, Trash2, Save } from 'lucide-react';
+import { Settings, Sliders, CheckSquare, Plus, Edit, Trash2 } from 'lucide-react';
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
 import { useTenant } from '@/contexts/TenantContext';
@@ -44,23 +44,41 @@ export default function RecruitSettingsPage() {
     } else if (activeTab === 'checklists') {
       loadChecklists();
     }
-  }, [activeTab]);
+  }, [activeTab, currentTenant]);
 
   async function loadSettings() {
+    if (!currentTenant) return;
     const { data, error } = await supabase
       .from('recruitment_settings')
       .select('*')
-      .single();
+      .eq('organization_id', currentTenant.id)
+      .maybeSingle();
 
-    if (data) {
+    if (error) {
+      console.error('Error loading settings:', error);
+    } else if (data) {
       setSettings(data);
+    } else {
+      // Create default settings if not exists
+      const { data: newSettings, error: insertError } = await supabase
+        .from('recruitment_settings')
+        .insert({
+          organization_id: currentTenant.id,
+          auto_acknowledge_applications: true,
+          auto_schedule_reminders: true,
+          enable_ai_screening: true
+        })
+        .select()
+        .single();
+
+      if (newSettings) setSettings(newSettings);
     }
   }
 
   async function loadCriteria() {
     if (!currentTenant) return;
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('evaluation_criteria_templates')
       .select('*')
       .eq('tenant_id', currentTenant.id)
@@ -73,7 +91,7 @@ export default function RecruitSettingsPage() {
   async function loadChecklists() {
     if (!currentTenant) return;
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('onboarding_checklist_templates')
       .select('*')
       .eq('tenant_id', currentTenant.id);
@@ -82,8 +100,8 @@ export default function RecruitSettingsPage() {
     setLoading(false);
   }
 
-  async function toggleSetting(field: string, value: boolean) {
-    if (!settings) return;
+  async function updateSetting(field: string, value: any) {
+    if (!settings || !currentTenant) return;
 
     const { error } = await supabase
       .from('recruitment_settings')
@@ -98,12 +116,17 @@ export default function RecruitSettingsPage() {
     }
   }
 
+  async function toggleSetting(field: string, value: boolean) {
+    await updateSetting(field, value);
+  }
+
   async function loadFormTemplates() {
+    if (!currentTenant) return;
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('form_templates')
       .select('*')
-      .eq('category', 'recruitment')  // Only show recruitment forms
+      .eq('category', 'recruitment')
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -116,14 +139,33 @@ export default function RecruitSettingsPage() {
   }
 
   async function loadWorkflows() {
+    if (!currentTenant) return;
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('recruitment_workflows')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (data) {
       setWorkflows(data);
+    }
+    setLoading(false);
+  }
+
+  async function deleteWorkflow(id: string) {
+    if (!window.confirm('Are you sure you want to delete this workflow? This will affect all jobs using it.')) return;
+
+    setLoading(true);
+    const { error } = await supabase
+      .from('recruitment_workflows')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      setToast({ message: 'Failed to delete workflow', type: 'error' });
+    } else {
+      setToast({ message: 'Workflow deleted successfully', type: 'success' });
+      loadWorkflows();
     }
     setLoading(false);
   }
@@ -274,22 +316,22 @@ export default function RecruitSettingsPage() {
   ];
 
   return (
-    <div>
+    <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Recruitment Settings</h1>
-        <p className="mt-1 text-sm text-gray-600">Configure your recruitment process and templates</p>
+        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Recruitment Settings</h1>
+        <p className="mt-2 text-lg text-gray-600">Architect your recruitment pipeline and automation workflows</p>
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 border-b border-gray-200 overflow-x-auto">
-        <nav className="-mb-px flex space-x-8">
+      <div className="mb-10 border-b border-gray-200 overflow-x-auto">
+        <nav className="-mb-px flex space-x-12">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab.id
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`whitespace-nowrap py-5 px-1 border-b-2 font-semibold text-base transition-all duration-300 ${activeTab === tab.id
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
                 }`}
             >
               {tab.label}
@@ -299,64 +341,107 @@ export default function RecruitSettingsPage() {
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 border border-white/50 p-12 transition-all duration-500">
         {activeTab === 'general' && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-medium text-gray-900">General Settings</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">Automated Interview Reminders</h3>
-                  <p className="text-xs text-gray-500 mt-1">Send automated reminders before scheduled interviews</p>
+          <div className="space-y-12">
+            <div className="flex items-center space-x-4 mb-2">
+              <div className="p-3 bg-indigo-50 rounded-2xl">
+                <Settings className="w-8 h-8 text-indigo-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900">General Configuration</h2>
+            </div>
+
+            <div className="grid gap-8">
+              {/* Recruiter Notification Email */}
+              <div className="group relative overflow-hidden p-8 bg-gradient-to-br from-indigo-50/50 to-white border border-indigo-100/50 rounded-[2rem] shadow-sm transition-all duration-300 hover:shadow-xl hover:border-indigo-200">
+                <div className="relative z-10">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                    Recruiter Notification Email
+                    <span className="ml-3 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full uppercase tracking-wider">Per Tenant</span>
+                  </h3>
+                  <p className="text-base text-gray-600 mt-2 max-w-2xl">Specify the central email for AI candidate alerts and system notifications for your organization.</p>
+                  <div className="mt-6 max-w-md">
+                    <input
+                      type="email"
+                      placeholder="e.g. recruitment@yourcompany.com"
+                      value={settings?.recruiter_notification_email || ''}
+                      onChange={(e) => updateSetting('recruiter_notification_email', e.target.value)}
+                      className="w-full px-5 py-3 bg-white border border-indigo-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm text-base"
+                    />
+                  </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings?.auto_schedule_reminders ?? false}
-                    onChange={(e) => toggleSetting('auto_schedule_reminders', e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">Application Acknowledgement</h3>
-                  <p className="text-xs text-gray-500 mt-1">Auto-send acknowledgement emails to applicants</p>
+              {/* Toggles Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-8 bg-white border border-gray-100 rounded-[2rem] shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Interview Reminders</h3>
+                      <p className="text-sm text-gray-500 mt-1">Automated 24h candidate reminders.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={settings?.auto_schedule_reminders ?? false} onChange={(e) => toggleSetting('auto_schedule_reminders', e.target.checked)} />
+                      <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings?.auto_acknowledge_applications ?? false}
-                    onChange={(e) => toggleSetting('auto_acknowledge_applications', e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
+
+                <div className="p-8 bg-white border border-gray-100 rounded-[2rem] shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Application Receipts</h3>
+                      <p className="text-sm text-gray-500 mt-1">Auto-send acknowledgement emails.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={settings?.auto_acknowledge_applications ?? false} onChange={(e) => toggleSetting('auto_acknowledge_applications', e.target.checked)} />
+                      <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">AI Screening & Parsing</h3>
-                  <p className="text-xs text-gray-500 mt-1">Enable AI-powered CV parsing and candidate scoring</p>
+              {/* AI Hub */}
+              <div className="p-10 bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-[2.5rem] shadow-2xl text-white">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h3 className="text-2xl font-bold">AI Screening Intelligence</h3>
+                    <p className="text-indigo-100 mt-1">Power your funnel with Gemini-core decision making.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={settings?.enable_ai_screening ?? false} onChange={(e) => toggleSetting('enable_ai_screening', e.target.checked)} />
+                    <div className="w-14 h-8 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-white"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings?.enable_ai_screening ?? false}
-                    onChange={(e) => toggleSetting('enable_ai_screening', e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
+
+                {settings?.enable_ai_screening && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10 pt-10 border-t border-white/10">
+                    <div className="p-6 bg-white/10 rounded-2xl backdrop-blur-md">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-bold">Auto-Shortlist</h4>
+                        <input type="checkbox" checked={settings?.ai_auto_shortlist_enabled ?? false} onChange={(e) => toggleSetting('ai_auto_shortlist_enabled', e.target.checked)} className="rounded" />
+                      </div>
+                      <input type="range" min="50" max="100" value={settings?.ai_shortlist_threshold || 85} onChange={(e) => updateSetting('ai_shortlist_threshold', parseInt(e.target.value))} className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white" />
+                      <div className="mt-2 text-right text-sm">Min Match: {settings?.ai_shortlist_threshold || 85}%</div>
+                    </div>
+
+                    <div className="p-6 bg-white/10 rounded-2xl backdrop-blur-md">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-bold">Auto-Reject</h4>
+                        <input type="checkbox" checked={settings?.ai_auto_reject_enabled ?? false} onChange={(e) => toggleSetting('ai_auto_reject_enabled', e.target.checked)} className="rounded" />
+                      </div>
+                      <input type="range" min="0" max="50" value={settings?.ai_reject_threshold || 30} onChange={(e) => updateSetting('ai_reject_threshold', parseInt(e.target.value))} className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white" />
+                      <div className="mt-2 text-right text-sm">Max Match: {settings?.ai_reject_threshold || 30}%</div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {activeTab === 'workflows' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {isEditingWorkflow ? (
               <WorkflowEditor
                 workflowId={editingWorkflowId || undefined}
@@ -373,314 +458,136 @@ export default function RecruitSettingsPage() {
               />
             ) : (
               <>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-gray-900">Recruitment Workflows</h2>
-                  <button
-                    onClick={() => {
-                      setEditingWorkflowId(null);
-                      setIsEditingWorkflow(true);
-                    }}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Workflow
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Recruitment Pipelines</h2>
+                  <button onClick={() => { setEditingWorkflowId(null); setIsEditingWorkflow(true); }} className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center">
+                    <Plus className="w-5 h-5 mr-2" />
+                    New Pipeline
                   </button>
                 </div>
-                {workflows.length === 0 && !loading && (
-                  <div className="text-center py-12 text-gray-500">
-                    No workflows found. Create one to get started.
-                  </div>
-                )}
-                {workflows.map((workflow) => (
-                  <div key={workflow.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
+                <div className="grid grid-cols-1 gap-4">
+                  {workflows.map((workflow) => (
+                    <div key={workflow.id} className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-between hover:shadow-md transition">
                       <div>
-                        <h3 className="font-semibold text-gray-900 flex items-center">
+                        <h3 className="font-bold text-gray-900 text-lg flex items-center">
                           {workflow.name}
-                          {workflow.is_default && (
-                            <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">Default</span>
-                          )}
+                          {workflow.is_default && <span className="ml-3 px-2 py-0.5 text-[10px] bg-green-100 text-green-700 rounded-full uppercase font-black">Active Default</span>}
                         </h3>
-                        <p className="text-sm text-gray-500">{workflow.description}</p>
+                        <p className="text-gray-500 text-sm mt-1">{workflow.description}</p>
                       </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            setEditingWorkflowId(workflow.id);
-                            setIsEditingWorkflow(true);
-                          }}
-                          className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteWorkflow(workflow.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div className="flex space-x-3">
+                        <button onClick={() => { setEditingWorkflowId(workflow.id); setIsEditingWorkflow(true); }} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition"><Edit className="w-5 h-5" /></button>
+                        <button onClick={() => deleteWorkflow(workflow.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition"><Trash2 className="w-5 h-5" /></button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </>
             )}
           </div>
         )}
 
         {activeTab === 'forms' && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-medium text-gray-900">Application Forms</h2>
-              <div className="flex space-x-2">
-                <select
-                  className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  value={selectedFormId || ''}
-                  onChange={(e) => setSelectedFormId(e.target.value)}
-                >
-                  {formTemplates.map(form => (
-                    <option key={form.id} value={form.id}>{form.name}</option>
-                  ))}
-                </select>
-              </div>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900">Application Interface</h2>
+              <select className="bg-white px-4 py-2 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-indigo-500 outline-none" value={selectedFormId || ''} onChange={(e) => setSelectedFormId(e.target.value)}>
+                {formTemplates.map(form => <option key={form.id} value={form.id}>{form.name}</option>)}
+              </select>
             </div>
-
-            {selectedForm ? (
-              <FormBuilder
-                key={selectedForm.id}
-                initialSchema={selectedForm.schema}
-                onSave={saveFormSchema}
-              />
-            ) : (
-              <div className="text-center py-12">
-                {loading ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                ) : (
-                  <p className="text-gray-500">No form templates found.</p>
-                )}
-              </div>
-            )}
+            {selectedForm ? <FormBuilder key={selectedForm.id} initialSchema={selectedForm.schema} onSave={saveFormSchema} /> : <div className="py-20 text-center text-gray-400">Loading form architect...</div>}
           </div>
         )}
 
         {activeTab === 'criteria' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Evaluation Criteria</h2>
-              <button
-                onClick={() => { setActiveModal('criterion'); setEditingItem(null); }}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Criterion
-              </button>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Scorecard Templates</h2>
+              <button onClick={() => { setActiveModal('criterion'); setEditingItem(null); }} className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition flex items-center"><Plus className="w-5 h-5 mr-2" /> Add Criteria</button>
             </div>
-            {criteria.map((criterion) => (
-              <div key={criterion.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{criterion.name}</h3>
-                    <p className="text-sm text-gray-500">Weight: {criterion.weight}% | Max Score: {criterion.max_score}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {criteria.map((criterion) => (
+                <div key={criterion.id} className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-900 text-lg">{criterion.name}</h3>
+                    <div className="flex space-x-2">
+                      <button onClick={() => { setEditingItem(criterion); setActiveModal('criterion'); }} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteCriterion(criterion.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => { setEditingItem(criterion); setActiveModal('criterion'); }}
-                      className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCriterion(criterion.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                      <div className="bg-indigo-600 h-full" style={{ width: `${criterion.weight}%` }}></div>
+                    </div>
+                    <span className="font-bold text-gray-600 text-sm whitespace-nowrap">{criterion.weight}% Weight</span>
                   </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${criterion.weight}%` }}></div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
         {activeTab === 'checklists' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Onboarding Checklists</h2>
-              <button
-                onClick={() => { setActiveModal('checklist'); setEditingItem(null); }}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Checklist
-              </button>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Onboarding Archetypes</h2>
+              <button onClick={() => { setActiveModal('checklist'); setEditingItem(null); }} className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition flex items-center"><Plus className="w-5 h-5 mr-2" /> Add Checklist</button>
             </div>
-            {checklists.map((checklist) => (
-              <div key={checklist.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900">{checklist.name}</h3>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => { setEditingItem(checklist); setActiveModal('checklist'); }}
-                      className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteChecklist(checklist.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {checklists.map((checklist) => (
+                <div key={checklist.id} className="p-8 bg-white border border-gray-100 rounded-[2rem] shadow-sm hover:shadow-md transition group">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{checklist.name}</h3>
+                      <p className="text-gray-500 text-sm mt-1">{checklist.description}</p>
+                    </div>
+                    <div className="flex space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => { setEditingItem(checklist); setActiveModal('checklist'); }} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl"><Edit className="w-5 h-5" /></button>
+                      <button onClick={() => handleDeleteChecklist(checklist.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl"><Trash2 className="w-5 h-5" /></button>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {checklist.tasks.map((task: string, index: number) => (
+                      <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
+                        <CheckSquare className="w-5 h-5 text-green-600" />
+                        <span className="text-sm font-medium text-gray-700">{task}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  {checklist.tasks.map((task, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <CheckSquare className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-gray-700">{task}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
-        {/* Modals */}
-        {activeModal === 'criterion' && (
-          <Modal
-            isOpen={true}
-            onClose={closeModal}
-            title={editingItem ? 'Edit Criterion' : 'Add Evaluation Criterion'}
-          >
-            <form onSubmit={handleSaveCriterion} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <input
-                  name="name"
-                  defaultValue={editingItem?.name}
-                  required
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
-                <textarea
-                  name="description"
-                  defaultValue={editingItem?.description}
-                  rows={3}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Weight (%)</label>
-                  <input
-                    name="weight"
-                    type="number"
-                    defaultValue={editingItem?.weight || 10}
-                    required
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Max Score</label>
-                  <input
-                    name="max_score"
-                    type="number"
-                    defaultValue={editingItem?.max_score || 5}
-                    required
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {loading ? 'Saving...' : 'Save Criterion'}
-                </button>
-              </div>
-            </form>
-          </Modal>
-        )}
-
-        {activeModal === 'checklist' && (
-          <Modal
-            isOpen={true}
-            onClose={closeModal}
-            title={editingItem ? 'Edit Checklist' : 'Add Onboarding Checklist'}
-          >
-            <form onSubmit={handleSaveChecklist} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <input
-                  name="name"
-                  defaultValue={editingItem?.name}
-                  required
-                  placeholder="e.g. Clinical Nursing Onboarding"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
-                <textarea
-                  name="description"
-                  defaultValue={editingItem?.description}
-                  rows={2}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tasks (one per line)</label>
-                <textarea
-                  name="tasks"
-                  defaultValue={editingItem?.tasks?.join('\n')}
-                  required
-                  rows={6}
-                  placeholder="Submit ID documents&#10;Complete orientation&#10;Shadow senior nurse"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {loading ? 'Saving...' : 'Save Checklist'}
-                </button>
-              </div>
-            </form>
-          </Modal>
-        )}
-
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
       </div>
+
+      {/* Modals & Toast */}
+      {activeModal === 'criterion' && (
+        <Modal isOpen={true} onClose={closeModal} title={editingItem ? 'Edit Criterion' : 'Create Criterion'}>
+          <form onSubmit={handleSaveCriterion} className="space-y-6">
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Identifier</label><input name="name" defaultValue={editingItem?.name} required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Technical Proficiency" /></div>
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Description</label><textarea name="description" defaultValue={editingItem?.description} rows={3} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
+            <div className="grid grid-cols-2 gap-6">
+              <div><label className="block text-sm font-bold text-gray-700 mb-2">Weight (%)</label><input name="weight" type="number" defaultValue={editingItem?.weight || 10} required className="w-full px-4 py-3 border border-gray-200 rounded-xl" /></div>
+              <div><label className="block text-sm font-bold text-gray-700 mb-2">Max Raw Score</label><input name="max_score" type="number" defaultValue={editingItem?.max_score || 5} required className="w-full px-4 py-3 border border-gray-200 rounded-xl" /></div>
+            </div>
+            <div className="flex justify-end space-x-4 pt-4"><button type="button" onClick={closeModal} className="px-6 py-3 font-bold text-gray-600">Cancel</button><button type="submit" disabled={loading} className="px-10 py-3 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100">Deploy Criterion</button></div>
+          </form>
+        </Modal>
+      )}
+
+      {activeModal === 'checklist' && (
+        <Modal isOpen={true} onClose={closeModal} title={editingItem ? 'Refine Checklist' : 'Draft New Checklist'}>
+          <form onSubmit={handleSaveChecklist} className="space-y-6">
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Template Name</label><input name="name" defaultValue={editingItem?.name} required className="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="e.g. Clinical Specialist Onboarding" /></div>
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Context</label><textarea name="description" defaultValue={editingItem?.description} rows={2} className="w-full px-4 py-3 border border-gray-200 rounded-xl" /></div>
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Milestones (One per line)</label><textarea name="tasks" defaultValue={editingItem?.tasks?.join('\n')} required rows={6} className="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Verify HCPC Registration&#10;Complete Safeguarding L3&#10;Shadow Senior Lead" /></div>
+            <div className="flex justify-end space-x-4 pt-4"><button type="button" onClick={closeModal} className="px-6 py-3 font-bold text-gray-600">Cancel</button><button type="submit" disabled={loading} className="px-10 py-3 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100">Save Checklist</button></div>
+          </form>
+        </Modal>
+      )}
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

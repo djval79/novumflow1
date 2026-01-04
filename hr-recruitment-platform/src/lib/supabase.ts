@@ -93,6 +93,7 @@ export interface UserProfile {
   full_name: string | null;
   role: UserRole;
   tenant_id: string | null;
+  employee_id: string | null;
   avatar_url: string | null;
   phone: string | null;
   department: string | null;

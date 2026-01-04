@@ -4,7 +4,7 @@ declare const Deno: any;
 Deno.serve(async (req: Request) => {
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept, cache-control, pragma, expires, x-requested-with',
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE, PATCH',
         'Access-Control-Max-Age': '86400',
         'Access-Control-Allow-Credentials': 'false'
@@ -52,6 +52,12 @@ Deno.serve(async (req: Request) => {
                 const conditions = typeof data.conditions === 'object' ? JSON.stringify(data.conditions) : data.conditions;
                 const actions = typeof data.actions === 'object' ? JSON.stringify(data.actions) : data.actions;
 
+                const { data: profileData } = await fetch(`${supabaseUrl}/rest/v1/users_profiles?id=eq.${userId}&select=tenant_id`, {
+                    headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+                }).then(res => res.json()).then(data => ({ data: data[0] }));
+
+                const tenantId = profileData?.tenant_id;
+
                 const createResponse = await fetch(`${supabaseUrl}/rest/v1/automation_rules`, {
                     method: 'POST',
                     headers: {
@@ -69,6 +75,7 @@ Deno.serve(async (req: Request) => {
                         actions: actions,
                         priority: data.priority || 1,
                         created_by: userId,
+                        tenant_id: tenantId,
                         is_active: true,
                         execution_count: 0,
                         success_count: 0,
@@ -347,10 +354,136 @@ Deno.serve(async (req: Request) => {
                                 break;
 
                             case 'interview_reminder':
-                                // Similar logic for interview reminders
+                                // Call integration-manager to send templated email
                                 console.log(`Sending interview reminder for ${triggerData.application_id}`);
-                                // To be implemented with specific template
+
+                                const reminderEmailResponse = await fetch(`${supabaseUrl}/functions/v1/integration-manager`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${serviceRoleKey}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        action: 'email_send_template',
+                                        template_name: 'interview_reminder',
+                                        to: triggerData.candidate_email,
+                                        variables: {
+                                            applicant_name: triggerData.candidate_name,
+                                            job_title: triggerData.job_title,
+                                            interview_date: triggerData.interview_date,
+                                            interview_time: triggerData.interview_time,
+                                            company_name: triggerData.company_name || 'Our Company'
+                                        },
+                                        triggered_by: 'system',
+                                        related_entity_type: 'interviews',
+                                        related_entity_id: triggerData.interview_id
+                                    })
+                                });
+
+                                if (!reminderEmailResponse.ok) {
+                                    const errorText = await reminderEmailResponse.text();
+                                    throw new Error(`Email failed: ${errorText}`);
+                                }
+                                console.log(`Interview reminder email sent for interview ${triggerData.interview_id}`);
                                 break;
+
+                            case 'ai_score_update':
+                                // This is triggered after the DB trigger has already moved the stage
+                                // Here we handle secondary actions like notifications
+                                console.log(`Processing ai_score_update for candidate ${triggerData.applicant_name} (Action: ${triggerData.action_taken})`);
+
+                                if (triggerData.action_taken === 'auto_shortlisted') {
+                                    // 1. Notify the recruiter (Internal Slack/Email could go here)
+                                    // 2. Fetch job title
+                                    const jobRes = await fetch(`${supabaseUrl}/rest/v1/applications?id=eq.${triggerData.application_id}&select=job_postings(job_title)`, {
+                                        headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+                                    });
+                                    const jobData = (await jobRes.json())?.[0];
+                                    const jobTitle = jobData?.job_postings?.job_title || 'Unknown Position';
+
+                                    // Send notification to the tenant-specific recruiter email
+                                    await fetch(`${supabaseUrl}/functions/v1/integration-manager`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            action: 'email_send',
+                                            to: triggerData.recruiter_email || Deno.env.get('RECRUITER_NOTIFICATION_EMAIL') || 'admin@example.com',
+                                            subject: `🚀 High Matching Candidate: ${triggerData.applicant_name}`,
+                                            html: `
+                                                <p>Great news! A new candidate has been automatically shortlisted for the <strong>${jobTitle}</strong> role.</p>
+                                                <p><strong>Candidate:</strong> ${triggerData.applicant_name}</p>
+                                                <p><strong>AI Score:</strong> ${triggerData.ai_score}%</p>
+                                                <p><strong>AI Summary:</strong> ${triggerData.ai_summary}</p>
+                                                <p><a href="${Deno.env.get('PLATFORM_URL') || 'https://novumflow.app'}/recruitment?id=${triggerData.application_id}">View Application</a></p>
+                                            `
+                                        })
+                                    });
+                                } else if (triggerData.action_taken === 'auto_rejected') {
+                                    // Send rejection email to candidate
+                                    await fetch(`${supabaseUrl}/functions/v1/integration-manager`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            action: 'email_send_template',
+                                            template_name: 'rejection_letter', // Aligned with DB
+                                            to: triggerData.applicant_email,
+                                            variables: {
+                                                applicant_name: triggerData.applicant_name,
+                                                role_title: triggerData.job_title || 'the position',
+                                                company_name: triggerData.tenant_name || 'NovumFlow Recruitment'
+                                            }
+                                        })
+                                    });
+                                }
+                                break;
+
+                            case 'stage_change':
+                                // Handle automations defined in workflow_stages -> stage_automations
+                                // The rule_id field in logItem contains the stage_automation.id
+                                if (logItem.rule_id) {
+                                    const autoRes = await fetch(`${supabaseUrl}/rest/v1/stage_automations?id=eq.${logItem.rule_id}`, {
+                                        headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+                                    });
+                                    const autoData = (await autoRes.json())?.[0];
+
+                                    if (autoData && autoData.is_active) {
+                                        console.log(`Executing stage automation: ${autoData.name} (${autoData.action_type})`);
+
+                                        if (autoData.action_type === 'send_email') {
+                                            const config = autoData.action_config;
+                                            let recipientEmail = config.to;
+
+                                            // Resolve recipient if dynamic
+                                            if (config.recipient_type === 'applicant' && triggerData.application_id) {
+                                                const appRes = await fetch(`${supabaseUrl}/rest/v1/applications?id=eq.${triggerData.application_id}&select=applicant_email`, {
+                                                    headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+                                                });
+                                                const app = (await appRes.json())?.[0];
+                                                recipientEmail = app?.applicant_email;
+                                            }
+
+                                            if (recipientEmail) {
+                                                await fetch(`${supabaseUrl}/functions/v1/integration-manager`, {
+                                                    method: 'POST',
+                                                    headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        action: config.template_id ? 'email_send_template' : 'email_send',
+                                                        to: recipientEmail,
+                                                        subject: config.subject,
+                                                        html: config.body,
+                                                        template_name: config.template_name,
+                                                        variables: {
+                                                            applicant_name: triggerData.applicant_name,
+                                                            ...config.variables
+                                                        }
+                                                    })
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+
 
                             default:
                                 console.warn(`Unhandled trigger event: ${logItem.trigger_event}`);
@@ -452,7 +585,8 @@ Deno.serve(async (req: Request) => {
                                         candidate_name: `${app.applicant_first_name} ${app.applicant_last_name}`,
                                         candidate_email: app.applicant_email,
                                         job_title: app.job_postings?.job_title,
-                                        interview_time: `${interview.scheduled_date} ${interview.scheduled_time}`
+                                        interview_date: interview.scheduled_date,
+                                        interview_time: interview.scheduled_time
                                     }
                                 })
                             });
@@ -485,6 +619,60 @@ Deno.serve(async (req: Request) => {
 
                 result = await toggleResponse.json();
                 break;
+
+            case 'GET_LOGS':
+                // Fetch recent logs associated with rules or system events
+                const logsLimit = data.limit || 20;
+                const logsResponse = await fetch(`${supabaseUrl}/rest/v1/automation_execution_logs?order=created_at.desc&limit=${logsLimit}`, {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                });
+
+                if (!logsResponse.ok) {
+                    throw new Error('Failed to fetch logs');
+                }
+
+                result = await logsResponse.json();
+                break;
+
+            case 'CHECK_COMPLIANCE':
+                // 1. Get alerting days from data or default to 30
+                const alertDays = data.notify_on_expiry_days || 30;
+                const dateLimit = new Date();
+                dateLimit.setDate(dateLimit.getDate() + alertDays);
+                const dateLimitStr = dateLimit.toISOString().split('T')[0];
+
+                // 2. Check RTW
+                const rtwRes = await fetch(`${supabaseUrl}/rest/v1/right_to_work_checks?next_check_date=lte.${dateLimitStr}&status=neq.expired&status=neq.blocked`, {
+                    headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+                });
+                const rtwChecks = await rtwRes.json();
+
+                // 3. Process each check and create log if not already notified
+                for (const check of rtwChecks) {
+                    await fetch(`${supabaseUrl}/rest/v1/automation_execution_logs`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            trigger_event: 'rtw_expiry_warning',
+                            execution_status: 'pending',
+                            tenant_id: check.tenant_id,
+                            trigger_data: {
+                                rtw_check_id: check.id,
+                                employee_id: check.employee_id,
+                                staff_name: check.staff_name,
+                                expiry_date: check.next_check_date,
+                                document_type: check.document_type
+                            }
+                        })
+                    });
+                }
+
+                result = { rtw_alerts_created: rtwChecks.length };
+                break;
+
 
             default:
                 throw new Error(`Unknown action: ${action}`);

@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Search, Edit, Trash2, Eye, CheckCircle, XCircle, Calendar, LayoutList, Kanban, Filter } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, CheckCircle, XCircle, Calendar, LayoutList, Kanban, Filter, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import AddJobModal from '@/components/AddJobModal';
 import AddApplicationModal from '@/components/AddApplicationModal';
 import AddInterviewModal from '@/components/AddInterviewModal';
+import ConvertToEmployeeModal from '@/components/ConvertToEmployeeModal';
+import JobDetailsModal from '@/components/JobDetailsModal';
+import RecruitmentAnalyticsDashboard from '@/components/RecruitmentAnalyticsDashboard';
+import RecruitmentSettings from '@/components/RecruitmentSettings';
 import Toast from '@/components/Toast';
 import { X, MessageSquare, Clock, Zap } from 'lucide-react';
-import { callEmployeeCrud } from '@/lib/employeeCrud';
 import { log } from '@/lib/logger';
 
-type TabType = 'jobs' | 'applications' | 'interviews';
+type TabType = 'jobs' | 'applications' | 'interviews' | 'analytics' | 'settings';
 type ViewType = 'list' | 'board';
 
 interface ApplicationDetailsModalProps {
@@ -186,6 +189,8 @@ export default function RecruitmentPage() {
   const [showAddJobModal, setShowAddJobModal] = useState(false);
   const [showAddApplicationModal, setShowAddApplicationModal] = useState(false);
   const [showAddInterviewModal, setShowAddInterviewModal] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [convertingApplication, setConvertingApplication] = useState<any>(null);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
@@ -197,6 +202,8 @@ export default function RecruitmentPage() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const [selectedInterview, setSelectedInterview] = useState<any>(null);
+  const [showJobDetailsModal, setShowJobDetailsModal] = useState(false);
+  const [selectedJobDetails, setSelectedJobDetails] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -398,7 +405,8 @@ export default function RecruitmentPage() {
   }
 
   function viewJobDetails(job: any) {
-    alert(`Job Details:\n\nTitle: ${job.job_title}\nDepartment: ${job.department}\nType: ${job.employment_type}\nDescription: ${job.description || 'No description available'}\nLocation: ${job.location || 'Remote'}\nSalary: ${job.salary_range || 'Not specified'}`);
+    setSelectedJobDetails(job);
+    setShowJobDetailsModal(true);
   }
 
   function editJob(job: any) {
@@ -522,25 +530,10 @@ export default function RecruitmentPage() {
     }
   }
 
-  async function handleConvertToEmployee(application: any) {
-    if (window.confirm(`Are you sure you want to convert ${application.applicant_first_name} ${application.applicant_last_name} to an employee?`)) {
-      try {
-        await callEmployeeCrud('create', {
-          first_name: application.applicant_first_name,
-          last_name: application.applicant_last_name,
-          email: application.applicant_email,
-          phone: application.applicant_phone,
-          position: application.job_postings?.job_title,
-          department: application.job_postings?.department,
-          status: 'active',
-          // Other relevant data can be mapped here
-        });
-        setToast({ message: 'Candidate successfully converted to employee!', type: 'success' });
-        setSelectedApplication(null); // Close the modal
-      } catch (error: any) {
-        setToast({ message: error.message || 'Failed to convert candidate', type: 'error' });
-      }
-    }
+  function handleConvertToEmployee(application: any) {
+    setConvertingApplication(application);
+    setShowConvertModal(true);
+    setSelectedApplication(null); // Close the details modal
   }
 
   function handleAddNew() {
@@ -593,9 +586,11 @@ export default function RecruitmentPage() {
   };
 
   const tabs = [
-    { id: 'jobs', label: 'Job Postings' },
-    { id: 'applications', label: 'Applications' },
-    { id: 'interviews', label: 'Interviews' },
+    { id: 'jobs', label: 'Job Postings', icon: null },
+    { id: 'applications', label: 'Applications', icon: null },
+    { id: 'interviews', label: 'Interviews', icon: null },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'settings', label: 'Automation Settings', icon: null },
   ];
 
   const filteredJobs = jobs.filter(job =>
@@ -628,13 +623,15 @@ export default function RecruitmentPage() {
           <p className="mt-1 text-sm text-gray-600">Manage job postings, applications, and interviews</p>
         </div>
 
-        <button
-          onClick={handleAddNew}
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          {activeTab === 'jobs' ? 'New Job Posting' : activeTab === 'interviews' ? 'Schedule Interview' : 'Add Application'}
-        </button>
+        {activeTab !== 'analytics' && (
+          <button
+            onClick={handleAddNew}
+            className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {activeTab === 'jobs' ? 'New Job Posting' : activeTab === 'interviews' ? 'Schedule Interview' : 'Add Application'}
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -644,11 +641,12 @@ export default function RecruitmentPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab.id
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition flex items-center ${activeTab === tab.id
                 ? 'border-indigo-500 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
+              {tab.icon && <tab.icon className="w-4 h-4 mr-2" />}
               {tab.label}
             </button>
           ))}
@@ -721,18 +719,20 @@ export default function RecruitmentPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder={`Search ${activeTab}...`}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-          />
+      {activeTab !== 'analytics' && (
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder={`Search ${activeTab}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <div className={`bg-white rounded-xl shadow-sm border border-gray-200 ${viewType === 'board' && activeTab === 'applications' ? 'bg-transparent border-none shadow-none' : ''}`}>
@@ -1096,6 +1096,17 @@ export default function RecruitmentPage() {
             )}
           </div>
         )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <RecruitmentAnalyticsDashboard />
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <RecruitmentSettings />
+        )}
       </div>
 
       {/* Modals & Overlays */}
@@ -1168,6 +1179,37 @@ export default function RecruitmentPage() {
               </button>
             </div>
           </div>
+        )}
+
+        {/* Convert to Employee Modal */}
+        <ConvertToEmployeeModal
+          isOpen={showConvertModal}
+          onClose={() => {
+            setShowConvertModal(false);
+            setConvertingApplication(null);
+          }}
+          application={convertingApplication}
+          onSuccess={() => {
+            setToast({ message: 'Candidate converted to employee with onboarding checklist!', type: 'success' });
+            loadData();
+          }}
+          onError={(message) => setToast({ message, type: 'error' })}
+        />
+
+        {showJobDetailsModal && (
+          <JobDetailsModal
+            job={selectedJobDetails}
+            isOpen={showJobDetailsModal}
+            onClose={() => {
+              setShowJobDetailsModal(false);
+              setSelectedJobDetails(null);
+            }}
+            onEdit={(job) => {
+              setShowJobDetailsModal(false);
+              editJob(job);
+            }}
+            onUpdateStatus={updateJobStatus}
+          />
         )}
 
         {/* Toast Notification */}

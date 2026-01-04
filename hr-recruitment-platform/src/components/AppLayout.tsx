@@ -27,7 +27,12 @@ import {
   BarChart3,
   UsersRound,
   UserPlus,
-  GraduationCap
+  GraduationCap,
+  CreditCard,
+  CalendarDays,
+  Heart,
+  AlertOctagon,
+  Receipt
 } from 'lucide-react';
 
 import TenantSwitcher from './TenantSwitcher';
@@ -55,10 +60,15 @@ export default function AppLayout() {
     { name: 'Recruitment', href: '/recruitment', icon: Briefcase, feature: 'recruitment' },
     { name: 'Performance', href: '/performance', icon: TrendingUp, feature: 'performance' },
     { name: 'Attendance', href: '/attendance', icon: Clock, feature: 'attendance' },
+    { name: 'Shift Rota', href: '/shifts', icon: CalendarDays, feature: 'shifts' },
+    { name: 'Clients', href: '/clients', icon: Heart, feature: 'clients' },
+    { name: 'Incidents', href: '/incidents', icon: AlertOctagon, feature: 'incidents' },
+    { name: 'Expenses', href: '/expenses', icon: Receipt, feature: 'expenses' },
     { name: 'Onboarding', href: '/onboarding', icon: UserPlus, feature: 'onboarding' },
     { name: 'Training', href: '/training', icon: GraduationCap, feature: 'training' },
     { name: 'Team', href: '/team', icon: UsersRound, feature: 'team' },
     { name: 'Reports', href: '/reports', icon: BarChart3, feature: 'reports' },
+    { name: 'Audit Trail', href: '/audit', icon: History, feature: 'audit' },
     { name: 'Integrations', href: '/integrations', icon: Zap, feature: 'integrations' },
     { name: 'Documents', href: '/documents', icon: FolderOpen, feature: 'documents' },
     { name: 'Messaging', href: '/messaging', icon: MessageSquare, feature: 'messaging' },
@@ -68,6 +78,7 @@ export default function AppLayout() {
     { name: 'Automation', href: '/automation', icon: Zap, feature: 'automation' },
     { name: 'Letters', href: '/letters', icon: FileText, feature: 'letters' },
     { name: 'Forms', href: '/forms', icon: FileText, feature: 'forms' },
+    { name: 'Billing', href: '/billing', icon: CreditCard, feature: 'system' },
     { name: 'Settings', href: '/settings', icon: Settings, feature: 'settings' },
     { name: 'Recruit Settings', href: '/recruit-settings', icon: Sliders, feature: 'recruit_settings' },
   ];
@@ -110,6 +121,14 @@ export default function AppLayout() {
     name: 'Compliance Hub',
     href: '/compliance-hub',
     icon: ShieldCheck,
+    feature: 'system'
+  });
+
+  // Add Sponsor Guardian (Visa & RTW Compliance)
+  navigation.push({
+    name: 'Sponsor Guardian',
+    href: '/sponsor-guardian',
+    icon: Shield,
     feature: 'system'
   });
 

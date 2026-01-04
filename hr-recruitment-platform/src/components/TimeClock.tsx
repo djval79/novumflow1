@@ -10,12 +10,15 @@ interface TimeEntry {
     id: string;
     employee_id: string;
     tenant_id: string;
+    date?: string;
     check_in_time: string;
     check_out_time?: string;
     break_duration_minutes: number;
     notes?: string;
     location?: string;
     status: 'active' | 'present' | 'late' | 'excused' | 'absent';
+    created_at?: string;
+    updated_at?: string;
 }
 
 interface AttendanceStats {
@@ -424,7 +427,7 @@ export default function TimeClock() {
                 <div className="grid grid-cols-7 gap-2">
                     {weekDays.map((day, index) => {
                         const dayEntry = recentEntries.find(e =>
-                            format(parseISO(e.clock_in), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
+                            format(parseISO(e.check_in_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
                         );
                         const isCurrentDay = isToday(day);
 

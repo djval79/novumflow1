@@ -18,6 +18,9 @@ import {
   Settings,
   BarChart,
   PlayCircle,
+  Clock,
+  Edit,
+  Trash2,
 } from 'lucide-react';
 import Toast from '@/components/Toast';
 import PerformanceReports from '@/components/PerformanceReports';
@@ -51,10 +54,10 @@ export default function PerformancePageRefactored() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
-  
+
   // Review types for settings tab (loaded separately)
   const [reviewTypes, setReviewTypes] = useState<ReviewType[]>([]);
-  
+
   // Modal states
   const [showAddReviewTypeModal, setShowAddReviewTypeModal] = useState(false);
   const [showCreateReviewModal, setShowCreateReviewModal] = useState(false);
@@ -64,7 +67,7 @@ export default function PerformancePageRefactored() {
   const [showRateModal, setShowRateModal] = useState(false);
   const [showViewReviewModal, setShowViewReviewModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  
+
   const { user, profile } = useAuth();
   const userRole = profile?.role;
   const isAdmin = ['admin', 'hr_manager', 'hr manager'].includes(userRole?.toLowerCase() || '');
@@ -80,7 +83,7 @@ export default function PerformancePageRefactored() {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       const response = await fetch(
         `${supabaseUrl}/functions/v1/performance-crud`,
         {
@@ -95,7 +98,7 @@ export default function PerformancePageRefactored() {
           }),
         }
       );
-      
+
       const data = await response.json();
       setReviewTypes(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -211,11 +214,10 @@ export default function PerformancePageRefactored() {
                     setSearchTerm('');
                     setStatusFilter('all');
                   }}
-                  className={`${
-                    activeTab === tab.id
+                  className={`${activeTab === tab.id
                       ? 'border-indigo-500 text-indigo-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm inline-flex items-center`}
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm inline-flex items-center`}
                 >
                   <tab.icon className="h-5 w-5 mr-2" />
                   {tab.label}
@@ -440,7 +442,7 @@ interface ReviewTypeSettingsProps {
 }
 
 function ReviewTypeSettings({ reviewTypes, loading, isAdmin, onAddCriteria }: ReviewTypeSettingsProps) {
-  const { Clock, Edit, Trash2, Plus } = require('lucide-react');
+
 
   if (loading) {
     return (
@@ -485,14 +487,14 @@ function ReviewTypeSettings({ reviewTypes, loading, isAdmin, onAddCriteria }: Re
                     <Plus className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() => {/* handle edit */}}
+                    onClick={() => {/* handle edit */ }}
                     className="text-indigo-600 hover:text-indigo-900"
                     title="Edit"
                   >
                     <Edit className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() => {/* handle delete */}}
+                    onClick={() => {/* handle delete */ }}
                     className="text-red-600 hover:text-red-900"
                     title="Delete"
                   >

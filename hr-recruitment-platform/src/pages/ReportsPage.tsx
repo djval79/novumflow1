@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useTenant } from '@/contexts/TenantContext';
 import {
     FileText, Download, Calendar, Users, Shield, TrendingUp,
-    Briefcase, Clock, Filter, Play, CheckCircle, Loader2, Eye
+    Briefcase, Clock, Filter, Play, CheckCircle, Loader2, Eye, Bot
 } from 'lucide-react';
 import { format, subDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { downloadCSV } from '@/components/ExportButton';
@@ -138,7 +138,22 @@ export default function ReportsPage() {
                 { key: 'total_hours', label: 'Total Hours' },
             ],
         },
+        {
+            id: 'automation-history',
+            name: 'Automation History',
+            description: 'Log of all automated actions and their outcomes',
+            icon: <Bot className="w-6 h-6" />,
+            category: 'recruitment',
+            dataSource: 'automation_execution_logs',
+            columns: [
+                { key: 'created_at', label: 'Timestamp' },
+                { key: 'trigger_event', label: 'Event' },
+                { key: 'execution_status', label: 'Status' },
+                { key: 'error_message', label: 'Error' },
+            ],
+        },
     ];
+
 
     function handlePresetChange(preset: typeof presets) {
         setPresets(preset);

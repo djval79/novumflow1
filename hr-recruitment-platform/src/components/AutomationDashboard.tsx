@@ -29,7 +29,9 @@ interface WorkflowRule {
 
 export default function AutomationDashboard() {
   const [workflows, setWorkflows] = useState<WorkflowRule[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -69,7 +71,16 @@ export default function AutomationDashboard() {
           time_saved_hours: activeRules * 2.5
         });
       }
+
+      // Load logs
+      const { data: logRes } = await supabase.functions.invoke('automation-engine', {
+        body: { action: 'GET_LOGS', data: { limit: 10 } }
+      });
+      if (logRes?.data) {
+        setLogs(logRes.data);
+      }
     } catch (error) {
+
       log.error('Failed to load automation data', error, { component: 'AutomationDashboard', action: 'loadAutomationData' });
     } finally {
       setLoading(false);
@@ -453,6 +464,65 @@ export default function AutomationDashboard() {
           )}
         </div>
 
+
+        {/* Recent Activity */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+            <button
+              onClick={loadAutomationData}
+              className="text-sm text-indigo-600 font-medium hover:text-indigo-700"
+            >
+              Refresh
+            </button>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {logs.length > 0 ? (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action Taken</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {logs.map((item) => {
+                    const triggerData = typeof item.trigger_data === 'string' ? JSON.parse(item.trigger_data) : item.trigger_data;
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(item.created_at).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                          {item.trigger_event.replace('_', ' ')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {triggerData?.action_taken || 'Processed'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.execution_status === 'success' ? 'bg-green-100 text-green-700' :
+                            item.execution_status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                            {item.execution_status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                No recent activity logged
+              </div>
+            )}
+          </div>
+        </div>
+
+
         {/* Automation Templates */}
         <div>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">🎯 Recommended Automations</h2>
@@ -502,6 +572,6 @@ export default function AutomationDashboard() {
 
       {/* Modals */}
       {showCreateModal && <CreateAutomationModal />}
-    </div>
+    </div >
   );
 }

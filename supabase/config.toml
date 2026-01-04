@@ -209,7 +209,7 @@ backend = "postgres"
 [functions]
   [functions.send-email]
     verify_jwt = false
-    import_map = "./supabase/functions/import_map.json"
+    import_map = "functions/import_map.json"
     # [functions.send-email.env_vars]
     # RESEND_API_KEY = "env(RESEND_API_KEY)"
 

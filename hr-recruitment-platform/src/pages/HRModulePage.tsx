@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
-import { Download, User, FileText, Clock, Calendar, BarChart, Plus, Search, Edit, Trash2, Heart } from 'lucide-react';
+import { Download, User, FileText, Clock, Calendar, BarChart, Plus, Search, Edit, Trash2, ClipboardList } from 'lucide-react';
 import { callEmployeeCrud } from '@/lib/employeeCrud';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
 import AddEmployeeModal from '@/components/AddEmployeeModal';
@@ -10,9 +10,10 @@ import AddLeaveRequestModal from '@/components/AddLeaveRequestModal';
 import HRAnalyticsDashboard from '@/components/HRAnalyticsDashboard';
 import Toast from '@/components/Toast';
 import SyncToCareFlow, { CompactSyncButton } from '@/components/SyncToCareFlow';
+import OnboardingChecklistManager, { OnboardingProgressBadge } from '@/components/OnboardingChecklistManager';
 import { log } from '@/lib/logger';
 
-type TabType = 'employees' | 'documents' | 'attendance' | 'leaves' | 'shifts' | 'analytics';
+type TabType = 'employees' | 'documents' | 'attendance' | 'leaves' | 'shifts' | 'onboarding' | 'analytics';
 
 export default function HRModulePage() {
   const [activeTab, setActiveTab] = useState<TabType>('employees');
@@ -217,6 +218,7 @@ export default function HRModulePage() {
     { id: 'attendance', label: 'Attendance', icon: Clock },
     { id: 'leaves', label: 'Leave Requests', icon: Calendar },
     { id: 'shifts', label: 'Shifts', icon: Clock },
+    { id: 'onboarding', label: 'Onboarding', icon: ClipboardList },
     { id: 'analytics', label: 'Analytics', icon: BarChart },
   ];
 
@@ -301,6 +303,7 @@ export default function HRModulePage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee #</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Onboarding</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -325,6 +328,9 @@ export default function HRModulePage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {emp.position || 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <OnboardingProgressBadge employeeId={emp.id} />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${emp.status === 'active' ? 'bg-green-100 text-green-800' :
@@ -369,7 +375,7 @@ export default function HRModulePage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
+                        <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
                           No employees found
                         </td>
                       </tr>
@@ -501,6 +507,55 @@ export default function HRModulePage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Onboarding Tab */}
+            {activeTab === 'onboarding' && (
+              <div className="p-6">
+                {selectedEmployee ? (
+                  <div>
+                    <button
+                      onClick={() => setSelectedEmployee(null)}
+                      className="mb-4 text-sm text-indigo-600 hover:text-indigo-800 flex items-center"
+                    >
+                      ← Back to employee list
+                    </button>
+                    <OnboardingChecklistManager
+                      employeeId={selectedEmployee.id}
+                      employeeName={`${selectedEmployee.first_name} ${selectedEmployee.last_name}`}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Select an Employee to View Onboarding</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {employees.filter(e => e.status === 'active').map(emp => (
+                        <div
+                          key={emp.id}
+                          onClick={() => setSelectedEmployee(emp)}
+                          className="p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:shadow-md cursor-pointer transition"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                              <User className="w-5 h-5 text-indigo-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{emp.first_name} {emp.last_name}</p>
+                              <p className="text-sm text-gray-500">{emp.position || emp.department || 'Employee'}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <OnboardingProgressBadge employeeId={emp.id} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {employees.filter(e => e.status === 'active').length === 0 && (
+                      <p className="text-center text-gray-500 py-12">No active employees found</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

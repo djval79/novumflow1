@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { Plus, Trash2, Save, GripVertical, Settings, ChevronRight, Check, X, Mail, Calendar, Bot, FileText } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { log } from '@/lib/logger';
+import { useTenant } from '@/contexts/TenantContext';
 
 interface Stage {
     id: string;
@@ -41,6 +42,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function WorkflowEditor({ workflowId, onSave, onCancel }: WorkflowEditorProps) {
     const { user } = useAuth();
+    const { currentTenant } = useTenant();
     const [workflow, setWorkflow] = useState<Workflow>({
         id: '',
         name: '',
@@ -121,7 +123,8 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                         description: workflow.description,
                         is_active: workflow.is_active,
                         is_default: workflow.is_default,
-                        created_by: user?.id
+                        created_by: user?.id,
+                        tenant_id: currentTenant?.id
                     }])
                     .select()
                     .single();
@@ -135,7 +138,8 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                         name: workflow.name,
                         description: workflow.description,
                         is_active: workflow.is_active,
-                        is_default: workflow.is_default
+                        is_default: workflow.is_default,
+                        tenant_id: currentTenant?.id
                     })
                     .eq('id', currentWorkflowId);
 
@@ -149,7 +153,8 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                 name: stage.name,
                 stage_type: stage.stage_type,
                 stage_order: index + 1,
-                is_system_stage: stage.is_system_stage
+                is_system_stage: stage.is_system_stage,
+                tenant_id: currentTenant?.id
             }));
 
             const { data: savedStages, error: stagesError } = await supabase
@@ -179,7 +184,8 @@ export default function WorkflowEditor({ workflowId, onSave, onCancel }: Workflo
                         trigger_event: auto.trigger_event,
                         action_type: auto.action_type,
                         action_config: auto.action_config,
-                        is_active: auto.is_active
+                        is_active: auto.is_active,
+                        tenant_id: currentTenant?.id
                     }));
 
                     const { error: autoError } = await supabase

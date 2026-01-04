@@ -23,7 +23,7 @@ import AutomationPage from './pages/AutomationPage';
 import DocumentsPage from './pages/DocumentsPage';
 import MessagingPage from './pages/MessagingPage';
 import NoticeBoardPage from './pages/NoticeBoardPage';
-import PerformancePage from './pages/PerformancePage';
+import PerformancePageRefactored from './pages/PerformancePageRefactored';
 import IntegrationsPage from './pages/IntegrationsPage';
 import FormsPage from './pages/FormsPage';
 import TenantManagementPage from './pages/TenantManagementPage';
@@ -47,6 +47,13 @@ import TrainingPage from './pages/TrainingPage';
 import ComplianceFormsPage from './pages/ComplianceFormsPage';
 import WorkforceManagementPage from './pages/WorkforceManagementPage';
 import GovernanceDashboard from './pages/GovernanceDashboard';
+import SponsorGuardianPage from './pages/SponsorGuardianPage';
+import BillingPage from './pages/BillingPage';
+import ShiftManagementPage from './pages/ShiftManagementPage';
+import ClientManagementPage from './pages/ClientManagementPage';
+import IncidentReportingPage from './pages/IncidentReportingPage';
+import ExpenseManagementPage from './pages/ExpenseManagementPage';
+import AuditTrailPage from './pages/AuditTrailPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
@@ -157,7 +164,7 @@ function App() {
                 <Route path="dashboard" element={<FeatureRoute feature="dashboard"><DashboardPage /></FeatureRoute>} />
                 <Route path="hr" element={<FeatureRoute feature="hr_module"><HRModulePage /></FeatureRoute>} />
                 <Route path="recruitment" element={<FeatureRoute feature="recruitment"><RecruitmentPage /></FeatureRoute>} />
-                <Route path="performance" element={<FeatureRoute feature="performance"><PerformancePage /></FeatureRoute>} />
+                <Route path="performance" element={<FeatureRoute feature="performance"><PerformancePageRefactored /></FeatureRoute>} />
                 <Route path="integrations" element={<FeatureRoute feature="integrations"><IntegrationsPage /></FeatureRoute>} />
                 <Route path="documents" element={<FeatureRoute feature="documents"><DocumentsPage /></FeatureRoute>} />
                 <Route path="messaging" element={<FeatureRoute feature="messaging"><MessagingPage /></FeatureRoute>} />
@@ -183,6 +190,13 @@ function App() {
                 <Route path="training" element={<TrainingPage />} />
                 <Route path="workforce-management" element={<WorkforceManagementPage />} />
                 <Route path="governance" element={<GovernanceDashboard />} />
+                <Route path="sponsor-guardian" element={<SponsorGuardianPage />} />
+                <Route path="billing" element={<BillingPage />} />
+                <Route path="shifts" element={<ShiftManagementPage />} />
+                <Route path="clients" element={<ClientManagementPage />} />
+                <Route path="incidents" element={<IncidentReportingPage />} />
+                <Route path="expenses" element={<ExpenseManagementPage />} />
+                <Route path="audit" element={<AuditTrailPage />} />
               </Route>
 
               {/* Standalone Protected Routes (No App Layout) */}
