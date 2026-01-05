@@ -183,11 +183,9 @@ function App() {
                   <Route
                     path="/careflow"
                     element={
-                      <PublicRoute>
-                        <Suspense fallback={<PageLoader />}>
-                          <CareFlowLandingPage />
-                        </Suspense>
-                      </PublicRoute>
+                      <Suspense fallback={<PageLoader />}>
+                        <CareFlowLandingPage />
+                      </Suspense>
                     }
                   />
 
