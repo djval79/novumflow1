@@ -61,13 +61,23 @@ export default function AppLayout() {
 
   const allNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, feature: 'dashboard' },
-    { name: 'HR Module', href: '/hr', icon: Users, feature: 'hr_module' },
-    { name: 'Recruitment', href: '/recruitment', icon: Briefcase, feature: 'recruitment' },
-    { name: 'Performance', href: '/performance', icon: TrendingUp, feature: 'performance' },
-    { name: 'Attendance', href: '/attendance', icon: Clock, feature: 'attendance' },
+    {
+      name: isCareFlow ? 'Staff Management' : 'HR Module',
+      href: '/hr',
+      icon: Users,
+      feature: 'hr_module'
+    },
+    {
+      name: isCareFlow ? 'Carer Recruitment' : 'Recruitment',
+      href: '/recruitment',
+      icon: Briefcase,
+      feature: 'recruitment'
+    },
     { name: 'Shift Rota', href: '/shifts', icon: CalendarDays, feature: 'shifts' },
     { name: 'Clients', href: '/clients', icon: Heart, feature: 'clients' },
     { name: 'Incidents', href: '/incidents', icon: AlertOctagon, feature: 'incidents' },
+    { name: 'Performance', href: '/performance', icon: TrendingUp, feature: 'performance' },
+    { name: 'Attendance', href: '/attendance', icon: Clock, feature: 'attendance' },
     { name: 'Expenses', href: '/expenses', icon: Receipt, feature: 'expenses' },
     { name: 'Onboarding', href: '/onboarding', icon: UserPlus, feature: 'onboarding' },
     { name: 'Training', href: '/training', icon: GraduationCap, feature: 'training' },
@@ -87,6 +97,19 @@ export default function AppLayout() {
     { name: 'Settings', href: '/settings', icon: Settings, feature: 'settings' },
     { name: 'Recruit Settings', href: '/recruit-settings', icon: Sliders, feature: 'recruit_settings' },
   ];
+
+  // Reorder for CareFlow: prioritize care delivery features
+  if (isCareFlow) {
+    const careOrder = ['/dashboard', '/shifts', '/clients', '/incidents'];
+    allNavigation.sort((a, b) => {
+      const aIndex = careOrder.indexOf(a.href);
+      const bIndex = careOrder.indexOf(b.href);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      return 0;
+    });
+  }
 
   // Filter navigation based on enabled features
   // RBAC: Hide restricted items for carers/staff even if feature is enabled
@@ -139,7 +162,7 @@ export default function AppLayout() {
 
   // Add Compliance Dashboard (available to all users)
   navigation.push({
-    name: 'CQC Compliance',
+    name: isCareFlow ? 'CQC Compliance' : 'Compliance Dashboard',
     href: '/compliance-dashboard',
     icon: Shield,
     feature: 'system'

@@ -35,6 +35,8 @@ interface AnalyticsData {
     };
 }
 
+const isCareFlow = window.location.hostname.includes('careflow');
+
 export default function DashboardAnalytics() {
     const { currentTenant } = useTenant();
     const [data, setData] = useState<AnalyticsData | null>(null);
@@ -51,9 +53,41 @@ export default function DashboardAnalytics() {
         setLoading(true);
 
         try {
-            // In production, these would be real database queries
-            // For now, generate realistic analytics data
-            const analyticsData: AnalyticsData = {
+            // Generate realistic analytics data based on domain
+            const analyticsData: AnalyticsData = isCareFlow ? {
+                hiring: {
+                    applicationsThisMonth: 124, // Represents Total Scheduled Visits
+                    applicationsLastMonth: 110,
+                    hiredThisMonth: 94,        // Represents Completed Visits
+                    hiredLastMonth: 88,
+                    timeToHireAvg: 12,          // Represents Avg Visit Duration (hours/week per client)
+                    conversionRate: 98.2,       // Represents Visit Completion Rate
+                },
+                workforce: {
+                    totalEmployees: 42,         // Total Carers
+                    newHires: 3,
+                    leavers: 1,
+                    turnoverRate: 1.2,
+                    departments: [
+                        { name: 'Dementia Care', count: 18, color: '#8B5CF6' },
+                        { name: 'Palliative Care', count: 12, color: '#EC4899' },
+                        { name: 'Live-in Care', count: 8, color: '#6366F1' },
+                        { name: 'Night Sitting', count: 4, color: '#3B82F6' },
+                    ],
+                },
+                compliance: {
+                    score: 96,
+                    expiringSoon: 4,           // Document expiries
+                    overdueTraining: 2,
+                    pendingDBS: 3,
+                },
+                performance: {
+                    avgRating: 4.8,            // Care Quality Rating
+                    goalsCompleted: 92,
+                    goalsAtRisk: 2,
+                    reviewsPending: 4,
+                },
+            } : {
                 hiring: {
                     applicationsThisMonth: 87,
                     applicationsLastMonth: 72,
@@ -90,7 +124,7 @@ export default function DashboardAnalytics() {
                 },
             };
 
-            // Try to fetch real data
+            // Try to fetch real data for specific fields if available
             try {
                 const { count: totalEmployees } = await supabase
                     .from('employees')
@@ -101,7 +135,7 @@ export default function DashboardAnalytics() {
                     analyticsData.workforce.totalEmployees = totalEmployees;
                 }
             } catch (e) {
-                // Use mock data
+                // Ignore and use mock
             }
 
             setData(analyticsData);
@@ -128,7 +162,7 @@ export default function DashboardAnalytics() {
         const percentage = (data / maxValue) * 100;
         return (
             <div className="flex items-center space-x-3">
-                <span className="text-xs text-gray-600 w-20 truncate">{label}</span>
+                <span className="text-xs text-gray-600 w-24 truncate">{label}</span>
                 <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
                     <div
                         className="h-full rounded-full transition-all duration-500"
@@ -165,7 +199,7 @@ export default function DashboardAnalytics() {
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-xl font-bold text-gray-900">{value}%</span>
                 </div>
-                <span className="mt-2 text-xs text-gray-600">{label}</span>
+                <span className="mt-2 text-xs text-center text-gray-600 max-w-[80px] leading-tight">{label}</span>
             </div>
         );
     }
@@ -192,15 +226,15 @@ export default function DashboardAnalytics() {
         <div className="space-y-6">
             {/* Time Range Selector */}
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Analytics Overview</h2>
+                <h2 className="text-lg font-bold text-gray-900">Performance Analytics</h2>
                 <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
                     {(['week', 'month', 'quarter', 'year'] as const).map(range => (
                         <button
                             key={range}
                             onClick={() => setTimeRange(range)}
                             className={`px-3 py-1 text-sm rounded-md transition ${timeRange === range
-                                ? 'bg-white text-indigo-600 shadow-sm font-medium'
-                                : 'text-gray-600 hover:text-gray-900'
+                                ? 'bg-white text-gray-900 shadow-sm font-bold'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -209,54 +243,58 @@ export default function DashboardAnalytics() {
                 </div>
             </div>
 
-            {/* Hiring Metrics */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            {/* Hiring/Delivery Metrics */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                        <Briefcase className="w-5 h-5 mr-2 text-indigo-600" />
-                        Hiring Pipeline
+                    <h3 className="font-bold text-gray-900 flex items-center uppercase tracking-wider text-sm">
+                        {isCareFlow ? (
+                            <Clock className="w-5 h-5 mr-2 text-purple-600" />
+                        ) : (
+                            <Briefcase className="w-5 h-5 mr-2 text-indigo-600" />
+                        )}
+                        {isCareFlow ? 'Care Delivery Status' : 'Hiring Pipeline'}
                     </h3>
-                    <span className="text-xs text-gray-500">vs last period</span>
+                    <span className="text-xs text-gray-400 font-medium">vs last {timeRange}</span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
                     <div>
-                        <p className="text-sm text-gray-600">Applications</p>
-                        <p className="text-2xl font-bold text-gray-900">{formatNumber(data.hiring.applicationsThisMonth)}</p>
-                        <div className={`flex items-center text-sm ${applicationChange.color}`}>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-tight">{isCareFlow ? 'Visits Scheduled' : 'Applications'}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{formatNumber(data.hiring.applicationsThisMonth)}</p>
+                        <div className={`flex items-center text-xs mt-1 font-bold ${applicationChange.color}`}>
                             {applicationChange.icon}
                             <span className="ml-1">{applicationChange.value}%</span>
                         </div>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-600">Hired</p>
-                        <p className="text-2xl font-bold text-gray-900">{data.hiring.hiredThisMonth}</p>
-                        <div className={`flex items-center text-sm ${hiredChange.color}`}>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-tight">{isCareFlow ? 'Visits Completed' : 'Hired'}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{data.hiring.hiredThisMonth}</p>
+                        <div className={`flex items-center text-xs mt-1 font-bold ${hiredChange.color}`}>
                             {hiredChange.icon}
                             <span className="ml-1">{hiredChange.value}%</span>
                         </div>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-600">Avg Time to Hire</p>
-                        <p className="text-2xl font-bold text-gray-900">{data.hiring.timeToHireAvg}</p>
-                        <p className="text-xs text-gray-500">days</p>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-tight">{isCareFlow ? 'Avg Care Hours' : 'Avg Time to Hire'}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{data.hiring.timeToHireAvg}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{isCareFlow ? 'hrs/client' : 'days'}</p>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-600">Conversion Rate</p>
-                        <p className="text-2xl font-bold text-gray-900">{formatPercentage(data.hiring.conversionRate, 1)}</p>
-                        <p className="text-xs text-gray-500">application to hire</p>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-tight">{isCareFlow ? 'Completion Rate' : 'Conversion Rate'}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{formatPercentage(data.hiring.conversionRate, 1)}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{isCareFlow ? 'on-time delivery' : 'app to hire'}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Workforce & Departments */}
+            {/* Workforce & Departments/Services */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Department Distribution */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h3 className="font-semibold text-gray-900 flex items-center mb-6">
-                        <BarChart3 className="w-5 h-5 mr-2 text-indigo-600" />
-                        Department Distribution
+                {/* distribution */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                    <h3 className="font-bold text-gray-900 flex items-center mb-6 uppercase tracking-wider text-sm">
+                        <BarChart3 className={`w-5 h-5 mr-2 ${isCareFlow ? 'text-purple-600' : 'text-indigo-600'}`} />
+                        {isCareFlow ? 'Service Distribution' : 'Department Distribution'}
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {data.workforce.departments.map((dept, index) => (
                             <BarChart
                                 key={index}
@@ -267,49 +305,73 @@ export default function DashboardAnalytics() {
                             />
                         ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="mt-6 pt-6 border-t border-gray-50">
                         <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Total Employees</span>
+                            <span className="text-gray-500 font-medium">{isCareFlow ? 'Total Carers' : 'Total Employees'}</span>
                             <span className="font-bold text-gray-900">{formatNumber(data.workforce.totalEmployees)}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Key Metrics */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h3 className="font-semibold text-gray-900 flex items-center mb-6">
-                        <PieChart className="w-5 h-5 mr-2 text-indigo-600" />
-                        Key Metrics
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                    <h3 className="font-bold text-gray-900 flex items-center mb-6 uppercase tracking-wider text-sm">
+                        <PieChart className={`w-5 h-5 mr-2 ${isCareFlow ? 'text-purple-600' : 'text-indigo-600'}`} />
+                        Quality & Compliance
                     </h3>
-                    <div className="flex items-center justify-around">
-                        <DonutChart value={data.compliance.score} label="Compliance Score" color="#10B981" />
-                        <DonutChart value={data.hiring.conversionRate * 10} label="Hiring Efficiency" color="#3B82F6" />
-                        <DonutChart value={Math.round((data.performance.avgRating / 5) * 100)} label="Avg Rating" color="#8B5CF6" />
+                    <div className="flex items-center justify-around h-[calc(100%-3rem)]">
+                        <DonutChart value={data.compliance.score} label={isCareFlow ? 'CQC Score' : 'Compliance'} color="#10B981" />
+                        <DonutChart value={Math.round(data.hiring.conversionRate)} label={isCareFlow ? 'Delivery' : 'Hiring'} color="#3B82F6" />
+                        <DonutChart value={Math.round((data.performance.avgRating / 5) * 100)} label={isCareFlow ? 'Family Rating' : 'Feedback'} color="#8B5CF6" />
                     </div>
                 </div>
             </div>
 
             {/* Workforce Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
-                    <Users className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-2xl font-bold">{data.workforce.newHires}</p>
-                    <p className="text-sm opacity-80">New Hires</p>
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                            <Users className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <p className="text-xl font-bold text-gray-900">{data.workforce.newHires}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">New Hires</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white">
-                    <Clock className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-2xl font-bold">{data.compliance.expiringSoon}</p>
-                    <p className="text-sm opacity-80">Expiring Soon</p>
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-orange-50 rounded-lg">
+                            <Clock className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                            <p className="text-xl font-bold text-gray-900">{data.compliance.expiringSoon}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Expiring Soon</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white">
-                    <Target className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-2xl font-bold">{formatPercentage(data.performance.goalsCompleted, 0)}</p>
-                    <p className="text-sm opacity-80">Goals Complete</p>
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-green-50 rounded-lg">
+                            <Target className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                            <p className="text-xl font-bold text-gray-900">{formatPercentage(data.performance.goalsCompleted, 0)}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Goals Met</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
-                    <TrendingUp className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-2xl font-bold">{formatPercentage(data.workforce.turnoverRate, 1)}</p>
-                    <p className="text-sm opacity-80">Turnover Rate</p>
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-purple-50 rounded-lg">
+                            <TrendingUp className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                            <p className="text-xl font-bold text-gray-900">{formatPercentage(data.workforce.turnoverRate, 1)}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Retention</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
