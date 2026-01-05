@@ -14,6 +14,9 @@ interface WelcomeDashboardProps {
     avatarUrl?: string;
 }
 
+// Domain-aware branding
+const isCareFlow = window.location.hostname.includes('careflow');
+
 export default function WelcomeDashboard({ userName, avatarUrl }: WelcomeDashboardProps) {
     const { user, profile } = useAuth();
     const { currentTenant } = useTenant();
@@ -63,9 +66,9 @@ export default function WelcomeDashboard({ userName, avatarUrl }: WelcomeDashboa
     function loadTodayEvents() {
         // Mock events
         setTodayEvents([
-            { id: '1', title: 'Team Standup', time: '09:30', type: 'meeting' },
-            { id: '2', title: 'Interview with Sarah J.', time: '11:00', type: 'interview' },
-            { id: '3', title: 'Project deadline', time: '17:00', type: 'deadline' },
+            { id: '1', title: isCareFlow ? 'Carer Standup' : 'Team Standup', time: '09:30', type: 'meeting' },
+            { id: '2', title: isCareFlow ? 'Client Assessment' : 'Interview with Sarah J.', time: '11:00', type: 'interview' },
+            { id: '3', title: isCareFlow ? 'Roster Deadline' : 'Project deadline', time: '17:00', type: 'deadline' },
             { id: '4', title: 'Fire Safety Training', time: '14:00', type: 'training' },
         ]);
     }
@@ -75,12 +78,12 @@ export default function WelcomeDashboard({ userName, avatarUrl }: WelcomeDashboa
         if (hour >= 6 && hour < 18) {
             return <Sun className="w-6 h-6 text-yellow-500" />;
         }
-        return <Moon className="w-6 h-6 text-indigo-400" />;
+        return <Moon className={`w-6 h-6 ${isCareFlow ? 'text-purple-300' : 'text-indigo-400'}`} />;
     }
 
     function getEventColor(type: string) {
         switch (type) {
-            case 'meeting': return 'border-blue-400 bg-blue-50';
+            case 'meeting': return isCareFlow ? 'border-purple-400 bg-purple-50' : 'border-blue-400 bg-blue-50';
             case 'interview': return 'border-purple-400 bg-purple-50';
             case 'deadline': return 'border-red-400 bg-red-50';
             case 'training': return 'border-green-400 bg-green-50';
@@ -98,7 +101,10 @@ export default function WelcomeDashboard({ userName, avatarUrl }: WelcomeDashboa
     return (
         <div className="space-y-6">
             {/* Welcome Header */}
-            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-6 text-white relative overflow-hidden">
+            <div className={`rounded-2xl p-6 text-white relative overflow-hidden shadow-lg ${isCareFlow
+                    ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-600'
+                    : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500'
+                }`}>
                 {/* Decorative elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24" />
@@ -107,13 +113,13 @@ export default function WelcomeDashboard({ userName, avatarUrl }: WelcomeDashboa
                     <div>
                         <div className="flex items-center space-x-2 mb-2">
                             {getTimeIcon()}
-                            <span className="text-indigo-200 text-sm">{format(today, 'EEEE, MMMM d, yyyy')}</span>
+                            <span className={`${isCareFlow ? 'text-purple-100' : 'text-indigo-200'} text-sm`}>{format(today, 'EEEE, MMMM d, yyyy')}</span>
                         </div>
                         <h1 className="text-3xl font-bold mb-2">
                             {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-pink-200">{displayName}</span>!
                             <Sparkles className="inline w-6 h-6 ml-2 text-yellow-300" />
                         </h1>
-                        <p className="text-indigo-200 max-w-lg">
+                        <p className={`${isCareFlow ? 'text-purple-100' : 'text-indigo-200'} max-w-lg`}>
                             "{quote.text}" — <span className="italic">{quote.author}</span>
                         </p>
                     </div>

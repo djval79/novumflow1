@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useTenant } from '@/contexts/TenantContext';
 import { Building2, Check, ChevronDown, Plus, Loader2 } from 'lucide-react';
 
+// Domain-aware branding
+const isCareFlow = window.location.hostname.includes('careflow');
+
 export default function TenantSwitcher() {
     const { currentTenant, tenants, loading, switchTenant } = useTenant();
     const [isOpen, setIsOpen] = useState(false);
@@ -68,7 +71,7 @@ export default function TenantSwitcher() {
                                         }`}
                                 >
                                     <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${isCareFlow ? 'from-purple-500 to-indigo-600' : 'from-cyan-500 to-blue-600'} flex items-center justify-center flex-shrink-0`}>
                                             <span className="text-white font-semibold text-sm">
                                                 {tenant.name.charAt(0).toUpperCase()}
                                             </span>
@@ -81,7 +84,7 @@ export default function TenantSwitcher() {
                                         </div>
                                     </div>
                                     {tenant.id === currentTenant?.id && (
-                                        <Check className="w-5 h-5 text-cyan-600 flex-shrink-0" />
+                                        <Check className={`w-5 h-5 ${isCareFlow ? 'text-purple-600' : 'text-cyan-600'} flex-shrink-0`} />
                                     )}
                                 </button>
                             ))}
@@ -96,7 +99,7 @@ export default function TenantSwitcher() {
                                     window.location.href = '/tenant/create';
                                 }}
                                 disabled={switching}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors"
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium ${isCareFlow ? 'text-purple-600 hover:bg-purple-50' : 'text-cyan-600 hover:bg-cyan-50'} rounded-lg transition-colors`}
                             >
                                 <Plus className="w-4 h-4" />
                                 Create Organization
@@ -106,7 +109,7 @@ export default function TenantSwitcher() {
                         {switching && (
                             <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
                                 <div className="flex flex-col items-center gap-2">
-                                    <Loader2 className="w-6 h-6 animate-spin text-cyan-600" />
+                                    <Loader2 className={`w-6 h-6 animate-spin ${isCareFlow ? 'text-purple-600' : 'text-cyan-600'}`} />
                                     <p className="text-sm text-gray-600">Switching organization...</p>
                                 </div>
                             </div>
