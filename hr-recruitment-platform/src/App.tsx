@@ -41,6 +41,7 @@ const InspectorDashboard = React.lazy(() => import('./pages/InspectorDashboard')
 const StaffPassportPage = React.lazy(() => import('./pages/StaffPassportPage'));
 const StaffPortalPage = React.lazy(() => import('./pages/StaffPortalPage'));
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const CareFlowLandingPage = React.lazy(() => import('./pages/CareFlowLandingPage'));
 const TenantSignupPage = React.lazy(() => import('./pages/TenantSignupPage'));
 const AdminPortalPage = React.lazy(() => import('./pages/AdminPortalPage'));
 const AdminSecurityDashboard = React.lazy(() => import('./pages/AdminSecurityDashboard'));
@@ -104,7 +105,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }
 
-  return <>{children}</>;
+  return <div>{children}</div>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -122,7 +123,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  return <div>{children}</div>;
 }
 
 
@@ -168,16 +169,36 @@ function App() {
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/tenant/create" element={<TenantSignupPage />} />
 
-                  {/* Protected Routes */}
+                  {/* Landing Pages */}
                   <Route
                     path="/"
+                    element={
+                      <PublicRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <LandingPage />
+                        </Suspense>
+                      </PublicRoute>
+                    }
+                  />
+                  <Route
+                    path="/careflow"
+                    element={
+                      <PublicRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <CareFlowLandingPage />
+                        </Suspense>
+                      </PublicRoute>
+                    }
+                  />
+
+                  {/* Protected Routes (App Wrapper) */}
+                  <Route
                     element={
                       <ProtectedRoute>
                         <AppLayout />
                       </ProtectedRoute>
                     }
                   >
-                    <Route index element={<Navigate to="/dashboard" replace />} />
                     <Route path="dashboard" element={<FeatureRoute feature="dashboard"><DashboardPage /></FeatureRoute>} />
                     <Route path="hr" element={<FeatureRoute feature="hr_module"><HRModulePage /></FeatureRoute>} />
                     <Route path="recruitment" element={<FeatureRoute feature="recruitment"><RecruitmentPage /></FeatureRoute>} />
@@ -242,7 +263,7 @@ function App() {
                     }
                   />
 
-                  {/* Landing Page - currently shadowed by protected root */}{/* <Route path="/" element={<LandingPage />} /> */}
+                  {/* Standalone Protected Routes (No App Layout) */}{/*  */}
 
                   {/* Catch all */}
                   <Route path="*" element={<Navigate to="/" replace />} />
