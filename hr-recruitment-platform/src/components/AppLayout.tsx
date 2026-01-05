@@ -32,7 +32,8 @@ import {
   CalendarDays,
   Heart,
   AlertOctagon,
-  Receipt
+  Receipt,
+  Smartphone
 } from 'lucide-react';
 
 import TenantSwitcher from './TenantSwitcher';
@@ -42,6 +43,9 @@ import GlobalSearch from './GlobalSearch';
 import QuickActions from './QuickActions';
 import HelpCenter from './HelpCenter';
 import PWAInstallPrompt from './PWAInstallPrompt';
+
+// Domain-aware branding
+const isCareFlow = window.location.hostname.includes('careflow');
 
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
@@ -164,12 +168,23 @@ export default function AppLayout() {
               </button>
 
               <div className="flex items-center ml-2 lg:ml-0">
-                <img
-                  src="/pwa-192x192.png"
-                  alt="NovumFlow"
-                  className="h-10 w-auto object-contain"
-                />
-                <span className="ml-3 text-xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-500 bg-clip-text text-transparent">NovumFlow</span>
+                {isCareFlow ? (
+                  <>
+                    <div className="h-10 w-10 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl flex items-center justify-center text-white shadow-md">
+                      <Smartphone className="h-6 w-6" />
+                    </div>
+                    <span className="ml-3 text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">CareFlow</span>
+                  </>
+                ) : (
+                  <>
+                    <img
+                      src="/pwa-192x192.png"
+                      alt="NovumFlow"
+                      className="h-10 w-auto object-contain"
+                    />
+                    <span className="ml-3 text-xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-500 bg-clip-text text-transparent">NovumFlow</span>
+                  </>
+                )}
               </div>
 
               {/* Tenant Switcher */}
@@ -219,7 +234,7 @@ export default function AppLayout() {
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition ${isActive
-                      ? 'bg-cyan-50 text-cyan-600'
+                      ? isCareFlow ? 'bg-purple-50 text-purple-600' : 'bg-cyan-50 text-cyan-600'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                   >
@@ -244,11 +259,11 @@ export default function AppLayout() {
                   key={item.name}
                   to={item.href}
                   className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition ${isActive
-                    ? 'bg-cyan-50 text-cyan-600'
+                    ? isCareFlow ? 'bg-purple-50 text-purple-600' : 'bg-cyan-50 text-cyan-600'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
-                  <item.icon className={`mr-3 flex-shrink-0 h-5 w-5 ${isActive ? 'text-cyan-600' : 'text-gray-400 group-hover:text-gray-500'
+                  <item.icon className={`mr-3 flex-shrink-0 h-5 w-5 ${isActive ? (isCareFlow ? 'text-purple-600' : 'text-cyan-600') : 'text-gray-400 group-hover:text-gray-500'
                     }`} />
                   {item.name}
                 </Link>
@@ -277,7 +292,7 @@ export default function AppLayout() {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex flex-col items-center space-y-1 ${isActive ? 'text-cyan-600' : 'text-gray-400'
+                  className={`flex flex-col items-center space-y-1 ${isActive ? (isCareFlow ? 'text-purple-600' : 'text-cyan-600') : 'text-gray-400'
                     }`}
                 >
                   <item.icon className="w-6 h-6" />
