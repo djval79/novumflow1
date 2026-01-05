@@ -170,48 +170,40 @@ function App() {
                   <Route path="/tenant/create" element={<TenantSignupPage />} />
 
                   {/* Landing Pages - Domain-aware routing */}
-                  {/* CareFlow domains get CareFlowLandingPage without any auth wrapper */}
-                  {window.location.hostname.includes('careflow') ? (
-                    <>
-                      <Route
-                        path="/"
-                        element={
-                          <Suspense fallback={<PageLoader />}>
-                            <CareFlowLandingPage />
-                          </Suspense>
-                        }
-                      />
-                      <Route
-                        path="/novumflow"
-                        element={
+                  {/* Root path shows domain-appropriate landing page */}
+                  <Route
+                    path="/"
+                    element={
+                      window.location.hostname.includes('careflow') ? (
+                        <Suspense fallback={<PageLoader />}>
+                          <CareFlowLandingPage />
+                        </Suspense>
+                      ) : (
+                        <PublicRoute>
                           <Suspense fallback={<PageLoader />}>
                             <LandingPage />
                           </Suspense>
-                        }
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <Route
-                        path="/"
-                        element={
-                          <PublicRoute>
-                            <Suspense fallback={<PageLoader />}>
-                              <LandingPage />
-                            </Suspense>
-                          </PublicRoute>
-                        }
-                      />
-                      <Route
-                        path="/careflow"
-                        element={
-                          <Suspense fallback={<PageLoader />}>
-                            <CareFlowLandingPage />
-                          </Suspense>
-                        }
-                      />
-                    </>
-                  )}
+                        </PublicRoute>
+                      )
+                    }
+                  />
+                  {/* Cross-product navigation routes */}
+                  <Route
+                    path="/careflow"
+                    element={
+                      <Suspense fallback={<PageLoader />}>
+                        <CareFlowLandingPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/novumflow"
+                    element={
+                      <Suspense fallback={<PageLoader />}>
+                        <LandingPage />
+                      </Suspense>
+                    }
+                  />
 
                   {/* Protected Routes (App Wrapper) */}
                   <Route
