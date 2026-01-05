@@ -169,13 +169,18 @@ function App() {
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/tenant/create" element={<TenantSignupPage />} />
 
-                  {/* Landing Pages */}
+                  {/* Landing Pages - Domain-aware routing */}
                   <Route
                     path="/"
                     element={
                       <PublicRoute>
                         <Suspense fallback={<PageLoader />}>
-                          <LandingPage />
+                          {/* Show CareFlow landing on careflow domains, NovumFlow landing otherwise */}
+                          {window.location.hostname.includes('careflow') ? (
+                            <CareFlowLandingPage />
+                          ) : (
+                            <LandingPage />
+                          )}
                         </Suspense>
                       </PublicRoute>
                     }
