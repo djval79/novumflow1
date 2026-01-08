@@ -1,5 +1,6 @@
 import React from 'react';
 import { log } from '@/lib/logger';
+import { AlertTriangle, RefreshCw, Home, ChevronRight } from 'lucide-react';
 
 const isDevelopment = import.meta.env.MODE === 'development';
 
@@ -17,7 +18,7 @@ interface ErrorBoundaryState {
 
 const serializeError = (error: unknown): string => {
   if (error instanceof Error) {
-    return error.message + (isDevelopment && error.stack ? '\n' + error.stack : '');
+    return `${error.name}: ${error.message}${isDevelopment && error.stack ? '\n' + error.stack : ''}`;
   }
   return String(error);
 };
@@ -35,8 +36,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log the error
     log.error('React ErrorBoundary caught an error', error, {
-      component: errorInfo.componentStack?.split('\n')[1]?.trim(),
-      metadata: { componentStack: isDevelopment ? errorInfo.componentStack : undefined }
+      component: 'ErrorBoundary',
+      metadata: {
+        componentStack: errorInfo.componentStack,
+        url: window.location.href
+      }
     });
 
     this.setState({ errorInfo });
@@ -44,6 +48,29 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     // Call custom error handler if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
+    }
+
+    // Direct Supabase log attempt
+    this.logToSupabase(error, errorInfo);
+  }
+
+  private async logToSupabase(error: Error, errorInfo: React.ErrorInfo) {
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      if (supabase) {
+        await supabase.from('security_audit_logs').insert({
+          event_type: 'frontend_crash',
+          severity: 'high',
+          details: {
+            message: error.message,
+            stack: error.stack,
+            componentStack: errorInfo.componentStack,
+            url: window.location.href
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore logging failures
     }
   }
 
@@ -62,61 +89,61 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         return this.props.fallback;
       }
 
-      // Default error UI
+      // Premium Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-              <svg 
-                className="w-8 h-8 text-red-600" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
-                />
-              </svg>
-            </div>
-            
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Something went wrong
-            </h2>
-            
-            <p className="text-gray-600 mb-4">
-              We apologize for the inconvenience. Please try refreshing the page or return to the home page.
-            </p>
-
-            {isDevelopment && this.state.error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-left">
-                <p className="text-sm font-medium text-red-800 mb-1">Error Details:</p>
-                <pre className="text-xs text-red-700 overflow-auto max-h-32">
-                  {serializeError(this.state.error)}
-                </pre>
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+          <div className="max-w-xl w-full bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-br from-red-500 to-red-600 p-8 text-white text-center">
+              <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle className="w-10 h-10 text-white" />
               </div>
-            )}
-
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={this.handleRefresh}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-              >
-                Refresh Page
-              </button>
-              <button
-                onClick={this.handleGoHome}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-              >
-                Go Home
-              </button>
+              <h1 className="text-3xl font-black tracking-tight mb-2">Something went wrong</h1>
+              <p className="text-red-50 font-medium">We apologize for the inconvenience. Our technical team has been notified.</p>
             </div>
 
-            <p className="mt-4 text-sm text-gray-500">
-              If this problem persists, please contact support.
-            </p>
+            <div className="p-8">
+              <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <ChevronRight className="w-4 h-4" />
+                  Technical Details
+                </h3>
+                <div className="bg-white rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm font-mono text-red-600 break-all font-bold">
+                    {this.state.error?.name || 'Error'}: {this.state.error?.message || 'Unknown error'}
+                  </p>
+                  {isDevelopment && this.state.errorInfo && (
+                    <pre className="mt-3 text-[10px] text-gray-500 overflow-auto max-h-40 leading-relaxed">
+                      {this.state.errorInfo.componentStack}
+                    </pre>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={this.handleRefresh}
+                  className="flex items-center justify-center gap-3 px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-xl shadow-indigo-100 group"
+                >
+                  <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
+                  Refresh App
+                </button>
+                <button
+                  onClick={this.handleGoHome}
+                  className="flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-100 rounded-2xl font-bold transition-all"
+                >
+                  <Home className="w-5 h-5" />
+                  Return Home
+                </button>
+              </div>
+
+              <p className="mt-8 text-center text-xs text-gray-400 font-medium">
+                If the problem persists, please contact our support team at <span className="text-indigo-600">support@novumsolvo.com</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center grayscale opacity-50">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">NovumFlow Managed System</p>
           </div>
         </div>
       );
@@ -126,7 +153,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 }
 
-// Functional wrapper for easier use with hooks
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
   fallback?: React.ReactNode

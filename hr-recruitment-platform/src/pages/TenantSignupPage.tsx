@@ -233,6 +233,30 @@ export default function TenantSignupPage() {
                 // Don't block signup flow on email failure
             }
 
+            // 4. Initialize Billing (Stripe)
+            if (formData.subscriptionTier !== 'trial' && tenantId) {
+                try {
+                    const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout-session', {
+                        body: {
+                            tierId: formData.subscriptionTier,
+                            tenantId: tenantId,
+                            userEmail: formData.adminEmail
+                        }
+                    });
+
+                    if (checkoutError) {
+                        log.error('Stripe session invocation error', checkoutError);
+                    } else if (checkoutData?.url) {
+                        // Redirect to Stripe Checkout
+                        window.location.href = checkoutData.url;
+                        return;
+                    }
+                } catch (stripeError) {
+                    log.error('Failed to initiate billing session', stripeError, { component: 'TenantSignupPage', action: 'handleSubmit' });
+                    // Proceed to dashboard if stripe fails, tenant is created (status will be trial/pending)
+                }
+            }
+
             // Redirect to login or dashboard
             // If email confirmation is enabled, we should show a message
             if (authData.session) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Check, ChevronRight, Loader2, X } from 'lucide-react';
 import { onboardingService, OnboardingStep, TenantOnboarding } from '@/lib/services/OnboardingService';
-import { Check, Circle, Loader2, ChevronRight, X } from 'lucide-react';
 
 interface TenantOnboardingWizardProps {
     tenantId: string;
@@ -117,8 +117,8 @@ export default function TenantOnboardingWizard({ tenantId, tenantName, onClose, 
                     <div
                         key={step.id}
                         className={`border rounded-lg p-4 transition-all ${step.completed
-                                ? 'border-cyan-200 bg-cyan-50'
-                                : 'border-gray-200 bg-white hover:border-cyan-300'
+                            ? 'border-cyan-200 bg-cyan-50'
+                            : 'border-gray-200 bg-white hover:border-cyan-300'
                             }`}
                     >
                         <div className="flex items-start">
@@ -126,8 +126,8 @@ export default function TenantOnboardingWizard({ tenantId, tenantName, onClose, 
                                 onClick={() => toggleStep(step.id, step.completed)}
                                 disabled={updating}
                                 className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${step.completed
-                                        ? 'bg-cyan-600 border-cyan-600'
-                                        : 'border-gray-300 hover:border-cyan-500'
+                                    ? 'bg-cyan-600 border-cyan-600'
+                                    : 'border-gray-300 hover:border-cyan-500'
                                     } ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                                 {step.completed && <Check className="w-4 h-4 text-white" />}
@@ -167,7 +167,7 @@ export default function TenantOnboardingWizard({ tenantId, tenantName, onClose, 
                     <button
                         onClick={handleCompleteOnboarding}
                         disabled={!allRequiredComplete || updating || onboardingStatus?.onboarding_status === 'completed'}
-                        className="px-6 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         {updating ? (
                             <>

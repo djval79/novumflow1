@@ -3,7 +3,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { ExternalLink, Heart, Users } from 'lucide-react';
 
 // Configuration - use localhost in development
-const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const CAREFLOW_URL = isDev
     ? 'http://localhost:5174'
     : (import.meta.env.VITE_CAREFLOW_URL || 'https://careflow-ai.vercel.app');
@@ -16,7 +16,7 @@ interface CrossAppNavigationProps {
 }
 
 export default function CrossAppNavigation({ app }: CrossAppNavigationProps) {
-    const { currentTenant } = useTenant();
+    const { currentTenant, canAccessCareFlow, canAccessNovumFlow } = useTenant();
 
     if (!currentTenant) return null;
 
@@ -26,14 +26,12 @@ export default function CrossAppNavigation({ app }: CrossAppNavigationProps) {
         window.open(url, '_blank');
     };
 
-    // Check if tenant has access to the target app
-    const canAccessCareFlow = currentTenant.settings?.careflow_enabled !== false;
-    const canAccessNovumFlow = currentTenant.settings?.novumflow_enabled !== false;
-
-    // Don't show link if tenant doesn't have access
+    // Don't show CareFlow link if tenant doesn't have access
     if (app === 'novumflow' && !canAccessCareFlow) {
         return null;
     }
+
+    // Don't show NovumFlow link if tenant doesn't have access
     if (app === 'careflow' && !canAccessNovumFlow) {
         return null;
     }
@@ -51,7 +49,7 @@ export default function CrossAppNavigation({ app }: CrossAppNavigationProps) {
                 </>
             ) : (
                 <>
-                    <Users className="w-4 h-4 text-indigo-600" />
+                    <Users className="w-4 h-4 text-blue-600" />
                     <span>NovumFlow</span>
                 </>
             )}
@@ -62,22 +60,18 @@ export default function CrossAppNavigation({ app }: CrossAppNavigationProps) {
 
 // Quick link component for use in headers/navbars
 export function QuickAppSwitcher() {
-    const { currentTenant } = useTenant();
+    const { currentTenant, canAccessCareFlow, canAccessNovumFlow } = useTenant();
 
     if (!currentTenant) return null;
 
-    // Detect current app based on port or hostname
-    const isNovumFlow = typeof window !== 'undefined' && (
-        window.location.port === '5173' ||
+    const isNovumFlow = window.location.port === '5173' ||
         window.location.hostname.includes('novumflow') ||
-        window.location.hostname.includes('hr-recruitment-platform')
-    );
-
+        window.location.hostname.includes('hr-recruitment-platform');
+    const targetApp = isNovumFlow ? 'careflow' : 'novumflow';
     const targetUrl = isNovumFlow ? CAREFLOW_URL : NOVUMFLOW_URL;
-    const canAccessCareFlow = currentTenant.settings?.careflow_enabled !== false;
+    const canAccess = isNovumFlow ? canAccessCareFlow : canAccessNovumFlow;
 
-    // Show CareFlow link when in NovumFlow
-    if (isNovumFlow && !canAccessCareFlow) return null;
+    if (!canAccess) return null;
 
     const handleNavigate = () => {
         const url = `${targetUrl}?tenant=${currentTenant.id}`;
@@ -85,15 +79,23 @@ export function QuickAppSwitcher() {
     };
 
     return (
-        <div className="border-l border-gray-200 pl-4 ml-4">
+        <div className="border-l border-gray-200 pl-4 ml-4 hidden md:block">
             <button
                 onClick={handleNavigate}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-600 text-white text-sm font-medium rounded-lg hover:from-pink-600 hover:to-rose-700 transition-all shadow-sm"
-                title="Switch to CareFlow"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm group"
             >
-                <Heart className="w-4 h-4" />
-                <span className="hidden lg:inline">CareFlow</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                {isNovumFlow ? (
+                    <>
+                        <Heart className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                        <span>Open CareFlow</span>
+                    </>
+                ) : (
+                    <>
+                        <Users className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                        <span>Open NovumFlow</span>
+                    </>
+                )}
+                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
             </button>
         </div>
     );
@@ -101,20 +103,17 @@ export function QuickAppSwitcher() {
 
 // Compact version for mobile or sidebars
 export function CompactAppSwitcher() {
-    const { currentTenant } = useTenant();
+    const { currentTenant, canAccessCareFlow, canAccessNovumFlow } = useTenant();
 
     if (!currentTenant) return null;
 
-    const isNovumFlow = typeof window !== 'undefined' && (
-        window.location.port === '5173' ||
+    const isNovumFlow = window.location.port === '5173' ||
         window.location.hostname.includes('novumflow') ||
-        window.location.hostname.includes('hr-recruitment-platform')
-    );
-
+        window.location.hostname.includes('hr-recruitment-platform');
     const targetUrl = isNovumFlow ? CAREFLOW_URL : NOVUMFLOW_URL;
-    const canAccessCareFlow = currentTenant.settings?.careflow_enabled !== false;
+    const canAccess = isNovumFlow ? canAccessCareFlow : canAccessNovumFlow;
 
-    if (isNovumFlow && !canAccessCareFlow) return null;
+    if (!canAccess) return null;
 
     const handleNavigate = () => {
         const url = `${targetUrl}?tenant=${currentTenant.id}`;
@@ -124,10 +123,14 @@ export function CompactAppSwitcher() {
     return (
         <button
             onClick={handleNavigate}
-            className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 text-white hover:from-pink-600 hover:to-rose-700 transition-all shadow-sm"
-            title="Open CareFlow"
+            className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm"
+            title={isNovumFlow ? 'Open CareFlow' : 'Open NovumFlow'}
         >
-            <Heart className="w-5 h-5" />
+            {isNovumFlow ? (
+                <Heart className="w-5 h-5" />
+            ) : (
+                <Users className="w-5 h-5" />
+            )}
         </button>
     );
 }

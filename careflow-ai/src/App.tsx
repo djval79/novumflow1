@@ -10,6 +10,7 @@ import { UserRole } from './types';
 import QuickActions from './components/QuickActions';
 import { DashboardSkeleton, Skeleton } from './components/Skeleton';
 import { PWAUpdatePrompt, OfflineBanner, InstallPrompt } from './components/PWAComponents';
+import LandingPage from './pages/LandingPage';
 
 // Loading Skeleton for page transitions
 const PageLoader = () => (
@@ -104,9 +105,10 @@ const App: React.FC = () => {
               <Route path="/onboarding" element={<Suspense fallback={<AuthPageLoader />}><Onboarding /></Suspense>} />
 
               {/* Protected Routes */}
+              <Route path="/" element={<LandingPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/my-day" element={<MobileSchedule />} />
                   <Route path="/messages" element={<Messages />} />
                   <Route path="/telehealth" element={<Telehealth />} />

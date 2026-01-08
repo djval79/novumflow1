@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '@/context/TenantContext';
 import { supabase } from '@/lib/supabase';
-import { Building2, Save, Check, AlertTriangle, Link as LinkIcon, ShieldCheck, CreditCard, Mail, Zap, Target, History, ShieldAlert, Cpu, Globe } from 'lucide-react';
+import { Building2, Save, Check, AlertTriangle, Link as LinkIcon, ShieldCheck, CreditCard, Mail, Zap, Target, History, ShieldAlert, Cpu, Globe, RefreshCw } from 'lucide-react';
 import StripeConnect from '@/components/organization/StripeConnect';
 import SmtpSettings from '@/components/organization/SmtpSettings';
 import { toast } from 'sonner';
@@ -69,6 +69,39 @@ export default function TenantSettings() {
         }));
         if (enabled) toast.success('NovumFlow Bridge Sequence Initialized');
         else toast.warning('NovumFlow Bridge Decommissioned');
+    };
+
+    const handleSyncAll = async () => {
+        if (!currentTenant) return;
+        const toastId = toast.loading('Synchronizing All Employees...');
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('No session');
+
+            const response = await fetch('https://niikshfoecitimepiifo.supabase.co/functions/v1/sync-to-careflow', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    tenant_id: currentTenant.id,
+                    action: 'sync_all'
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Sync failed');
+            }
+
+            const result = await response.json();
+            toast.success(result.message, { id: toastId });
+        } catch (error: any) {
+            console.error('Sync Error:', error);
+            toast.error(error.message || 'Synchronization Failed', { id: toastId });
+        }
     };
 
     if (!currentTenant) return (
@@ -148,7 +181,7 @@ export default function TenantSettings() {
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-4 text-left">Entity Identifier</label>
                                     <input
                                         type="text"
-                                        value={currentTenant.name.toUpperCase()}
+                                        value={currentTenant.name?.toUpperCase() || ''}
                                         disabled
                                         className="w-full px-8 py-6 bg-slate-50 border-4 border-slate-50 rounded-[2rem] text-[11px] font-black uppercase tracking-widestAlpha text-slate-400 shadow-inner"
                                     />
@@ -159,7 +192,7 @@ export default function TenantSettings() {
                                         <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-200 font-black text-[11px]">HTTPS://</div>
                                         <input
                                             type="text"
-                                            value={currentTenant.subdomain.toUpperCase()}
+                                            value={currentTenant.subdomain?.toUpperCase() || ''}
                                             disabled
                                             className="w-full pl-24 pr-8 py-6 bg-slate-50 border-4 border-slate-50 rounded-[2rem] text-[11px] font-black uppercase tracking-widestAlpha text-slate-400 shadow-inner"
                                         />
@@ -210,14 +243,22 @@ export default function TenantSettings() {
                                     </div>
 
                                     <div className="bg-white/5 rounded-[2.5rem] p-10 border border-white/10 space-y-6">
-                                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] ml-4">Global Webhook Transceiver</label>
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] ml-4">Global Webhook Transceiver</label>
+                                            <button
+                                                onClick={handleSyncAll}
+                                                className="px-6 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widestAlpha hover:bg-emerald-500/20 transition-all flex items-center gap-2"
+                                            >
+                                                <RefreshCw size={14} /> Sync All Staff
+                                            </button>
+                                        </div>
                                         <div className="flex gap-4 items-center">
                                             <code className="flex-1 bg-black/50 px-8 py-5 rounded-2xl border border-white/10 text-[10px] font-mono text-primary-400 overflow-hidden whitespace-nowrap text-ellipsis">
-                                                https://niikshfoecitimepiifo.supabase.co/functions/v1/sync_employee
+                                                https://niikshfoecitimepiifo.supabase.co/functions/v1/sync-to-careflow
                                             </code>
                                             <button
                                                 onClick={() => {
-                                                    navigator.clipboard.writeText('https://niikshfoecitimepiifo.supabase.co/functions/v1/sync_employee');
+                                                    navigator.clipboard.writeText('https://niikshfoecitimepiifo.supabase.co/functions/v1/sync-to-careflow');
                                                     toast.success('Webhook Protocol Authenticator Copied');
                                                 }}
                                                 className="px-10 py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widestAlpha hover:bg-slate-200 transition-all shadow-2xl active:scale-95 whitespace-nowrap"

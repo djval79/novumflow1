@@ -36,3 +36,4 @@ dist-ssr
 /playwright/.cache/
 /playwright/.auth/
 .vercel
+.env*.local

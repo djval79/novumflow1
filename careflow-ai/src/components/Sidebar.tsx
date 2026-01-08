@@ -3,6 +3,7 @@ import React from 'react';
 import { LayoutDashboard, Calendar, Users, FileHeart, BadgePoundSterling, LogOut, BarChart3, Settings, Mail, Briefcase, Map, Blocks, Pill, ClipboardCheck, GraduationCap, ShieldAlert, UserPlus, PhoneIncoming, Video, FolderOpen, CheckSquare, HelpCircle, Box, Receipt, Store, Coffee, Lock, Upload, ThumbsUp, Utensils, Package, Building2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { CompactAppSwitcher } from './CrossAppNavigation';
 import { UserRole } from '../types';
 
 const Sidebar: React.FC = () => {
@@ -251,6 +252,9 @@ const Sidebar: React.FC = () => {
           </span>
           CareFlow AI
         </h1>
+        <div className="ml-auto">
+          <CompactAppSwitcher />
+        </div>
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">

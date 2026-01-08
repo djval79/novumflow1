@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import QRCode from 'react-qr-code';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
+import { useState, useEffect } from 'react';
+import { Shield, User, CheckCircle, AlertTriangle, Download, Share2 } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { complianceService, ComplianceStatus } from '@/lib/services/ComplianceService';
-import { Shield, CheckCircle, AlertTriangle, XCircle, Download, Share2, User } from 'lucide-react';
 import { log } from '@/lib/logger';
 
 export default function StaffPassportPage() {
@@ -20,8 +20,6 @@ export default function StaffPassportPage() {
         if (!user || !currentTenant) return;
         setLoading(true);
         try {
-            // In a real app, we'd fetch the specific user's compliance status
-            // For now, we'll try to fetch it using the service
             const data = await complianceService.getStaffComplianceStatus(user.id);
             setStatus(data);
         } catch (error) {
@@ -54,7 +52,7 @@ export default function StaffPassportPage() {
     // Fallback if no status found (e.g. new user)
     const complianceScore = status?.overall_compliance_score || 0;
     const isVerified = complianceScore >= 90;
-    const qrValue = `https://novumflow.com/verify/${user?.id}`; // Mock verification URL
+    const qrValue = `https://novumflow.com/verify/${user?.id}`;
 
     return (
         <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
@@ -156,7 +154,7 @@ export default function StaffPassportPage() {
                         <Download className="w-5 h-5" />
                         Save Image
                     </button>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white rounded-xl shadow-md hover:bg-cyan-700 font-medium transition-colors">
+                    <button className="flex items-center gap-2 px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl shadow-md font-medium transition-colors">
                         <Share2 className="w-5 h-5" />
                         Share Link
                     </button>

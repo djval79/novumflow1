@@ -11,9 +11,6 @@ interface QuickAction {
     description?: string;
 }
 
-// Domain-aware branding
-const isCareFlow = window.location.hostname.includes('careflow');
-
 export default function QuickActions() {
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
@@ -21,25 +18,25 @@ export default function QuickActions() {
     const actions: QuickAction[] = [
         {
             id: 'new-job',
-            label: isCareFlow ? 'Post New Shift' : 'Post New Job',
+            label: 'Post New Job',
             icon: <Briefcase className="w-5 h-5" />,
             action: () => {
                 navigate('/recruitment');
                 setIsOpen(false);
             },
-            color: isCareFlow ? 'bg-purple-500 hover:bg-purple-600' : 'bg-blue-500 hover:bg-blue-600',
-            description: isCareFlow ? 'Create a new care shift' : 'Create a new job posting'
+            color: 'bg-blue-500 hover:bg-blue-600',
+            description: 'Create a new job posting'
         },
         {
             id: 'add-employee',
-            label: isCareFlow ? 'Add Carer' : 'Add Employee',
+            label: 'Add Employee',
             icon: <Users className="w-5 h-5" />,
             action: () => {
                 navigate('/hr');
                 setIsOpen(false);
             },
             color: 'bg-green-500 hover:bg-green-600',
-            description: isCareFlow ? 'Register a new carer' : 'Register a new employee'
+            description: 'Register a new employee'
         },
         {
             id: 'new-document',
@@ -49,7 +46,7 @@ export default function QuickActions() {
                 navigate('/documents');
                 setIsOpen(false);
             },
-            color: isCareFlow ? 'bg-indigo-500 hover:bg-indigo-600' : 'bg-purple-500 hover:bg-purple-600',
+            color: 'bg-purple-500 hover:bg-purple-600',
             description: 'Upload a new document'
         },
         {
@@ -101,7 +98,6 @@ export default function QuickActions() {
             label: 'Notifications',
             icon: <Bell className="w-5 h-5" />,
             action: () => {
-                // Open notification center
                 setIsOpen(false);
             },
             color: 'bg-yellow-500 hover:bg-yellow-600',
@@ -117,9 +113,7 @@ export default function QuickActions() {
                     onClick={() => setIsOpen(!isOpen)}
                     className={`flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-300 ${isOpen
                         ? 'bg-gray-800 rotate-45'
-                        : isCareFlow
-                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
-                            : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
+                        : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600'
                         }`}
                 >
                     {isOpen ? (

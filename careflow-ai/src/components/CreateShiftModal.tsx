@@ -119,27 +119,45 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
         }
     }, [formData.staffId, formData.date, formData.startTime, formData.endTime]);
 
-    // Check compliance when staff is selected
+    // Check compliance and blocking status
+    const [isBlocked, setIsBlocked] = useState(false);
+
     useEffect(() => {
         if (formData.staffId && currentTenant) {
             const compliance = staffCompliance.get(formData.staffId);
+            const settings = currentTenant.settings || {};
+            const disabledFeatures = settings.disabled_features || [];
+
+            // Default: Locking is ENABLED unless explicitly disabled
+            const shouldBlockRtw = !disabledFeatures.includes('block_rtw');
+            const shouldBlockDbs = !disabledFeatures.includes('block_dbs');
+
             if (compliance && !compliance.isCompliant) {
                 let warning = 'Warning: This staff member has compliance issues:\n';
+                let blockingIssueFound = false;
+
                 if (compliance.rtw_status !== 'valid') {
                     warning += '• Right to Work not verified\n';
+                    if (shouldBlockRtw) blockingIssueFound = true;
                 }
                 if (compliance.dbs_status !== 'valid') {
                     warning += '• DBS check not current\n';
+                    if (shouldBlockDbs) blockingIssueFound = true;
                 }
                 if (compliance.missingDocuments.length > 0) {
                     warning += `• Missing: ${compliance.missingDocuments.join(', ')}\n`;
+                    // Document blocking logic can be added here if needed
                 }
+
                 setComplianceWarning(warning.trim());
+                setIsBlocked(blockingIssueFound);
             } else {
                 setComplianceWarning(null);
+                setIsBlocked(false);
             }
         } else {
             setComplianceWarning(null);
+            setIsBlocked(false);
         }
     }, [formData.staffId, staffCompliance, currentTenant]);
 
@@ -443,7 +461,7 @@ export default function CreateShiftModal({ isOpen, onClose, onShiftCreated }: Cr
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading || (!!conflictWarning && !isRecurring) || !!complianceWarning}
+                                disabled={loading || (!!conflictWarning && !isRecurring) || isBlocked}
                                 className="flex items-center gap-2 px-8 py-2 text-sm font-bold text-white bg-slate-900 hover:bg-black rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group active:scale-95"
                             >
                                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4 group-hover:rotate-12 transition-transform" />}

@@ -27,6 +27,7 @@ interface ComplianceReport {
     cqc_ready: number;
 }
 
+
 export default function ComplianceDashboardPage() {
     const navigate = useNavigate();
     const { currentTenant } = useTenant();
@@ -69,7 +70,7 @@ export default function ComplianceDashboardPage() {
             ['Compliant Staff', complianceReport.compliant],
             ['Non-Compliant Staff', complianceReport.non_compliant],
             ['Average Compliance Score', `${complianceReport.average_score}%`],
-            ['CQC Ready', complianceReport.cqc_ready === complianceReport.total_staff ? 'Yes' : 'No'],
+            ['Audit Ready', complianceReport.cqc_ready === complianceReport.total_staff ? 'Yes' : 'No'],
             ['Generated At', new Date().toLocaleString()]
         ];
 
@@ -79,7 +80,7 @@ export default function ComplianceDashboardPage() {
 
         // Add non-compliant staff details if any
         if (nonCompliantStaff.length > 0) {
-            csvContent += "\n\nNon-Compliant Staff Details\n";
+            csvContent += `\n\nNon-Compliant Employee Details\n`;
             csvContent += "Staff Name,DBS Status,References,Training,RTW,Score\n";
             nonCompliantStaff.forEach(staff => {
                 csvContent += `${staff.staff_name},${staff.dbs_status},${staff.references_status},${staff.training_status},${staff.rtw_status},${staff.overall_compliance_score}%\n`;
@@ -89,7 +90,7 @@ export default function ComplianceDashboardPage() {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `cqc_compliance_report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `compliance_audit_report_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -109,34 +110,36 @@ export default function ComplianceDashboardPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-gray-500">Loading compliance data...</div>
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
             </div>
         );
     }
 
+    const brandColor = 'cyan';
+
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">CQC Compliance Dashboard</h1>
-                    <p className="text-gray-600 mt-1">Monitor staff compliance and CQC readiness</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Regulatory Compliance</h1>
+                    <p className="text-gray-600 mt-1">Monitor organization-wide audit readiness</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => navigate('/inspector-mode')}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 border border-slate-700"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 border-slate-700 text-white rounded-lg hover:opacity-90 border shadow-sm transition-all"
                     >
-                        <Shield className="w-4 h-4" />
+                        <Shield className="w-4 h-4 text-white" />
                         Enter Inspector Mode
                     </button>
                     <button
                         onClick={handleExport}
-                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
+                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-all shadow-sm"
                     >
                         <Download className="w-4 h-4" />
-                        Export CQC Report
+                        Export Audit Report
                     </button>
                 </div>
             </div>
@@ -146,8 +149,8 @@ export default function ComplianceDashboardPage() {
                 <nav className="-mb-px flex space-x-8">
                     <button
                         onClick={() => setActiveTab('overview')}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview'
-                            ? 'border-cyan-500 text-cyan-600'
+                        className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
+                            ? `border-${brandColor}-500 text-${brandColor}-600`
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                     >
@@ -155,8 +158,8 @@ export default function ComplianceDashboardPage() {
                     </button>
                     <button
                         onClick={() => setActiveTab('training')}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'training'
-                            ? 'border-cyan-500 text-cyan-600'
+                        className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'training'
+                            ? `border-${brandColor}-500 text-${brandColor}-600`
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                     >
@@ -164,8 +167,8 @@ export default function ComplianceDashboardPage() {
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'settings'
-                            ? 'border-cyan-500 text-cyan-600'
+                        className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'settings'
+                            ? `border-${brandColor}-500 text-${brandColor}-600`
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                     >
@@ -180,7 +183,7 @@ export default function ComplianceDashboardPage() {
 
                     {/* Overview Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-gray-600">Total Staff</p>
@@ -188,28 +191,28 @@ export default function ComplianceDashboardPage() {
                                         {complianceReport?.total_staff || 0}
                                     </p>
                                 </div>
-                                <Users className="w-10 h-10 text-gray-400" />
+                                <Users className="w-10 h-10 text-gray-100" />
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">Compliant</p>
+                                    <p className="text-sm text-gray-600">Fully Compliant</p>
                                     <p className="text-3xl font-bold text-green-600 mt-1">
                                         {complianceReport?.compliant || 0}
                                     </p>
                                 </div>
-                                <CheckCircle className="w-10 h-10 text-green-400" />
+                                <CheckCircle className="w-10 h-10 text-green-100" />
                             </div>
                             <p className="text-xs text-gray-500 mt-2">
                                 {complianceReport?.total_staff > 0
                                     ? Math.round((complianceReport.compliant / complianceReport.total_staff) * 100)
-                                    : 0}% of staff
+                                    : 0}% of workforce
                             </p>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-gray-600">Action Required</p>
@@ -217,32 +220,32 @@ export default function ComplianceDashboardPage() {
                                         {complianceReport?.non_compliant || 0}
                                     </p>
                                 </div>
-                                <AlertTriangle className="w-10 h-10 text-orange-400" />
+                                <AlertTriangle className="w-10 h-10 text-orange-100" />
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">CQC Ready</p>
+                                    <p className="text-sm text-gray-600 text-nowrap">Audit Ready</p>
                                     <p className="text-3xl font-bold text-cyan-600 mt-1">
                                         {complianceReport?.cqc_ready || 0}
                                     </p>
                                 </div>
-                                <Shield className="w-10 h-10 text-cyan-400" />
+                                <Shield className="w-10 h-10 text-cyan-100" />
                             </div>
                         </div>
                     </div>
 
                     {/* Average Compliance Score */}
-                    <div className="bg-white rounded-lg shadow p-6">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-gray-900">Average Compliance Score</h2>
-                            <TrendingUp className="w-5 h-5 text-gray-400" />
+                            <TrendingUp className="w-5 h-5 text-gray-100" />
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="flex-1">
-                                <div className="w-full bg-gray-200 rounded-full h-4">
+                                <div className="w-full bg-gray-100 rounded-full h-4 shadow-inner">
                                     <div
                                         className={`h-4 rounded-full transition-all ${(complianceReport?.average_score || 0) >= 90
                                             ? 'bg-green-600'
@@ -262,43 +265,43 @@ export default function ComplianceDashboardPage() {
 
                     {/* Non-Compliant Staff */}
                     {nonCompliantStaff.length > 0 && (
-                        <div className="bg-white rounded-lg shadow">
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-100">
                             <div className="p-6 border-b border-gray-200">
-                                <h2 className="text-lg font-semibold text-gray-900">Staff Requiring Action</h2>
+                                <h2 className="text-lg font-semibold text-gray-900">Employees Requiring Action</h2>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    {nonCompliantStaff.length} staff member(s) need compliance updates
+                                    {nonCompliantStaff.length} member(s) need compliance updates
                                 </p>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-gray-50">
+                                    <thead className="bg-gray-50 uppercase text-xs tracking-wider">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Staff Member
+                                            <th className="px-6 py-3 text-left font-semibold text-gray-500">
+                                                Name
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                DBS
+                                            <th className="px-6 py-3 text-left font-semibold text-gray-500">
+                                                DBS/Criminal
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-6 py-3 text-left font-semibold text-gray-500">
                                                 References
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-6 py-3 text-left font-semibold text-gray-500">
                                                 Training
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-6 py-3 text-left font-semibold text-gray-500">
                                                 RTW
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-6 py-3 text-left font-semibold text-gray-500">
                                                 Score
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-6 py-3 text-left font-semibold text-gray-500">
                                                 Actions
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
                                         {nonCompliantStaff.map((staff) => (
-                                            <tr key={staff.id} className="hover:bg-gray-50">
+                                            <tr key={staff.id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="font-medium text-gray-900">{staff.staff_name}</div>
                                                 </td>
@@ -315,13 +318,13 @@ export default function ComplianceDashboardPage() {
                                                     <StatusBadge status={staff.rtw_status} />
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(staff.overall_compliance_score)}`}>
+                                                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(staff.overall_compliance_score)}`}>
                                                         {getStatusIcon(staff.overall_compliance_score)}
                                                         {staff.overall_compliance_score}%
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <button className="text-cyan-600 hover:text-cyan-700 text-sm font-medium">
+                                                    <button className="text-cyan-600 hover:text-cyan-700 text-sm font-bold transition-colors">
                                                         View Details
                                                     </button>
                                                 </td>
@@ -333,34 +336,34 @@ export default function ComplianceDashboardPage() {
                         </div>
                     )}
 
-                    {/* CQC Ready Status */}
+                    {/* Audit Readiness Status */}
                     {complianceReport && (
-                        <div className={`rounded-lg p-6 ${complianceReport.cqc_ready === complianceReport.total_staff
-                            ? 'bg-green-50 border-2 border-green-200'
-                            : 'bg-orange-50 border-2 border-orange-200'
+                        <div className={`rounded-xl p-6 border-2 transition-all shadow-sm ${complianceReport.cqc_ready === complianceReport.total_staff
+                            ? 'bg-emerald-50 border-emerald-200'
+                            : 'bg-orange-50 border-orange-200'
                             }`}>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4">
                                 {complianceReport.cqc_ready === complianceReport.total_staff ? (
                                     <>
-                                        <CheckCircle className="w-8 h-8 text-green-600" />
+                                        <CheckCircle className="w-10 h-10 text-emerald-600" />
                                         <div>
-                                            <h3 className="text-lg font-semibold text-green-900">
-                                                ✅ CQC Inspection Ready
+                                            <h3 className="text-xl font-bold text-emerald-900">
+                                                ✅ Audit Ready
                                             </h3>
-                                            <p className="text-green-700 mt-1">
-                                                All staff members are compliant. Your organization is ready for CQC inspection.
+                                            <p className="text-emerald-700 mt-1 font-medium">
+                                                All staff members match compliance requirements. Your records are audit-ready.
                                             </p>
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        <AlertTriangle className="w-8 h-8 text-orange-600" />
+                                        <AlertTriangle className="w-10 h-10 text-orange-600" />
                                         <div>
-                                            <h3 className="text-lg font-semibold text-orange-900">
-                                                ⚠️ Action Required for CQC Readiness
+                                            <h3 className="text-xl font-bold text-orange-900">
+                                                ⚠️ Action Required for Audit Readiness
                                             </h3>
-                                            <p className="text-orange-700 mt-1">
-                                                {complianceReport.non_compliant} staff member(s) require compliance updates before CQC inspection.
+                                            <p className="text-orange-700 mt-1 font-medium">
+                                                {nonCompliantStaff.length} member(s) require compliance updates before your next audit.
                                             </p>
                                         </div>
                                     </>
@@ -372,10 +375,10 @@ export default function ComplianceDashboardPage() {
                     <div className="flex justify-end">
                         <button
                             onClick={() => setShowDBSModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+                            className="flex items-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold shadow-md transition-all"
                         >
-                            <Plus className="w-4 h-4" />
-                            Add New DBS Check
+                            <Plus className="w-5 h-5" />
+                            Record New Check
                         </button>
                     </div>
                 </div>

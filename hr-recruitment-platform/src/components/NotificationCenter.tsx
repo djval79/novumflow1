@@ -27,7 +27,10 @@ export default function NotificationCenter() {
     useEffect(() => {
         if (currentTenant) {
             loadNotifications();
-            subscribeToNotifications();
+            const cleanup = subscribeToNotifications();
+            return () => {
+                if (cleanup) cleanup();
+            };
         }
     }, [currentTenant]);
 
@@ -50,8 +53,7 @@ export default function NotificationCenter() {
             if (error) throw error;
             setNotifications(data || []);
         } catch (error) {
-            log.error('Error loading notifications', error, { component: 'NotificationCenter', action: 'loadNotifications' });
-            // Fallback to generated notifications if table doesn't exist
+            log.warn('Could not load real notifications, showing mocks', { component: 'NotificationCenter' });
             generateMockNotifications();
         } finally {
             setLoading(false);
@@ -59,7 +61,6 @@ export default function NotificationCenter() {
     }
 
     function generateMockNotifications() {
-        // Generate realistic notifications based on app activity
         const mockNotifications: Notification[] = [
             {
                 id: '1',
@@ -79,36 +80,6 @@ export default function NotificationCenter() {
                 entity_type: 'compliance',
                 read: false,
                 created_at: new Date(Date.now() - 30 * 60000).toISOString(),
-                action_url: '/compliance-hub'
-            },
-            {
-                id: '3',
-                type: 'success',
-                title: 'Interview Scheduled',
-                message: 'Technical interview confirmed for tomorrow at 2pm',
-                entity_type: 'interview',
-                read: true,
-                created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-                action_url: '/recruit'
-            },
-            {
-                id: '4',
-                type: 'info',
-                title: 'Leave Request Pending',
-                message: 'Mark Wilson requested 5 days annual leave',
-                entity_type: 'leave',
-                read: true,
-                created_at: new Date(Date.now() - 4 * 3600000).toISOString(),
-                action_url: '/hr'
-            },
-            {
-                id: '5',
-                type: 'success',
-                title: 'Training Completed',
-                message: 'Fire Safety training marked as complete',
-                entity_type: 'training',
-                read: true,
-                created_at: new Date(Date.now() - 24 * 3600000).toISOString(),
                 action_url: '/compliance-hub'
             }
         ];
@@ -130,7 +101,6 @@ export default function NotificationCenter() {
                 },
                 (payload) => {
                     setNotifications(prev => [payload.new as Notification, ...prev]);
-                    // Play notification sound
                     playNotificationSound();
                 }
             )
@@ -142,7 +112,6 @@ export default function NotificationCenter() {
     }
 
     function playNotificationSound() {
-        // Simple notification sound using Web Audio API
         try {
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
@@ -153,13 +122,13 @@ export default function NotificationCenter() {
 
             oscillator.frequency.value = 440;
             oscillator.type = 'sine';
-            gainNode.gain.value = 0.1;
+            gainNode.gain.value = 0.05;
 
             oscillator.start();
-            setTimeout(() => oscillator.stop(), 150);
-        } catch (e) {
-            // Audio not supported
-        }
+            setTimeout(() => {
+                try { oscillator.stop(); } catch (e) { }
+            }, 150);
+        } catch (e) { }
     }
 
     async function markAsRead(id: string) {
@@ -172,9 +141,7 @@ export default function NotificationCenter() {
                 .from('careflow_notifications')
                 .update({ read: true })
                 .eq('id', id);
-        } catch (error) {
-            // Ignore if table doesn't exist
-        }
+        } catch (error) { }
     }
 
     async function markAllAsRead() {
@@ -185,9 +152,7 @@ export default function NotificationCenter() {
                 .from('careflow_notifications')
                 .update({ read: true })
                 .eq('tenant_id', currentTenant?.id);
-        } catch (error) {
-            // Ignore if table doesn't exist
-        }
+        } catch (error) { }
     }
 
     async function deleteNotification(id: string) {
@@ -198,9 +163,7 @@ export default function NotificationCenter() {
                 .from('careflow_notifications')
                 .delete()
                 .eq('id', id);
-        } catch (error) {
-            // Ignore if table doesn't exist
-        }
+        } catch (error) { }
     }
 
     function getIcon(type: string, entityType?: string) {
@@ -226,9 +189,19 @@ export default function NotificationCenter() {
         }
     }
 
+    function safeFormatDistance(dateStr: string) {
+        try {
+            if (!dateStr) return 'recently';
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return 'recently';
+            return formatDistanceToNow(date, { addSuffix: true });
+        } catch (e) {
+            return 'recently';
+        }
+    }
+
     return (
         <div className="relative">
-            {/* Notification Bell */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition"
@@ -241,18 +214,10 @@ export default function NotificationCenter() {
                 )}
             </button>
 
-            {/* Notification Panel */}
             {isOpen && (
                 <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsOpen(false)}
-                    />
-
-                    {/* Panel */}
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
                     <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-                        {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
                             <div className="flex items-center space-x-2">
                                 <Bell className="w-5 h-5" />
@@ -265,23 +230,16 @@ export default function NotificationCenter() {
                             </div>
                             <div className="flex items-center space-x-2">
                                 {unreadCount > 0 && (
-                                    <button
-                                        onClick={markAllAsRead}
-                                        className="text-xs text-white/80 hover:text-white transition"
-                                    >
+                                    <button onClick={markAllAsRead} className="text-xs text-white/80 hover:text-white transition">
                                         Mark all read
                                     </button>
                                 )}
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="p-1 hover:bg-white/20 rounded transition"
-                                >
+                                <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/20 rounded transition">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Notifications List */}
                         <div className="max-h-96 overflow-y-auto">
                             {loading ? (
                                 <div className="p-4 text-center text-gray-500">
@@ -297,8 +255,7 @@ export default function NotificationCenter() {
                                     {notifications.map((notification) => (
                                         <div
                                             key={notification.id}
-                                            className={`p-4 hover:bg-gray-50 transition cursor-pointer ${!notification.read ? 'bg-indigo-50/50' : ''
-                                                }`}
+                                            className={`p-4 hover:bg-gray-50 transition cursor-pointer ${!notification.read ? 'bg-indigo-50/50' : ''}`}
                                             onClick={() => {
                                                 markAsRead(notification.id);
                                                 if (notification.action_url) {
@@ -313,31 +270,23 @@ export default function NotificationCenter() {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between">
-                                                        <p className={`text-sm font-medium text-gray-900 ${!notification.read ? 'font-semibold' : ''
-                                                            }`}>
+                                                        <p className={`text-sm font-medium text-gray-900 ${!notification.read ? 'font-semibold' : ''}`}>
                                                             {notification.title}
                                                         </p>
                                                         <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                deleteNotification(notification.id);
-                                                            }}
+                                                            onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
                                                             className="p-1 text-gray-400 hover:text-red-500 transition"
                                                         >
                                                             <X className="w-3 h-3" />
                                                         </button>
                                                     </div>
-                                                    <p className="text-sm text-gray-600 truncate">
-                                                        {notification.message}
-                                                    </p>
+                                                    <p className="text-sm text-gray-600 truncate">{notification.message}</p>
                                                     <div className="flex items-center mt-1 text-xs text-gray-400">
                                                         <Clock className="w-3 h-3 mr-1" />
-                                                        {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                                                        {safeFormatDistance(notification.created_at)}
                                                     </div>
                                                 </div>
-                                                {!notification.read && (
-                                                    <div className="w-2 h-2 bg-indigo-600 rounded-full" />
-                                                )}
+                                                {!notification.read && <div className="w-2 h-2 bg-indigo-600 rounded-full mt-2" />}
                                             </div>
                                         </div>
                                     ))}
@@ -345,16 +294,9 @@ export default function NotificationCenter() {
                             )}
                         </div>
 
-                        {/* Footer */}
                         {notifications.length > 0 && (
-                            <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                                <button
-                                    onClick={() => {
-                                        setIsOpen(false);
-                                        // Navigate to full notifications page if exists
-                                    }}
-                                    className="w-full text-center text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-                                >
+                            <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 text-center">
+                                <button onClick={() => setIsOpen(false)} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
                                     View all notifications
                                 </button>
                             </div>

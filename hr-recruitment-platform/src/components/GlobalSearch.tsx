@@ -16,6 +16,7 @@ interface SearchResult {
     metadata?: Record<string, any>;
 }
 
+
 export default function GlobalSearch() {
     const { currentTenant } = useTenant();
     const navigate = useNavigate();
@@ -243,7 +244,7 @@ export default function GlobalSearch() {
     const quickLinks = [
         { label: 'Dashboard', url: '/dashboard', icon: <Building className="w-4 h-4" /> },
         { label: 'Employees', url: '/hr', icon: <Users className="w-4 h-4" /> },
-        { label: 'Jobs', url: '/recruit', icon: <Briefcase className="w-4 h-4" /> },
+        { label: 'Recruitment', url: '/recruit', icon: <Briefcase className="w-4 h-4" /> },
         { label: 'Compliance', url: '/compliance-hub', icon: <FileText className="w-4 h-4" /> },
         { label: 'Interviews', url: '/recruit', icon: <Calendar className="w-4 h-4" /> }
     ];
@@ -304,7 +305,7 @@ export default function GlobalSearch() {
                             <div ref={resultsRef} className="max-h-96 overflow-y-auto">
                                 {loading ? (
                                     <div className="p-8 text-center">
-                                        <div className="animate-spin h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full mx-auto" />
+                                        <div className="animate-spin h-6 w-6 border-2 border-cyan-600 border-t-transparent rounded-full mx-auto" />
                                         <p className="mt-2 text-sm text-gray-500">Searching...</p>
                                     </div>
                                 ) : query && results.length > 0 ? (
@@ -314,7 +315,7 @@ export default function GlobalSearch() {
                                             <button
                                                 key={result.id}
                                                 onClick={() => handleSelect(result)}
-                                                className={`w-full flex items-center px-4 py-3 hover:bg-gray-50 transition ${index === selectedIndex ? 'bg-indigo-50' : ''
+                                                className={`w-full flex items-center px-4 py-3 hover:bg-gray-50 transition ${index === selectedIndex ? 'bg-cyan-50' : ''
                                                     }`}
                                             >
                                                 <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">

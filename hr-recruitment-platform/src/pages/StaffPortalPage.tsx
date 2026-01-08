@@ -1,7 +1,6 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, BookOpen, Bell, FileText, LogOut, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Shield, BookOpen, FileText, Bell, LogOut, User } from 'lucide-react';
 
 export default function StaffPortalPage() {
     const { user, profile, signOut } = useAuth();
@@ -23,7 +22,7 @@ export default function StaffPortalPage() {
         {
             title: 'My Training',
             icon: BookOpen,
-            path: '/training', // Future route
+            path: '/training',
             color: 'bg-blue-100 text-blue-600',
             desc: 'Access courses & certificates'
         },
@@ -72,7 +71,9 @@ export default function StaffPortalPage() {
                 {/* Welcome Card */}
                 <div className="bg-gradient-to-r from-cyan-600 to-cyan-500 rounded-2xl p-6 text-white shadow-lg">
                     <h2 className="text-xl font-bold mb-1">Ready for your shift?</h2>
-                    <p className="text-cyan-100 text-sm mb-4">Check your compliance status before you start.</p>
+                    <p className="text-cyan-100 text-sm mb-4">
+                        Check your compliance status before you start.
+                    </p>
                     <button
                         onClick={() => navigate('/my-passport')}
                         className="bg-white text-cyan-600 px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-cyan-50 transition-colors w-full"
@@ -103,7 +104,7 @@ export default function StaffPortalPage() {
                     </div>
                 </div>
 
-                {/* Latest Notice Preview (Mock) */}
+                {/* Latest Notice Preview */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                         <h3 className="text-sm font-semibold text-gray-900">Latest Update</h3>
@@ -111,7 +112,7 @@ export default function StaffPortalPage() {
                     </div>
                     <div className="p-4">
                         <p className="text-sm text-gray-600 line-clamp-2">
-                            Please remember to sync your mobile app before starting your shift to get the latest care plans.
+                            Please remember to sync your mobile app before starting your shift to get the latest settings.
                         </p>
                         <button
                             onClick={() => navigate('/noticeboard')}

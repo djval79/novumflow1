@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Building2, AlertCircle, Smartphone } from 'lucide-react';
+import { Building2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import QuickAdminSetup from '../components/QuickAdminSetup';
 import { log } from '@/lib/logger';
-
-// Domain-aware branding
-const isCareFlow = window.location.hostname.includes('careflow');
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -68,36 +65,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${isCareFlow
-        ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900'
-        : 'bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900'
-      }`}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900">
       <div className="w-full max-w-md">
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
-          {/* Domain-aware Logo */}
+          {/* NovumFlow Logo */}
           <div className="flex justify-center mb-6">
-            {isCareFlow ? (
-              <div className="flex items-center gap-3">
-                <div className="h-14 w-14 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
-                  <Smartphone className="h-8 w-8" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-slate-900">CareFlow</span>
-                  <span className="text-xs font-medium text-purple-600">Care Management System</span>
-                </div>
-              </div>
-            ) : (
-              <img
-                src="/assets/branding/novumsolvo-logo.jpg"
-                alt="NovumSolvo"
-                className="h-24 w-auto object-contain"
-              />
-            )}
+            <img
+              src="/assets/branding/novumsolvo-logo.jpg"
+              alt="NovumSolvo"
+              className="h-24 w-auto object-contain"
+            />
           </div>
 
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Welcome Back</h1>
           <p className="text-center text-gray-600 mb-8">
-            Sign in to {isCareFlow ? 'CareFlow' : 'NovumFlow'}
+            Sign in to NovumFlow
           </p>
 
           {error && (
@@ -132,8 +114,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${isCareFlow ? 'focus:ring-purple-400' : 'focus:ring-cyan-400'
-                  }`}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent outline-none transition"
                 placeholder="you@company.com"
               />
             </div>
@@ -145,7 +126,7 @@ export default function LoginPage() {
                 </label>
                 <Link
                   to="/forgot-password"
-                  className={`text-sm ${isCareFlow ? 'text-purple-600 hover:text-purple-700' : 'text-cyan-600 hover:text-cyan-700'}`}
+                  className="text-sm text-cyan-600 hover:text-cyan-700"
                 >
                   Forgot password?
                 </Link>
@@ -156,8 +137,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${isCareFlow ? 'focus:ring-purple-400' : 'focus:ring-cyan-400'
-                  }`}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent outline-none transition"
                 placeholder="Enter your password"
               />
             </div>
@@ -165,10 +145,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${isCareFlow
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-purple-500/30'
-                  : 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 shadow-cyan-500/30'
-                }`}
+              className="w-full text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 shadow-cyan-500/30"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -178,7 +155,7 @@ export default function LoginPage() {
             Don't have an account?{' '}
             <Link
               to="/signup"
-              className={`font-semibold ${isCareFlow ? 'text-purple-600 hover:text-purple-700' : 'text-cyan-600 hover:text-cyan-700'}`}
+              className="font-semibold text-cyan-600 hover:text-cyan-700"
             >
               Sign up
             </Link>
@@ -187,10 +164,7 @@ export default function LoginPage() {
             <p className="text-sm text-gray-500 mb-2">Want to start your own workspace?</p>
             <Link
               to="/tenant/create"
-              className={`inline-flex items-center text-sm px-3 py-1.5 rounded-full transition font-medium ${isCareFlow
-                  ? 'text-purple-700 bg-purple-50 hover:bg-purple-100'
-                  : 'text-cyan-700 bg-cyan-50 hover:bg-cyan-100'
-                }`}
+              className="inline-flex items-center text-sm px-3 py-1.5 rounded-full transition font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100"
             >
               <Building2 className="w-4 h-4 mr-1.5" />
               Create New Organization
@@ -199,20 +173,15 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 text-center">
-          <p className="text-sm font-semibold text-white mb-1">
-            {isCareFlow ? 'CareFlow' : 'NovumFlow'}
-          </p>
-          <p className="text-xs text-gray-300">
-            {isCareFlow ? 'Care Management System' : 'HR & Recruitment Management Platform'}
-          </p>
+          <p className="text-sm font-semibold text-white mb-1">NovumFlow</p>
+          <p className="text-xs text-gray-300">HR & Recruitment Management Platform</p>
           <p className="text-xs text-gray-400 mt-2">
-            Powered by <span className={`font-semibold ${isCareFlow ? 'text-purple-400' : 'text-cyan-400'}`}>NovumSolvo Ltd</span>
+            Powered by <span className="font-semibold text-cyan-400">NovumSolvo Ltd</span>
           </p>
         </div>
       </div>
 
-      {/* Quick Admin Setup - only show for NovumFlow */}
-      {!isCareFlow && <QuickAdminSetup />}
+      <QuickAdminSetup />
     </div>
   );
 }

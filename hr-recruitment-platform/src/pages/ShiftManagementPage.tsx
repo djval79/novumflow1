@@ -125,7 +125,7 @@ export default function ShiftManagementPage() {
             .select('*')
             .eq('tenant_id', currentTenant.id)
             .eq('week_start_date', weekStartStr)
-            .single();
+            .maybeSingle();
 
         if (rotaData) {
             setCurrentRota(rotaData);
@@ -283,8 +283,8 @@ export default function ShiftManagementPage() {
                 <button
                     onClick={() => setActiveView('week')}
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition flex items-center ${activeView === 'week'
-                            ? 'bg-white text-indigo-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-white text-indigo-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
                         }`}
                 >
                     <CalendarDays className="w-4 h-4 mr-2" />
@@ -293,8 +293,8 @@ export default function ShiftManagementPage() {
                 <button
                     onClick={() => setActiveView('templates')}
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition flex items-center ${activeView === 'templates'
-                            ? 'bg-white text-indigo-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-white text-indigo-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
                         }`}
                 >
                     <Settings className="w-4 h-4 mr-2" />
@@ -319,8 +319,8 @@ export default function ShiftManagementPage() {
                             </h2>
                             {currentRota && (
                                 <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full mt-1 ${currentRota.status === 'published'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-yellow-100 text-yellow-800'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-yellow-100 text-yellow-800'
                                     }`}>
                                     {currentRota.status}
                                 </span>

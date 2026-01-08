@@ -65,24 +65,33 @@ Deno.serve(async (req) => {
         }
 
         const token = authHeader.replace('Bearer ', '')
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
 
-        if (authError || !user) {
-            throw new Error('Unauthorized')
+        // Check if this is a service role token (used by database triggers)
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        const isServiceRole = token === serviceRoleKey
+
+        if (!isServiceRole) {
+            // Regular user authentication
+            const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+
+            if (authError || !user) {
+                throw new Error('Unauthorized')
+            }
+
+            // Verify user has access to this tenant
+            const { data: membership } = await supabaseClient
+                .from('user_tenant_memberships')
+                .select('role')
+                .eq('user_id', user.id)
+                .eq('tenant_id', tenant_id)
+                .eq('is_active', true)
+                .single()
+
+            if (!membership || !['owner', 'admin'].includes(membership.role)) {
+                throw new Error('Insufficient permissions')
+            }
         }
-
-        // Verify user has access to this tenant
-        const { data: membership } = await supabaseClient
-            .from('user_tenant_memberships')
-            .select('role')
-            .eq('user_id', user.id)
-            .eq('tenant_id', tenant_id)
-            .eq('is_active', true)
-            .single()
-
-        if (!membership || !['owner', 'admin'].includes(membership.role)) {
-            throw new Error('Insufficient permissions')
-        }
+        // Service role tokens are trusted (used by database triggers)
 
         let syncResults: SyncResult[] = []
         let syncedCount = 0

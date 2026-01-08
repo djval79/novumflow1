@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { UserRole } from '../types';
 import { Loader2 } from 'lucide-react';
 
@@ -81,6 +82,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   // Mobile App Redirect: Carers go straight to "My Day"
   if (userRole === 'carer' && location.pathname === '/') {
     return <Navigate to="/my-day" replace />;
+  }
+
+  // Tenant Check: If user has no tenants, force onboarding
+  // We use a window global or check pathname to avoid redirect loops if Onboarding was protected
+  // But Onboarding is public in App.tsx, so this is safe.
+  const { tenants, loading: tenantLoading } = useTenant();
+
+  if (!tenantLoading && tenants.length === 0) {
+    console.log('No tenants found for user. Redirecting to Onboarding.');
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <Outlet />;

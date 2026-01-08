@@ -48,3 +48,19 @@ All documentation goals achieved. Help Center is live with 4 comprehensive manua
 
 ## ✅ Phase Complete
 All previous phases resolved. Platform is production-ready.
+
+---
+
+## 📈 Phase: Market Readiness & Launch Assets (Current)
+Goal: Align the product with market pain points and create high-converting sales assets.
+
+- [x] **Market-Driven Analysis**: Identified core pain points (Staff Churn, Compliance Gaps, Fragmented Tools) and mapped them to product strengths.
+- [x] **Premium One-Pager**: Created `marketing/one-pager.html` as a standalone high-fidelity sales document.
+- [x] **Compliance Checklist**: Created `marketing/compliance-checklist.html` to serve as a high-value lead magnet.
+- [x] **Landing Page Upgrades**: Redesigned `careflow-ai` and `hr-recruitment-platform` landing pages with interactive dashboard previews and market-centric copy.
+- [x] **Sales CTAs**: Integrated "Request Demo" and asset download links across all landing pages.
+- [x] **Automated Email Capture**: Implemented `demo_requests` table in Supabase and a premium `DemoRequestModal` across both apps to capture leads directly into the database.
+- [x] **Pitch Deck Insights**: Integrated Liverpool-specific and UK-wide funding strategy data into the product narrative. (Reference: `FUNDING_AND_PITCH_DECK.md`)
+- [x] **Cloud Deployment**: Linked and deployed `hr-recruitment-platform` and `careflow-ai` to Vercel production environments.
+- [x] **Integrated Marketing Assets**: Synchronized sales one-pager and compliance checklist across both production apps for instant access.
+

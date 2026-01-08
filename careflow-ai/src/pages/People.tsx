@@ -4,8 +4,9 @@ import {
    Search, Filter, Download, UserPlus, Phone, Mail, MapPin,
    Calendar, ShieldCheck, AlertTriangle, X, CheckCircle2,
    FileText, ChevronRight, ArrowLeft, BadgePoundSterling, Pill,
-   Users, Zap, Target, History, Globe, User, Activity, Brain
+   Users, Zap, Target, History, Globe, User, Activity, Brain, RefreshCw
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { StaffMember, Client, ComplianceRecord } from '../types';
 import { clientService, staffService } from '../services/supabaseService';
 import CarePlanManager from '../components/CarePlanManager';
@@ -47,6 +48,44 @@ const People: React.FC = () => {
       };
       fetchData();
    }, []);
+
+   const handleSyncStaff = async () => {
+      if (!currentTenant) return;
+      const toastId = toast.loading('Synchronizing Staff Nodes from NovumFlow...');
+
+      try {
+         const { data: { session } } = await supabase.auth.getSession();
+         if (!session) throw new Error('No session');
+
+         const response = await fetch('https://niikshfoecitimepiifo.supabase.co/functions/v1/sync-to-careflow', {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json',
+               'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+               tenant_id: currentTenant.id,
+               action: 'sync_all'
+            })
+         });
+
+         if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Sync failed');
+         }
+
+         const result = await response.json();
+         toast.success(result.message, { id: toastId });
+
+         // Refresh local list
+         const staffData = await staffService.getAll();
+         setStaffList(staffData as unknown as StaffMember[]);
+
+      } catch (error: any) {
+         console.error('Sync Error:', error);
+         toast.error(error.message || 'Synchronization Failed', { id: toastId });
+      }
+   };
 
    const filteredStaff = staffList.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
    const filteredClients = clients.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -229,16 +268,27 @@ const People: React.FC = () => {
                   Human Resource Registry • Clinical Subjects • Staff Nodes
                </p>
             </div>
-            <button
-               onClick={() => {
-                  setIsAddModalOpen(true);
-                  toast.info(`Initiating New ${activeTab === 'staff' ? 'Staff' : 'Client'} Protocol`);
-               }}
-               className="px-8 py-4 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:bg-black flex items-center gap-4 active:scale-95 transition-all"
-            >
-               <UserPlus size={16} className="text-primary-500" />
-               Initialize {activeTab === 'staff' ? 'Staff Node' : 'Client Subject'}
-            </button>
+            <div className="flex items-center gap-4">
+               {activeTab === 'staff' && (
+                  <button
+                     onClick={handleSyncStaff}
+                     className="px-8 py-4 bg-white border-2 border-slate-900 text-slate-900 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] shadow-xl hover:bg-slate-50 flex items-center gap-4 active:scale-95 transition-all"
+                  >
+                     <RefreshCw size={16} className="text-slate-900" />
+                     Sync Protocol
+                  </button>
+               )}
+               <button
+                  onClick={() => {
+                     setIsAddModalOpen(true);
+                     toast.info(`Initiating New ${activeTab === 'staff' ? 'Staff' : 'Client'} Protocol`);
+                  }}
+                  className="px-8 py-4 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:bg-black flex items-center gap-4 active:scale-95 transition-all"
+               >
+                  <UserPlus size={16} className="text-primary-500" />
+                  Initialize {activeTab === 'staff' ? 'Staff Node' : 'Client Subject'}
+               </button>
+            </div>
          </div>
 
          <div className="flex flex-col lg:flex-row gap-10 items-stretch h-[750px]">

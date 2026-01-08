@@ -35,7 +35,6 @@ interface AnalyticsData {
     };
 }
 
-const isCareFlow = window.location.hostname.includes('careflow');
 
 export default function DashboardAnalytics() {
     const { currentTenant } = useTenant();
@@ -53,41 +52,8 @@ export default function DashboardAnalytics() {
         setLoading(true);
 
         try {
-            // Generate realistic analytics data based on domain
-            const analyticsData: AnalyticsData = isCareFlow ? {
-                hiring: {
-                    applicationsThisMonth: 124, // Represents Total Scheduled Visits
-                    applicationsLastMonth: 110,
-                    hiredThisMonth: 94,        // Represents Completed Visits
-                    hiredLastMonth: 88,
-                    timeToHireAvg: 12,          // Represents Avg Visit Duration (hours/week per client)
-                    conversionRate: 98.2,       // Represents Visit Completion Rate
-                },
-                workforce: {
-                    totalEmployees: 42,         // Total Carers
-                    newHires: 3,
-                    leavers: 1,
-                    turnoverRate: 1.2,
-                    departments: [
-                        { name: 'Dementia Care', count: 18, color: '#8B5CF6' },
-                        { name: 'Palliative Care', count: 12, color: '#EC4899' },
-                        { name: 'Live-in Care', count: 8, color: '#6366F1' },
-                        { name: 'Night Sitting', count: 4, color: '#3B82F6' },
-                    ],
-                },
-                compliance: {
-                    score: 96,
-                    expiringSoon: 4,           // Document expiries
-                    overdueTraining: 2,
-                    pendingDBS: 3,
-                },
-                performance: {
-                    avgRating: 4.8,            // Care Quality Rating
-                    goalsCompleted: 92,
-                    goalsAtRisk: 2,
-                    reviewsPending: 4,
-                },
-            } : {
+            // Generate realistic analytics data for NovumFlow HR
+            const analyticsData: AnalyticsData = {
                 hiring: {
                     applicationsThisMonth: 87,
                     applicationsLastMonth: 72,
@@ -225,14 +191,14 @@ export default function DashboardAnalytics() {
     return (
         <div className="space-y-6">
             {/* Time Range Selector */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h2 className="text-lg font-bold text-gray-900">Performance Analytics</h2>
-                <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1 w-full sm:w-auto overflow-x-auto scrollbar-none">
                     {(['week', 'month', 'quarter', 'year'] as const).map(range => (
                         <button
                             key={range}
                             onClick={() => setTimeRange(range)}
-                            className={`px-3 py-1 text-sm rounded-md transition ${timeRange === range
+                            className={`flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm rounded-md transition whitespace-nowrap ${timeRange === range
                                 ? 'bg-white text-gray-900 shadow-sm font-bold'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
@@ -247,41 +213,37 @@ export default function DashboardAnalytics() {
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="font-bold text-gray-900 flex items-center uppercase tracking-wider text-sm">
-                        {isCareFlow ? (
-                            <Clock className="w-5 h-5 mr-2 text-purple-600" />
-                        ) : (
-                            <Briefcase className="w-5 h-5 mr-2 text-indigo-600" />
-                        )}
-                        {isCareFlow ? 'Care Delivery Status' : 'Hiring Pipeline'}
+                        <Briefcase className="w-5 h-5 mr-2 text-cyan-600" />
+                        Hiring Pipeline
                     </h3>
                     <span className="text-xs text-gray-400 font-medium">vs last {timeRange}</span>
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                     <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-tight">{isCareFlow ? 'Visits Scheduled' : 'Applications'}</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">{formatNumber(data.hiring.applicationsThisMonth)}</p>
-                        <div className={`flex items-center text-xs mt-1 font-bold ${applicationChange.color}`}>
+                        <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Applications</p>
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1">{formatNumber(data.hiring.applicationsThisMonth)}</p>
+                        <div className={`flex items-center text-[10px] sm:text-xs mt-1 font-bold ${applicationChange.color}`}>
                             {applicationChange.icon}
                             <span className="ml-1">{applicationChange.value}%</span>
                         </div>
                     </div>
                     <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-tight">{isCareFlow ? 'Visits Completed' : 'Hired'}</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">{data.hiring.hiredThisMonth}</p>
-                        <div className={`flex items-center text-xs mt-1 font-bold ${hiredChange.color}`}>
+                        <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Hired</p>
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1">{data.hiring.hiredThisMonth}</p>
+                        <div className={`flex items-center text-[10px] sm:text-xs mt-1 font-bold ${hiredChange.color}`}>
                             {hiredChange.icon}
                             <span className="ml-1">{hiredChange.value}%</span>
                         </div>
                     </div>
                     <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-tight">{isCareFlow ? 'Avg Care Hours' : 'Avg Time to Hire'}</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">{data.hiring.timeToHireAvg}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase">{isCareFlow ? 'hrs/client' : 'days'}</p>
+                        <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Avg Time to Hire</p>
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1">{data.hiring.timeToHireAvg}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase">days</p>
                     </div>
                     <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-tight">{isCareFlow ? 'Completion Rate' : 'Conversion Rate'}</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">{formatPercentage(data.hiring.conversionRate, 1)}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase">{isCareFlow ? 'on-time delivery' : 'app to hire'}</p>
+                        <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Conversion</p>
+                        <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1">{formatPercentage(data.hiring.conversionRate, 1)}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase">app to hire</p>
                     </div>
                 </div>
             </div>
@@ -291,8 +253,8 @@ export default function DashboardAnalytics() {
                 {/* distribution */}
                 <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                     <h3 className="font-bold text-gray-900 flex items-center mb-6 uppercase tracking-wider text-sm">
-                        <BarChart3 className={`w-5 h-5 mr-2 ${isCareFlow ? 'text-purple-600' : 'text-indigo-600'}`} />
-                        {isCareFlow ? 'Service Distribution' : 'Department Distribution'}
+                        <BarChart3 className="w-5 h-5 mr-2 text-cyan-600" />
+                        Department Distribution
                     </h3>
                     <div className="space-y-4">
                         {data.workforce.departments.map((dept, index) => (
@@ -307,7 +269,7 @@ export default function DashboardAnalytics() {
                     </div>
                     <div className="mt-6 pt-6 border-t border-gray-50">
                         <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-500 font-medium">{isCareFlow ? 'Total Carers' : 'Total Employees'}</span>
+                            <span className="text-gray-500 font-medium">Total Employees</span>
                             <span className="font-bold text-gray-900">{formatNumber(data.workforce.totalEmployees)}</span>
                         </div>
                     </div>
@@ -316,13 +278,13 @@ export default function DashboardAnalytics() {
                 {/* Key Metrics */}
                 <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                     <h3 className="font-bold text-gray-900 flex items-center mb-6 uppercase tracking-wider text-sm">
-                        <PieChart className={`w-5 h-5 mr-2 ${isCareFlow ? 'text-purple-600' : 'text-indigo-600'}`} />
+                        <PieChart className="w-5 h-5 mr-2 text-cyan-600" />
                         Quality & Compliance
                     </h3>
-                    <div className="flex items-center justify-around h-[calc(100%-3rem)]">
-                        <DonutChart value={data.compliance.score} label={isCareFlow ? 'CQC Score' : 'Compliance'} color="#10B981" />
-                        <DonutChart value={Math.round(data.hiring.conversionRate)} label={isCareFlow ? 'Delivery' : 'Hiring'} color="#3B82F6" />
-                        <DonutChart value={Math.round((data.performance.avgRating / 5) * 100)} label={isCareFlow ? 'Family Rating' : 'Feedback'} color="#8B5CF6" />
+                    <div className="flex flex-row items-center justify-around h-full gap-2 overflow-x-auto pb-4 scrollbar-none sm:pb-0">
+                        <DonutChart value={data.compliance.score} label="Compliance" color="#10B981" />
+                        <DonutChart value={Math.round(data.hiring.conversionRate)} label="Hiring" color="#3B82F6" />
+                        <DonutChart value={Math.round((data.performance.avgRating / 5) * 100)} label="Feedback" color="#8B5CF6" />
                     </div>
                 </div>
             </div>

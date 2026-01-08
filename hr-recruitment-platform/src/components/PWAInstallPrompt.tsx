@@ -50,9 +50,9 @@ export default function PWAInstallPrompt() {
     if (!isVisible) return null;
 
     return (
-        <div className="fixed bottom-20 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-80 bg-white rounded-2xl shadow-2xl border border-indigo-100 p-4 z-[100] animate-in fade-in slide-in-from-bottom-5 duration-500">
+        <div className="fixed bottom-20 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-80 bg-white rounded-2xl shadow-2xl border border-cyan-100 p-4 z-[100] animate-in fade-in slide-in-from-bottom-5 duration-500">
             <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200">
+                <div className="w-12 h-12 bg-cyan-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-cyan-200">
                     <Download className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -70,7 +70,7 @@ export default function PWAInstallPrompt() {
                     </p>
                     <button
                         onClick={handleInstallClick}
-                        className="w-full mt-3 bg-indigo-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-2"
+                        className="w-full mt-3 bg-cyan-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-cyan-700 transition-all shadow-md shadow-cyan-100 flex items-center justify-center gap-2"
                     >
                         Get the App
                     </button>

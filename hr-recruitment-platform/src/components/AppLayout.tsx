@@ -30,22 +30,17 @@ import {
   GraduationCap,
   CreditCard,
   CalendarDays,
-  Heart,
   AlertOctagon,
-  Receipt,
-  Smartphone
+  Receipt
 } from 'lucide-react';
 
 import TenantSwitcher from './TenantSwitcher';
-import { QuickAppSwitcher } from './CrossAppNavigation';
 import NotificationCenter from './NotificationCenter';
 import GlobalSearch from './GlobalSearch';
 import QuickActions from './QuickActions';
 import HelpCenter from './HelpCenter';
 import PWAInstallPrompt from './PWAInstallPrompt';
-
-// Domain-aware branding
-const isCareFlow = window.location.hostname.includes('careflow');
+import { QuickAppSwitcher } from './CrossAppNavigation';
 
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
@@ -61,20 +56,9 @@ export default function AppLayout() {
 
   const allNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, feature: 'dashboard' },
-    {
-      name: isCareFlow ? 'Staff Management' : 'HR Module',
-      href: '/hr',
-      icon: Users,
-      feature: 'hr_module'
-    },
-    {
-      name: isCareFlow ? 'Carer Recruitment' : 'Recruitment',
-      href: '/recruitment',
-      icon: Briefcase,
-      feature: 'recruitment'
-    },
+    { name: 'HR Module', href: '/hr', icon: Users, feature: 'hr_module' },
+    { name: 'Recruitment', href: '/recruitment', icon: Briefcase, feature: 'recruitment' },
     { name: 'Shift Rota', href: '/shifts', icon: CalendarDays, feature: 'shifts' },
-    { name: 'Clients', href: '/clients', icon: Heart, feature: 'clients' },
     { name: 'Incidents', href: '/incidents', icon: AlertOctagon, feature: 'incidents' },
     { name: 'Performance', href: '/performance', icon: TrendingUp, feature: 'performance' },
     { name: 'Attendance', href: '/attendance', icon: Clock, feature: 'attendance' },
@@ -98,21 +82,8 @@ export default function AppLayout() {
     { name: 'Recruit Settings', href: '/recruit-settings', icon: Sliders, feature: 'recruit_settings' },
   ];
 
-  // Reorder for CareFlow: prioritize care delivery features
-  if (isCareFlow) {
-    const careOrder = ['/dashboard', '/shifts', '/clients', '/incidents'];
-    allNavigation.sort((a, b) => {
-      const aIndex = careOrder.indexOf(a.href);
-      const bIndex = careOrder.indexOf(b.href);
-      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-      if (aIndex !== -1) return -1;
-      if (bIndex !== -1) return 1;
-      return 0;
-    });
-  }
-
   // Filter navigation based on enabled features
-  // RBAC: Hide restricted items for carers/staff even if feature is enabled
+  // RBAC: Hide restricted items for staff even if feature is enabled
   const isRestrictedUser = profile?.role === 'carer' || profile?.role === 'staff';
   const restrictedFeatures = ['hr_module', 'recruitment', 'settings', 'recruit_settings', 'compliance'];
 
@@ -162,7 +133,7 @@ export default function AppLayout() {
 
   // Add Compliance Dashboard (available to all users)
   navigation.push({
-    name: isCareFlow ? 'CQC Compliance' : 'Compliance Dashboard',
+    name: 'Compliance Dashboard',
     href: '/compliance-dashboard',
     icon: Shield,
     feature: 'system'
@@ -177,78 +148,86 @@ export default function AppLayout() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Navigation Bar */}
-      <nav className="bg-white border-b border-gray-200 fixed w-full z-30">
+      <nav className="bg-white border-b border-gray-200 fixed w-full z-50">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-500"
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
 
-              <div className="flex items-center ml-2 lg:ml-0">
-                {isCareFlow ? (
-                  <>
-                    <div className="h-10 w-10 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl flex items-center justify-center text-white shadow-md">
-                      <Smartphone className="h-6 w-6" />
-                    </div>
-                    <span className="ml-3 text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">CareFlow</span>
-                  </>
-                ) : (
-                  <>
-                    <img
-                      src="/pwa-192x192.png"
-                      alt="NovumFlow"
-                      className="h-10 w-auto object-contain"
-                    />
-                    <span className="ml-3 text-xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-500 bg-clip-text text-transparent">NovumFlow</span>
-                  </>
-                )}
+              <div className="flex items-center ml-2 lg:ml-0 cursor-pointer" onClick={() => navigate('/dashboard')}>
+                <img
+                  src="/pwa-192x192.png"
+                  alt="NovumFlow"
+                  className="h-9 w-auto object-contain"
+                />
+                <span className="ml-3 text-xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-500 bg-clip-text text-transparent hidden sm:block tracking-tight">NovumFlow</span>
               </div>
 
-              {/* Tenant Switcher */}
+              {/* Tenant Switcher - Hidden on small mobile */}
               <div className="hidden md:block ml-6">
                 <TenantSwitcher />
               </div>
+              <QuickAppSwitcher />
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 md:space-x-3">
               {/* Global Search */}
               <GlobalSearch />
 
-              {/* Help Center */}
-              <HelpCenter />
+              <div className="flex items-center space-x-1">
+                {/* Help Center */}
+                <HelpCenter />
 
-              {/* Notification Center */}
-              <NotificationCenter />
+                {/* Notification Center */}
+                <NotificationCenter />
+              </div>
 
-              {/* Cross-App Navigation */}
-              <QuickAppSwitcher />
-
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-gray-900">{profile?.full_name || user?.email}</p>
-                <p className="text-xs text-gray-500 capitalize">{profile?.role?.replace('_', ' ')}</p>
+              <div className="hidden lg:block text-right border-l border-gray-100 pl-4 ml-2">
+                <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{profile?.full_name || user?.email}</p>
+                <p className="text-[10px] text-gray-400 capitalize font-medium tracking-wider">{profile?.role?.replace(/_/g, ' ')}</p>
               </div>
 
               <button
                 onClick={handleSignOut}
-                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+                className="flex items-center p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                title="Sign Out"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <LogOut className="w-5 h-5" />
+                <span className="hidden xl:inline ml-2 text-sm font-semibold">Sign Out</span>
               </button>
             </div>
           </div>
         </div>
+      </nav>
 
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 bg-white max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <div className="px-2 pt-2 pb-3 space-y-1">
+      {/* Mobile Sidebar Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[55] transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Navigation Sidebar */}
+      <div className={`lg:hidden fixed inset-y-0 left-0 w-72 bg-white z-[60] shadow-2xl transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="h-full flex flex-col">
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-xl font-black text-cyan-600 tracking-tight">NovumFlow</span>
+            </div>
+            <button onClick={() => setMobileMenuOpen(false)} className="p-2 bg-gray-50 rounded-lg text-gray-400">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="space-y-1">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
@@ -256,77 +235,84 @@ export default function AppLayout() {
                     key={item.name}
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition ${isActive
-                      ? isCareFlow ? 'bg-purple-50 text-purple-600' : 'bg-cyan-50 text-cyan-600'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    className={`flex items-center px-4 py-3 rounded-xl text-sm font-bold transition-all ${isActive
+                      ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-200'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                   >
-                    <item.icon className="w-5 h-5 mr-3" />
+                    <item.icon className={`w-5 h-5 mr-3 ${isActive ? 'text-white' : 'text-gray-400'}`} />
                     {item.name}
                   </Link>
                 );
               })}
             </div>
           </div>
-        )}
-      </nav>
-
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col lg:pt-16">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto">
-          <nav className="mt-5 flex-1 px-2 space-y-1">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition ${isActive
-                    ? isCareFlow ? 'bg-purple-50 text-purple-600' : 'bg-cyan-50 text-cyan-600'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
-                >
-                  <item.icon className={`mr-3 flex-shrink-0 h-5 w-5 ${isActive ? (isCareFlow ? 'text-purple-600' : 'text-cyan-600') : 'text-gray-400 group-hover:text-gray-500'
-                    }`} />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="p-4 border-t border-gray-100">
+            <TenantSwitcher />
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <CompactAppSwitcher />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="lg:pl-64 flex flex-col min-h-screen pt-16">
-        <main className="flex-1">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <Outlet />
-            </div>
-          </div>
-        </main>
-
-        {/* Mobile Bottom Navigation */}
-        <div className="lg:hidden fixed bottom-10 left-4 right-4 z-40">
-          <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-lg px-6 py-3 flex justify-between items-center">
-            {navigation.slice(0, 5).map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`flex flex-col items-center space-y-1 ${isActive ? (isCareFlow ? 'text-purple-600' : 'text-cyan-600') : 'text-gray-400'
-                    }`}
-                >
-                  <item.icon className="w-6 h-6" />
-                  <span className="text-[10px] font-medium">{item.name.split(' ')[0]}</span>
-                </Link>
-              );
-            })}
+      <div className="flex flex-1 pt-16">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col lg:pt-16">
+          <div className="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto">
+            <nav className="mt-5 flex-1 px-4 space-y-1.5 font-sans">
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`group flex items-center px-4 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${isActive
+                      ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-100'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:translate-x-1'
+                      }`}
+                  >
+                    <item.icon className={`mr-3 flex-shrink-0 h-5 w-5 transition-colors ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'
+                      }`} />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
         </div>
 
-        <BrandedFooter />
+        {/* Main Content Area */}
+        <div className="flex-1 lg:pl-64 flex flex-col">
+          <main className="flex-1 min-h-[calc(100vh-4rem)]">
+            <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+              <Outlet />
+            </div>
+          </main>
+
+          {/* Mobile Bottom Navigation - Floating Design */}
+          <div className="lg:hidden sticky bottom-6 left-0 right-0 px-4 z-40 pointer-events-none">
+            <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl shadow-cyan-500/10 px-6 py-3 flex justify-between items-center pointer-events-auto max-w-md mx-auto ring-1 ring-black/5">
+              {navigation.slice(0, 5).map((item) => {
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`flex flex-col items-center gap-1 transition-all duration-300 ${isActive ? 'text-cyan-600 scale-110' : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                  >
+                    <item.icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                    <span className="text-[10px] font-black uppercase tracking-tighter">{item.name.split(' ')[0]}</span>
+                    {isActive && <div className="w-1 h-1 rounded-full bg-cyan-600" />}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <BrandedFooter />
+        </div>
       </div>
 
       <QuickActions />

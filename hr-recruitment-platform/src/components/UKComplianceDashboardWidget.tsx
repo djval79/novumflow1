@@ -61,6 +61,7 @@ interface ExpiringItem {
     severity: 'critical' | 'warning' | 'info';
 }
 
+
 export default function UKComplianceDashboardWidget() {
     const navigate = useNavigate();
     const { currentTenant } = useTenant();
@@ -263,23 +264,24 @@ export default function UKComplianceDashboardWidget() {
         );
     }
 
-    const color = getComplianceColor();
+    const baseColor = getComplianceColor();
+    const primaryGradient = `from-${baseColor}-500 to-${baseColor}-600`;
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Header */}
-            <div className={`bg-gradient-to-r from-${color}-500 to-${color}-600 px-6 py-4`}>
-                <div className="flex items-center justify-between">
+            <div className={`bg-gradient-to-r ${primaryGradient} px-4 sm:px-6 py-4`}>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
                             {getComplianceIcon()}
                         </div>
                         <div>
-                            <h3 className="font-semibold text-white text-lg">UK Compliance Status</h3>
-                            <p className="text-white/80 text-sm">CQC & Home Office</p>
+                            <h3 className="font-bold text-white text-base sm:text-lg tracking-tight">UK Compliance Status</h3>
+                            <p className="text-white/80 text-[10px] sm:text-sm font-bold uppercase tracking-wider">Regulatory Overwatch</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
                         <button
                             onClick={handleRefresh}
                             disabled={refreshing}
@@ -290,7 +292,7 @@ export default function UKComplianceDashboardWidget() {
                         </button>
                         <button
                             onClick={() => navigate('/compliance')}
-                            className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-all flex items-center gap-1"
+                            className="flex-1 sm:flex-none px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1"
                         >
                             View Full Report <ExternalLink className="w-4 h-4" />
                         </button>
@@ -300,29 +302,29 @@ export default function UKComplianceDashboardWidget() {
 
             <div className="p-6">
                 {/* Main Score */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <div>
                         <div className="flex items-baseline gap-2">
-                            <span className={`text-4xl font-bold text-${color}-600`}>
+                            <span className={`text-3xl sm:text-4xl font-black text-${baseColor}-600`}>
                                 {metrics?.complianceRate || 0}%
                             </span>
-                            <span className="text-gray-500 text-sm">compliance rate</span>
+                            <span className="text-gray-500 text-xs sm:text-sm font-bold uppercase tracking-wider">compliance rate</span>
                         </div>
-                        <p className="text-gray-600 mt-1">
+                        <p className="text-gray-600 text-sm mt-1 font-medium">
                             {metrics?.compliantStaff || 0} of {metrics?.totalStaff || 0} staff fully compliant
                         </p>
                     </div>
-                    <div className={`px-4 py-2 rounded-lg ${metrics?.cqcReady ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-                        <div className="flex items-center gap-2">
+                    <div className={`w-full sm:w-auto px-4 py-2 rounded-xl ${metrics?.cqcReady ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'} border ${metrics?.cqcReady ? 'border-emerald-100' : 'border-red-100'}`}>
+                        <div className="flex items-center justify-center sm:justify-start gap-2">
                             {metrics?.cqcReady ? (
                                 <>
                                     <CheckCircle className="w-5 h-5" />
-                                    <span className="font-semibold">CQC Ready</span>
+                                    <span className="font-bold text-sm uppercase tracking-wider">CQC Ready</span>
                                 </>
                             ) : (
                                 <>
                                     <ShieldX className="w-5 h-5" />
-                                    <span className="font-semibold">Action Required</span>
+                                    <span className="font-bold text-sm uppercase tracking-wider">Action Required</span>
                                 </>
                             )}
                         </div>
@@ -334,7 +336,7 @@ export default function UKComplianceDashboardWidget() {
                     {/* DBS Status */}
                     <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <FileCheck className="w-5 h-5 text-indigo-600" />
+                            <FileCheck className="w-5 h-5 text-cyan-600" />
                             <span className="text-sm font-medium text-gray-700">DBS Checks</span>
                         </div>
                         <div className="flex items-baseline gap-2">
@@ -598,23 +600,23 @@ function EVisaTrainingGuide({ onClose }: EVisaTrainingGuideProps) {
                 <div className="space-y-3">
                     <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
                         <label className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer">
-                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600" />
+                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
                             <span className="text-gray-700">Complete RTW check BEFORE first day of work</span>
                         </label>
                         <label className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer">
-                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600" />
+                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
                             <span className="text-gray-700">Use online service for eVisa holders (not BRP)</span>
                         </label>
                         <label className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer">
-                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600" />
+                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
                             <span className="text-gray-700">Save dated copy of verification for 2+ years</span>
                         </label>
                         <label className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer">
-                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600" />
+                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
                             <span className="text-gray-700">Set follow-up check date for time-limited permissions</span>
                         </label>
                         <label className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer">
-                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600" />
+                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
                             <span className="text-gray-700">Record share code in NovumFlow RTW form</span>
                         </label>
                     </div>

@@ -22,10 +22,12 @@ import {
     PoundSterling,
     ClipboardCheck
 } from 'lucide-react';
+import DemoRequestModal from '../components/DemoRequestModal';
 
 export default function LandingPage() {
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
 
     // Simple state to simulate "live" dashboard updates
     const [liveCount, setLiveCount] = useState(98);
@@ -116,7 +118,10 @@ export default function LandingPage() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row justify-center gap-4">
-                        <button className="px-8 py-4 rounded-full bg-cyan-600 text-white font-bold text-lg shadow-xl hover:bg-cyan-700 hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <button
+                            onClick={() => setIsDemoModalOpen(true)}
+                            className="px-8 py-4 rounded-full bg-cyan-600 text-white font-bold text-lg shadow-xl hover:bg-cyan-700 hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                        >
                             Book a Demo <ArrowRight className="w-5 h-5" />
                         </button>
                         <a href="#demo" className="px-8 py-4 rounded-full bg-white text-slate-900 border border-slate-200 font-bold text-lg hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center gap-2">
@@ -435,9 +440,24 @@ export default function LandingPage() {
                         Get the peace of mind that comes with 100% automated compliance.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-4">
-                        <button className="px-10 py-5 rounded-full bg-cyan-600 text-white font-bold text-lg shadow-xl hover:bg-cyan-500 transition-all hover:scale-105">
-                            Start Free Trial
+                        <button
+                            onClick={() => setIsDemoModalOpen(true)}
+                            className="px-10 py-5 rounded-full bg-cyan-600 text-white font-bold text-lg shadow-xl hover:bg-cyan-500 transition-all hover:scale-105"
+                        >
+                            Book a Demo
                         </button>
+                        <a
+                            href="/marketing/compliance-checklist.html"
+                            target="_blank"
+                            className="px-10 py-5 rounded-full bg-white text-slate-900 border border-slate-200 font-bold text-lg hover:bg-slate-50 transition-all shadow-sm flex items-center justify-center gap-2"
+                        >
+                            <FileText className="w-5 h-5 text-gray-400" /> Download Compliance Checklist
+                        </a>
+                    </div>
+                    <div className="mt-8 flex justify-center gap-6">
+                        <a href="/marketing/one-pager.html" target="_blank" className="text-sm font-semibold text-cyan-600 hover:text-cyan-700 underline underline-offset-4">
+                            Product One-Pager (PDF Brief)
+                        </a>
                     </div>
                     <p className="mt-8 text-sm text-slate-500">
                         Full access for 14 days • No credit card required • Cancel anytime
@@ -462,6 +482,12 @@ export default function LandingPage() {
                     </div>
                 </div>
             </footer>
+
+            <DemoRequestModal
+                isOpen={isDemoModalOpen}
+                onClose={() => setIsDemoModalOpen(false)}
+                productInterest="novumflow"
+            />
         </div>
     );
 }

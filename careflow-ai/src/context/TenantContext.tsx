@@ -88,9 +88,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                     // We might need to fetch full details if needed, but for now this breaks the loop
                     const mappedTenants = rpcData.map((t: any) => ({
                         ...t,
-                        settings: {}, // Default
-                        created_at: new Date().toISOString(), // Default
-                        subscription_tier: 'basic' // Default
+                        name: t.name || 'Unknown Organization',
+                        subdomain: t.subdomain || 'unknown',
+                        settings: t.settings || {}, // Default
+                        created_at: t.created_at || new Date().toISOString(), // Default
+                        subscription_tier: t.subscription_tier || 'basic' // Default
                     })) as Tenant[];
 
                     setTenants(mappedTenants);
@@ -170,7 +172,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             if (currentTenant) {
                 try {
                     const { error } = await supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id });
-                    if (error) console.error('Error enforcing RLS context:', error);
+                    if (error) console.error('Error enforcing RLS context:', JSON.stringify(error));
                     else console.log('RLS Context set to:', currentTenant.id);
                 } catch (err) {
                     console.error('Failed to set RLS context:', err);

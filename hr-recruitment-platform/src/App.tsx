@@ -41,7 +41,7 @@ const InspectorDashboard = React.lazy(() => import('./pages/InspectorDashboard')
 const StaffPassportPage = React.lazy(() => import('./pages/StaffPassportPage'));
 const StaffPortalPage = React.lazy(() => import('./pages/StaffPortalPage'));
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
-const CareFlowLandingPage = React.lazy(() => import('./pages/CareFlowLandingPage'));
+// CareFlow is a separate app - see careflow-ai directory
 const TenantSignupPage = React.lazy(() => import('./pages/TenantSignupPage'));
 const AdminPortalPage = React.lazy(() => import('./pages/AdminPortalPage'));
 const AdminSecurityDashboard = React.lazy(() => import('./pages/AdminSecurityDashboard'));
@@ -169,39 +169,15 @@ function App() {
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/tenant/create" element={<TenantSignupPage />} />
 
-                  {/* Landing Pages - Domain-aware routing */}
-                  {/* Root path shows domain-appropriate landing page */}
+                  {/* NovumFlow Landing Page */}
                   <Route
                     path="/"
                     element={
-                      window.location.hostname.includes('careflow') ? (
+                      <PublicRoute>
                         <Suspense fallback={<PageLoader />}>
-                          <CareFlowLandingPage />
+                          <LandingPage />
                         </Suspense>
-                      ) : (
-                        <PublicRoute>
-                          <Suspense fallback={<PageLoader />}>
-                            <LandingPage />
-                          </Suspense>
-                        </PublicRoute>
-                      )
-                    }
-                  />
-                  {/* Cross-product navigation routes */}
-                  <Route
-                    path="/careflow"
-                    element={
-                      <Suspense fallback={<PageLoader />}>
-                        <CareFlowLandingPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/novumflow"
-                    element={
-                      <Suspense fallback={<PageLoader />}>
-                        <LandingPage />
-                      </Suspense>
+                      </PublicRoute>
                     }
                   />
 
