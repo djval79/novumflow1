@@ -1,31 +1,52 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-// Use environment variables with fallback to production Supabase (shared with NovumFlow)
-export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://niikshfoecitimepiifo.supabase.co';
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paWtzaGZvZWNpdGltZXBpaWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNTIyMTUsImV4cCI6MjA3ODYyODIxNX0.4KzLoUez4xQ1_h-vpx1dOa1PrzvAbi65UC4Mf7JQAfc';
+// SECURITY: Enforce environment variables - no fallback credentials
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Validate configuration
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+const isDevelopment = import.meta.env.MODE === 'development';
+
+let supabaseInstance: SupabaseClient<any, "public", any> | null = null;
+
+export function getSupabaseClient() {
+    if (supabaseInstance) {
+        return supabaseInstance;
+    }
+
+    // Validate required configuration
+    if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('[CAREFLOW] Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+        return null;
+    }
+
+    if (isDevelopment) {
+        console.debug('[CAREFLOW] Supabase Configuration:', {
+            url: supabaseUrl,
+            key: supabaseAnonKey.substring(0, 20) + '...',
+            environment: import.meta.env.MODE
+        });
+    }
+
+    try {
+        supabaseInstance = createClient<any, "public", any>(supabaseUrl, supabaseAnonKey, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
+                storageKey: 'novumflow-auth-token', // Shared with NovumFlow for SSO
+                flowType: 'pkce',
+                debug: isDevelopment,
+            }
+        }) as SupabaseClient<any, "public", any>;
+    } catch (err) {
+        console.error('[CAREFLOW] Failed to initialize Supabase client:', err);
+        return null;
+    }
+
+    return supabaseInstance;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storageKey: 'novumflow-auth-token',
-        // flowType: 'pkce', // React 19 / Vite may need this
-        //    // CRITICAL: Enable this in production for shared login between subdomains
-        //    // cookieOptions: {
-        //    //   name: 'novumflow-auth-token',
-        //    //   domain: '.novumflow.com', // Replace with your actual production domain
-        //    //   sameSite: 'lax',
-        //    //   secure: true,
-        //    //   maxAge: 60 * 60 * 24 * 365
-        //    // }
-    }
-});
+export const supabase = getSupabaseClient();
 
 export type UserRole = 'admin' | 'hr_manager' | 'recruiter' | 'employee' | 'carer' | 'staff';
 

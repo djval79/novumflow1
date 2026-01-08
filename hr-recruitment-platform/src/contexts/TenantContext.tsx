@@ -64,6 +64,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        // Guard against null Supabase client
+        if (!supabase) {
+            log.error('Supabase client not initialized', undefined, { component: 'TenantContext', action: 'loadTenants' });
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
 
@@ -120,13 +127,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     // Ensure RLS context is set whenever tenant changes
     useEffect(() => {
-        if (currentTenant) {
-            supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id })
-                .then(({ error }) => {
-                    if (error) log.error('Error enforcing RLS context', error, { component: 'TenantContext', action: 'set_current_tenant', metadata: { tenantId: currentTenant.id } });
-                    else log.debug('RLS Context set', { tenantId: currentTenant.id, component: 'TenantContext' });
-                })
-                .catch(err => log.error('Failed to set RLS context', err, { component: 'TenantContext', action: 'set_current_tenant' }));
+        if (currentTenant && supabase) {
+            (async () => {
+                try {
+                    const { error } = await supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id });
+                    if (error) {
+                        log.error('Error enforcing RLS context', error, { component: 'TenantContext', action: 'set_current_tenant', metadata: { tenantId: currentTenant.id } });
+                    } else {
+                        log.debug('RLS Context set', { tenantId: currentTenant.id, component: 'TenantContext' });
+                    }
+                } catch (err) {
+                    log.error('Failed to set RLS context', err, { component: 'TenantContext', action: 'set_current_tenant' });
+                }
+            })();
         }
     }, [currentTenant]);
 
@@ -142,16 +155,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('currentTenantId', tenantId);
 
         // Set tenant context in Supabase session (for RLS)
-        try {
-            const { error } = await supabase.rpc('set_current_tenant', {
-                p_tenant_id: tenantId
-            });
+        if (supabase) {
+            try {
+                const { error } = await supabase.rpc('set_current_tenant', {
+                    p_tenant_id: tenantId
+                });
 
-            if (error) {
-                log.error('Error setting tenant context', error, { component: 'TenantContext', action: 'switchTenant', metadata: { tenantId } });
+                if (error) {
+                    log.error('Error setting tenant context', error, { component: 'TenantContext', action: 'switchTenant', metadata: { tenantId } });
+                }
+            } catch (error) {
+                log.error('Error calling set_current_tenant', error, { component: 'TenantContext', action: 'switchTenant', metadata: { tenantId } });
             }
-        } catch (error) {
-            log.error('Error calling set_current_tenant', error, { component: 'TenantContext', action: 'switchTenant', metadata: { tenantId } });
         }
 
         // Reload page to refresh all data with new tenant
@@ -160,6 +175,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     // Create new tenant
     const createTenant = useCallback(async (name: string, subdomain: string): Promise<Tenant | null> => {
+        if (!supabase) {
+            log.error('Supabase client not initialized', undefined, { component: 'TenantContext', action: 'createTenant' });
+            return null;
+        }
+
         try {
             const { data, error } = await supabase.rpc('create_tenant', {
                 p_name: name,
@@ -245,6 +265,9 @@ export function useTenantQuery() {
     const { currentTenant } = useTenant();
 
     const withTenant = useCallback((tableName: string) => {
+        if (!supabase) {
+            throw new Error('Supabase client not initialized');
+        }
         if (!currentTenant) {
             throw new Error('No current tenant');
         }

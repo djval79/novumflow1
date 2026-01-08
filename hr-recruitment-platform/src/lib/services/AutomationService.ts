@@ -179,7 +179,7 @@ export class AutomationService {
     }
 
     public stopListening(): void {
-        if (this.subscription) {
+        if (this.subscription && supabase) {
             supabase.removeChannel(this.subscription);
             this.subscription = null;
             log.info('AutomationService listener stopped', {
