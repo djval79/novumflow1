@@ -482,126 +482,128 @@ export default function LandingPage() {
                     </div>
                 </div>
 
-                {/* Features Grid (Expanded) */}
-                <section id="features" className="py-24 bg-slate-900 text-white">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="text-center mb-20">
-                            <h2 className="text-base font-semibold text-cyan-400 tracking-wide uppercase">Core Features</h2>
-                            <h2 className="mt-2 text-3xl font-extrabold text-white sm:text-4xl">
-                                More Than Just a Database
-                            </h2>
-                        </div>
+            </section>
 
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            <FeatureCard
-                                icon={<Shield className="text-cyan-400" />}
-                                title="Automated Compliance"
-                                desc="Daily background scans for expired visas, DBS checks, and training certificates. Alerts managers instantly."
-                            />
-                            <FeatureCard
-                                icon={<BrainCircuit className="text-purple-400" />}
-                                title="AI Recruitment Pipeline"
-                                desc="Smart algorithms rank candidates by relevance. Auto-disqualifies applicants without key certifications."
-                            />
-                            <FeatureCard
-                                icon={<Smartphone className="text-green-400" />}
-                                title="Staff Mobile App (PWA)"
-                                desc="Employees verify visits via GPS, request leave, and upload docs directly from their phone."
-                            />
-                            <FeatureCard
-                                icon={<CalendarCheck className="text-orange-400" />}
-                                title="Smart Rostering"
-                                desc="Drag-and-drop shift planning with conflict detection. Prevents booking non-compliant staff."
-                            />
-                            <FeatureCard
-                                icon={<ClipboardCheck className="text-blue-400" />}
-                                title="CQC Inspection Vault"
-                                desc="One-click 'Inspector Mode' generates a read-only, organized view of all compliance evidence."
-                            />
-                            <FeatureCard
-                                icon={<Stethoscope className="text-red-400" />}
-                                title="Care Management (eMAR)"
-                                desc="Digital medication records and care notes. Real-time updates from the field to the office."
-                            />
+            {/* Features Grid (Expanded) */}
+            <section id="features" className="py-24 bg-slate-900 text-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-20">
+                        <h2 className="text-base font-semibold text-cyan-400 tracking-wide uppercase">Core Features</h2>
+                        <h2 className="mt-2 text-3xl font-extrabold text-white sm:text-4xl">
+                            More Than Just a Database
+                        </h2>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <FeatureCard
+                            icon={<Shield className="text-cyan-400" />}
+                            title="Automated Compliance"
+                            desc="Daily background scans for expired visas, DBS checks, and training certificates. Alerts managers instantly."
+                        />
+                        <FeatureCard
+                            icon={<BrainCircuit className="text-purple-400" />}
+                            title="AI Recruitment Pipeline"
+                            desc="Smart algorithms rank candidates by relevance. Auto-disqualifies applicants without key certifications."
+                        />
+                        <FeatureCard
+                            icon={<Smartphone className="text-green-400" />}
+                            title="Staff Mobile App (PWA)"
+                            desc="Employees verify visits via GPS, request leave, and upload docs directly from their phone."
+                        />
+                        <FeatureCard
+                            icon={<CalendarCheck className="text-orange-400" />}
+                            title="Smart Rostering"
+                            desc="Drag-and-drop shift planning with conflict detection. Prevents booking non-compliant staff."
+                        />
+                        <FeatureCard
+                            icon={<ClipboardCheck className="text-blue-400" />}
+                            title="CQC Inspection Vault"
+                            desc="One-click 'Inspector Mode' generates a read-only, organized view of all compliance evidence."
+                        />
+                        <FeatureCard
+                            icon={<Stethoscope className="text-red-400" />}
+                            title="Care Management (eMAR)"
+                            desc="Digital medication records and care notes. Real-time updates from the field to the office."
+                        />
+                    </div>
+                </div>
+            </section>
+
+            {/* Testimonial Section */}
+            <section className="py-24 bg-white border-b border-gray-100">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <div className="flex justify-center gap-1 mb-8">
+                        {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />)}
+                    </div>
+                    <blockquote className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight mb-10">
+                        "We used to dread CQC inspections. With NovumFlow, our last audit took 20 minutes because everything was already there."
+                    </blockquote>
+                    <div className="flex items-center justify-center gap-4">
+                        <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-400">SJ</div>
+                        <div className="text-left">
+                            <div className="font-bold text-slate-900">Sarah Jenkins</div>
+                            <div className="text-slate-500 text-sm">Director, CareFirst Solutions</div>
                         </div>
                     </div>
-                </section>
+                </div>
+            </section>
 
-                {/* Testimonial Section */}
-                <section className="py-24 bg-white border-b border-gray-100">
-                    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                        <div className="flex justify-center gap-1 mb-8">
-                            {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />)}
-                        </div>
-                        <blockquote className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight mb-10">
-                            "We used to dread CQC inspections. With NovumFlow, our last audit took 20 minutes because everything was already there."
-                        </blockquote>
-                        <div className="flex items-center justify-center gap-4">
-                            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-400">SJ</div>
-                            <div className="text-left">
-                                <div className="font-bold text-slate-900">Sarah Jenkins</div>
-                                <div className="text-slate-500 text-sm">Director, CareFirst Solutions</div>
-                            </div>
-                        </div>
+            {/* Bottom CTA */}
+            <section className="py-24 relative overflow-hidden bg-slate-50">
+                <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+                    <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">Stop Risking Your License.</h2>
+                    <p className="text-slate-600 text-xl mb-12 max-w-2xl mx-auto">
+                        Get the peace of mind that comes with 100% automated compliance.
+                    </p>
+                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                        <button
+                            onClick={() => setIsDemoModalOpen(true)}
+                            className="px-10 py-5 rounded-full bg-cyan-600 text-white font-bold text-lg shadow-xl hover:bg-cyan-500 transition-all hover:scale-105"
+                        >
+                            Book a Demo
+                        </button>
+                        <a
+                            href="/marketing/compliance-checklist.html"
+                            target="_blank"
+                            className="px-10 py-5 rounded-full bg-white text-slate-900 border border-slate-200 font-bold text-lg hover:bg-slate-50 transition-all shadow-sm flex items-center justify-center gap-2"
+                        >
+                            <FileText className="w-5 h-5 text-gray-400" /> Download Compliance Checklist
+                        </a>
                     </div>
-                </section>
-
-                {/* Bottom CTA */}
-                <section className="py-24 relative overflow-hidden bg-slate-50">
-                    <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-                        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">Stop Risking Your License.</h2>
-                        <p className="text-slate-600 text-xl mb-12 max-w-2xl mx-auto">
-                            Get the peace of mind that comes with 100% automated compliance.
-                        </p>
-                        <div className="flex flex-col sm:flex-row justify-center gap-4">
-                            <button
-                                onClick={() => setIsDemoModalOpen(true)}
-                                className="px-10 py-5 rounded-full bg-cyan-600 text-white font-bold text-lg shadow-xl hover:bg-cyan-500 transition-all hover:scale-105"
-                            >
-                                Book a Demo
-                            </button>
-                            <a
-                                href="/marketing/compliance-checklist.html"
-                                target="_blank"
-                                className="px-10 py-5 rounded-full bg-white text-slate-900 border border-slate-200 font-bold text-lg hover:bg-slate-50 transition-all shadow-sm flex items-center justify-center gap-2"
-                            >
-                                <FileText className="w-5 h-5 text-gray-400" /> Download Compliance Checklist
-                            </a>
-                        </div>
-                        <div className="mt-8 flex justify-center gap-6">
-                            <a href="/marketing/one-pager.html" target="_blank" className="text-sm font-semibold text-cyan-600 hover:text-cyan-700 underline underline-offset-4">
-                                Product One-Pager (PDF Brief)
-                            </a>
-                        </div>
-                        <p className="mt-8 text-sm text-slate-500">
-                            Full access for 14 days • No credit card required • Cancel anytime
-                        </p>
+                    <div className="mt-8 flex justify-center gap-6">
+                        <a href="/marketing/one-pager.html" target="_blank" className="text-sm font-semibold text-cyan-600 hover:text-cyan-700 underline underline-offset-4">
+                            Product One-Pager (PDF Brief)
+                        </a>
                     </div>
-                </section>
+                    <p className="mt-8 text-sm text-slate-500">
+                        Full access for 14 days • No credit card required • Cancel anytime
+                    </p>
+                </div>
+            </section>
 
-                {/* Footer */}
-                <footer className="bg-white text-slate-500 py-12 border-t border-slate-100">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-                        <div className="flex items-center gap-2">
-                            <Shield className="h-5 w-5 text-cyan-600" />
-                            <span className="text-lg font-bold text-slate-900">NovumFlow</span>
-                        </div>
-                        <div className="text-sm">
-                            &copy; {new Date().getFullYear()} NovumSolvo Ltd. All rights reserved.
-                        </div>
-                        <div className="flex gap-6 text-sm">
-                            <Link to="/privacy" className="hover:text-cyan-600">Privacy</Link>
-                            <Link to="/terms" className="hover:text-cyan-600">Terms</Link>
-                            <Link to="/support" className="hover:text-cyan-600">Support</Link>
-                        </div>
+            {/* Footer */}
+            <footer className="bg-white text-slate-500 py-12 border-t border-slate-100">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-cyan-600" />
+                        <span className="text-lg font-bold text-slate-900">NovumFlow</span>
                     </div>
-                </footer>
+                    <div className="text-sm">
+                        &copy; {new Date().getFullYear()} NovumSolvo Ltd. All rights reserved.
+                    </div>
+                    <div className="flex gap-6 text-sm">
+                        <Link to="/privacy" className="hover:text-cyan-600">Privacy</Link>
+                        <Link to="/terms" className="hover:text-cyan-600">Terms</Link>
+                        <Link to="/support" className="hover:text-cyan-600">Support</Link>
+                    </div>
+                </div>
+            </footer>
 
-                <DemoRequestModal
-                    isOpen={isDemoModalOpen}
-                    onClose={() => setIsDemoModalOpen(false)}
-                    productInterest="novumflow"
-                />
+            <DemoRequestModal
+                isOpen={isDemoModalOpen}
+                onClose={() => setIsDemoModalOpen(false)}
+                productInterest="novumflow"
+            />
         </div>
     );
 }
