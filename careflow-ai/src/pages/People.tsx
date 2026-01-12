@@ -8,12 +8,13 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { StaffMember, Client, ComplianceRecord } from '../types';
-import { clientService, staffService } from '../services/supabaseService';
+import { clientService, staffService, documentService } from '../services/supabaseService';
 import CarePlanManager from '../components/CarePlanManager';
 import MedicationManager from '../components/MedicationManager';
-import { PeopleListSkeleton } from '../components/Skeleton';
+import { PeopleListSkeleton, Skeleton } from '../components/Skeleton';
 import { useTenant } from '../context/TenantContext';
 import { toast } from 'sonner';
+
 
 const People: React.FC = () => {
    const [activeTab, setActiveTab] = useState<'staff' | 'clients'>('staff');
@@ -22,6 +23,8 @@ const People: React.FC = () => {
    const [isCarePlanOpen, setIsCarePlanOpen] = useState(false);
    const [isMedicationOpen, setIsMedicationOpen] = useState(false);
    const [searchTerm, setSearchTerm] = useState('');
+   const [staffDocs, setStaffDocs] = useState<any[]>([]);
+
 
    const [clients, setClients] = useState<Client[]>([]);
    const [staffList, setStaffList] = useState<StaffMember[]>([]);
@@ -47,7 +50,20 @@ const People: React.FC = () => {
          }
       };
       fetchData();
-   }, []);
+   }, [currentTenant]);
+
+   useEffect(() => {
+      const fetchDocs = async () => {
+         if (activeTab === 'staff' && selectedId && selectedStaff?.novumId && currentTenant) {
+            const docs = await documentService.getStaffDocuments(selectedStaff.novumId, currentTenant.id);
+            setStaffDocs(docs);
+         } else {
+            setStaffDocs([]);
+         }
+      };
+      fetchDocs();
+   }, [selectedId, activeTab, selectedStaff?.novumId, currentTenant]);
+
 
    const handleSyncStaff = async () => {
       if (!currentTenant) return;
@@ -163,6 +179,43 @@ const People: React.FC = () => {
                   ))}
                </div>
             </section>
+
+            <section>
+               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-6 flex items-center gap-3">
+                  <FileText size={18} className="text-blue-500" /> Unified Document Repository
+               </h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {staffDocs.length > 0 ? staffDocs.map(doc => (
+                     <a
+                        key={doc.id}
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-[2rem] hover:bg-indigo-600/20 hover:border-indigo-500/30 transition-all group"
+                     >
+                        <div className="flex items-center gap-4">
+                           <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-xs font-black text-slate-400">
+                              {doc.type}
+                           </div>
+                           <div>
+                              <p className="font-bold text-white text-xs truncate max-w-[150px]">{doc.name}</p>
+                              <div className="flex items-center gap-2">
+                                 <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{doc.category}</span>
+                                 <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest px-1.5 py-0.5 bg-indigo-500/10 rounded-md border border-indigo-500/20">{doc.source}</span>
+                              </div>
+                           </div>
+                        </div>
+                        <Download size={14} className="text-slate-500 group-hover:text-white transition-colors" />
+                     </a>
+                  )) : (
+                     <div className="col-span-2 p-8 bg-white/5 border border-dashed border-white/10 rounded-[2rem] flex flex-col items-center justify-center gap-3">
+                        <FileText size={24} className="text-slate-700" />
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">No documents found in repository</p>
+                     </div>
+                  )}
+               </div>
+            </section>
+
 
             <section>
                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-6 flex items-center gap-3">

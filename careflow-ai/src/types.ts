@@ -39,6 +39,7 @@ export interface StaffMember {
   availability: string; // e.g., "Mon-Fri"
   avatar?: string;
   joinedDate: string;
+  novumId?: string;
 }
 
 export interface Client {
@@ -354,10 +355,12 @@ export interface Enquiry {
   prospectName: string; // The client
   contactName: string; // Family member/Caller
   contactPhone: string;
+  contactEmail?: string | null;
   receivedDate: string;
+  source: string;
   status: EnquiryStatus;
   initialNotes: string;
-  estimatedValue?: number; // Weekly £
+  estimatedValue?: number | null; // Weekly £
 }
 
 export interface EnquiryAnalysis {

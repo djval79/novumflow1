@@ -36,6 +36,7 @@ const ComplianceDashboardPage = React.lazy(() => import('./pages/ComplianceDashb
 const ComplianceHubPage = React.lazy(() => import('./pages/ComplianceHubPage'));
 const AuditLogPage = React.lazy(() => import('./pages/AuditLogPage'));
 const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
+const TermsPage = React.lazy(() => import('./pages/TermsPage'));
 const SupportPage = React.lazy(() => import('./pages/SupportPage'));
 const InspectorDashboard = React.lazy(() => import('./pages/InspectorDashboard'));
 const StaffPassportPage = React.lazy(() => import('./pages/StaffPassportPage'));
@@ -166,6 +167,7 @@ function App() {
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/tenant/create" element={<TenantSignupPage />} />
 
@@ -173,11 +175,9 @@ function App() {
                   <Route
                     path="/"
                     element={
-                      <PublicRoute>
-                        <Suspense fallback={<PageLoader />}>
-                          <LandingPage />
-                        </Suspense>
-                      </PublicRoute>
+                      <Suspense fallback={<PageLoader />}>
+                        <LandingPage />
+                      </Suspense>
                     }
                   />
 

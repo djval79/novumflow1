@@ -58,7 +58,7 @@ export function getSupabaseClient() {
         storageKey: 'novumflow-auth-token',
         // Enable cleaning up of checking for shared cookies on subdomains
         flowType: 'pkce',
-        debug: isDevelopment,
+        debug: false,
         //    // CRITICAL: Enable this in production for shared login between subdomains
         //    // cookieOptions: {
         //    //   name: 'novumflow-auth-token',

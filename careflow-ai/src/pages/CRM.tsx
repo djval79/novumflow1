@@ -40,10 +40,11 @@ const CRM: React.FC = () => {
                setEnquiries(mapped);
             } else {
                // Default demo enquiries
-               setEnquiries([
+               const demoEnquiries: Enquiry[] = [
                   { id: '1', prospectName: 'Mrs. Johnson', contactName: 'Sarah Johnson (Daughter)', contactPhone: '07712 345678', contactEmail: null, receivedDate: 'Today', source: 'Website', status: 'New' as EnquiryStatus, initialNotes: 'Looking for live-in care for mother with dementia. Needs 24/7 supervision.', estimatedValue: 650 },
                   { id: '2', prospectName: 'Mr. Williams', contactName: 'Social Worker', contactPhone: '0151 123 4567', contactEmail: null, receivedDate: 'Yesterday', source: 'Referral', status: 'Contacted' as EnquiryStatus, initialNotes: 'Hospital discharge - needs twice daily visits for medication management.', estimatedValue: 280 }
-               ]);
+               ];
+               setEnquiries(demoEnquiries);
             }
          } catch (error) {
             toast.error('Pipeline synchronization failure');

@@ -45,11 +45,12 @@ class ComplianceCheckService {
 
             // Check compliance from careflow_compliance table
             const { data: compliance, error: complianceError } = await supabase
-                .from('careflow_compliance')
+                .from('staff_compliance_summary')
                 .select('*')
                 .eq('staff_id', staffId)
                 .eq('tenant_id', tenantId)
                 .single();
+
 
             if (complianceError && complianceError.code !== 'PGRST116') {
                 console.error('Error checking compliance:', complianceError);
@@ -69,7 +70,7 @@ class ComplianceCheckService {
                 }
 
                 // Basic compliance check from employee record
-                const rtwValid = employee.rtw_status === 'verified';
+                const rtwValid = employee.right_to_work_status === 'verified';
 
                 return {
                     staffId,

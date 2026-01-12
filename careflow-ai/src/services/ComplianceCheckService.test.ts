@@ -68,7 +68,7 @@ describe('ComplianceCheckService', () => {
                     })
                 }
             }
-            if (table === 'careflow_compliance') {
+            if (table === 'staff_compliance_summary') {
                 return {
                     select: () => ({
                         eq: () => ({

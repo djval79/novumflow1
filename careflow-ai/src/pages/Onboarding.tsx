@@ -1,13 +1,43 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTenant } from '../context/TenantContext';
+import { useAuth } from '../context/AuthContext';
 import { Building, ArrowRight, Loader2, Zap, Globe, Cpu } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Onboarding() {
-    const { createTenant } = useTenant();
+    const navigate = useNavigate();
+    const { user, loading: authLoading } = useAuth();
+    const { createTenant, loading: tenantLoading } = useTenant();
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Debug logging
+    useEffect(() => {
+        console.log('Onboarding - User:', user?.email, 'AuthLoading:', authLoading, 'TenantLoading:', tenantLoading);
+    }, [user, authLoading, tenantLoading]);
+
+    // Redirect to signup if not authenticated
+    useEffect(() => {
+        if (!authLoading && !user) {
+            console.log('Onboarding: No user found, redirecting to signup');
+            navigate('/signup');
+        }
+    }, [user, authLoading, navigate]);
+
+    // Show loading while auth is being verified
+    if (authLoading || tenantLoading) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="animate-spin text-primary-500" size={48} />
+                    <p className="text-slate-400 text-sm font-medium">Loading your workspace...</p>
+                </div>
+            </div>
+        );
+    }
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

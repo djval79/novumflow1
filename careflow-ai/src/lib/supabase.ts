@@ -35,7 +35,7 @@ export function getSupabaseClient() {
                 detectSessionInUrl: true,
                 storageKey: 'novumflow-auth-token', // Shared with NovumFlow for SSO
                 flowType: 'pkce',
-                debug: isDevelopment,
+                debug: false,
             }
         }) as SupabaseClient<any, "public", any>;
     } catch (err) {

@@ -37,6 +37,8 @@ const Reports = React.lazy(() => import('./pages/Reports'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Integrations = React.lazy(() => import('./pages/Integrations'));
 const Login = React.lazy(() => import('./pages/Login'));
+const Signup = React.lazy(() => import('./pages/Signup'));
+const QuickFix = React.lazy(() => import('./pages/QuickFix'));
 const AcceptInvite = React.lazy(() => import('./pages/AcceptInvite'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const FinanceDashboard = React.lazy(() => import('./pages/FinanceDashboard'));
@@ -65,6 +67,8 @@ const Nutrition = React.lazy(() => import('./pages/Nutrition'));
 const Inventory = React.lazy(() => import('./pages/Inventory'));
 const MobileSchedule = React.lazy(() => import('./pages/MobileSchedule'));
 const TenantSettings = React.lazy(() => import('./pages/TenantSettings'));
+const TermsPage = React.lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
 
 const AppLayout: React.FC = () => {
   return (
@@ -101,8 +105,12 @@ const App: React.FC = () => {
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<Suspense fallback={<AuthPageLoader />}><Login /></Suspense>} />
+              <Route path="/signup" element={<Suspense fallback={<AuthPageLoader />}><Signup /></Suspense>} />
+              <Route path="/quickfix" element={<Suspense fallback={<AuthPageLoader />}><QuickFix /></Suspense>} />
               <Route path="/accept-invite" element={<Suspense fallback={<AuthPageLoader />}><AcceptInvite /></Suspense>} />
               <Route path="/onboarding" element={<Suspense fallback={<AuthPageLoader />}><Onboarding /></Suspense>} />
+              <Route path="/terms" element={<Suspense fallback={<AuthPageLoader />}><TermsPage /></Suspense>} />
+              <Route path="/privacy" element={<Suspense fallback={<AuthPageLoader />}><PrivacyPage /></Suspense>} />
 
               {/* Protected Routes */}
               <Route path="/" element={<LandingPage />} />

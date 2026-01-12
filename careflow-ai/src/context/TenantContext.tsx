@@ -56,6 +56,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     // Load user's tenants and memberships
     const loadTenants = useCallback(async () => {
         if (!user) {
+            console.log('TenantContext: No user, clearing tenants');
             setTenants([]);
             setMemberships([]);
             setCurrentTenant(null);
@@ -65,6 +66,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
         try {
             setLoading(true);
+            console.log('TenantContext: Loading memberships for user:', user.id);
 
             // Load memberships
             const { data: membershipData, error: membershipError } = await supabase
@@ -74,74 +76,81 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                 .eq('is_active', true)
                 .order('joined_at', { ascending: true });
 
-            if (membershipError) throw membershipError;
+            console.log('TenantContext: Membership query result:', {
+                data: membershipData,
+                error: membershipError,
+                count: membershipData?.length
+            });
+
+            if (membershipError) {
+                console.error('TenantContext: Membership query error:', membershipError);
+                throw membershipError;
+            }
 
             setMemberships(membershipData || []);
 
-            // Load tenants using safe RPC to avoid RLS recursion
-            try {
-                const { data: rpcData, error: rpcError } = await supabase.rpc('get_my_tenants');
+            // Load tenants using membership data directly
+            // The RPC approach using auth.uid() has issues, so we use memberships + direct tenant query
+            if (membershipData && membershipData.length > 0) {
+                console.log('TenantContext: Found', membershipData.length, 'memberships. Loading tenants...');
 
-                if (!rpcError && rpcData) {
-                    console.log('TenantContext: Loaded tenants via RPC', rpcData);
-                    // Map RPC result to Tenant type (RPC returns subset of fields, but enough for switcher)
-                    // We might need to fetch full details if needed, but for now this breaks the loop
-                    const mappedTenants = rpcData.map((t: any) => ({
-                        ...t,
-                        name: t.name || 'Unknown Organization',
-                        subdomain: t.subdomain || 'unknown',
-                        settings: t.settings || {}, // Default
-                        created_at: t.created_at || new Date().toISOString(), // Default
-                        subscription_tier: t.subscription_tier || 'basic' // Default
-                    })) as Tenant[];
+                const tenantIds = membershipData.map(m => m.tenant_id);
+                console.log('TenantContext: Tenant IDs to load:', tenantIds);
 
-                    setTenants(mappedTenants);
+                const { data: tenantData, error: tenantError } = await supabase
+                    .from('tenants')
+                    .select('*')
+                    .in('id', tenantIds)
+                    .eq('is_active', true);
 
-                    // Set current tenant (Priority: URL > LocalStorage > First available)
-                    const searchParams = new URLSearchParams(window.location.search);
-                    const urlTenantId = searchParams.get('tenant');
-                    const savedTenantId = localStorage.getItem('currentTenantId');
-
-                    const tenantToSet = (urlTenantId && mappedTenants.find(t => t.id === urlTenantId))
-                        || (savedTenantId ? mappedTenants.find(t => t.id === savedTenantId) : null)
-                        || mappedTenants[0];
-
-                    if (tenantToSet) {
-                        setCurrentTenant(tenantToSet);
-                        localStorage.setItem('currentTenantId', tenantToSet.id);
-                    }
-                } else {
-                    throw rpcError || new Error('No data from RPC');
+                if (tenantError) {
+                    console.error('TenantContext: Error loading tenants:', tenantError);
+                    throw tenantError;
                 }
-            } catch (rpcErr) {
-                console.warn('TenantContext: RPC failed, falling back to direct query', rpcErr);
 
-                // Fallback to direct query (original logic)
-                if (membershipData && membershipData.length > 0) {
-                    const tenantIds = membershipData.map(m => m.tenant_id);
+                console.log('TenantContext: Loaded tenants:', tenantData);
+                setTenants(tenantData || []);
 
-                    const { data: tenantData, error: tenantError } = await supabase
-                        .from('tenants')
-                        .select('*')
-                        .in('id', tenantIds)
-                        .eq('is_active', true);
+                // Set current tenant (Priority: URL > LocalStorage > First available)
+                const searchParams = new URLSearchParams(window.location.search);
+                const urlTenantId = searchParams.get('tenant');
+                const savedTenantId = localStorage.getItem('currentTenantId');
 
-                    if (tenantError) throw tenantError;
+                const tenantToSet = (urlTenantId && tenantData?.find(t => t.id === urlTenantId))
+                    || (savedTenantId ? tenantData?.find(t => t.id === savedTenantId) : null)
+                    || tenantData?.[0];
 
-                    setTenants(tenantData || []);
+                if (tenantToSet) {
+                    console.log('TenantContext: Setting current tenant to:', tenantToSet.name);
+                    setCurrentTenant(tenantToSet);
+                    localStorage.setItem('currentTenantId', tenantToSet.id);
+                }
+            } else {
+                console.log('TenantContext: No memberships found for user');
 
-                    const searchParams = new URLSearchParams(window.location.search);
-                    const urlTenantId = searchParams.get('tenant');
-                    const savedTenantId = localStorage.getItem('currentTenantId');
+                // Try RPC as fallback (though likely will also fail)
+                try {
+                    const { data: rpcData, error: rpcError } = await supabase.rpc('get_my_tenants');
 
-                    const tenantToSet = (urlTenantId && tenantData?.find(t => t.id === urlTenantId))
-                        || (savedTenantId ? tenantData?.find(t => t.id === savedTenantId) : null)
-                        || tenantData?.[0];
+                    if (!rpcError && rpcData && rpcData.length > 0) {
+                        console.log('TenantContext: Loaded tenants via RPC fallback', rpcData);
+                        const mappedTenants = rpcData.map((t: any) => ({
+                            ...t,
+                            name: t.name || 'Unknown Organization',
+                            subdomain: t.subdomain || 'unknown',
+                            settings: t.settings || {},
+                            created_at: t.created_at || new Date().toISOString(),
+                            subscription_tier: t.subscription_tier || 'basic'
+                        })) as Tenant[];
 
-                    if (tenantToSet) {
-                        setCurrentTenant(tenantToSet);
-                        localStorage.setItem('currentTenantId', tenantToSet.id);
+                        setTenants(mappedTenants);
+                        if (mappedTenants[0]) {
+                            setCurrentTenant(mappedTenants[0]);
+                            localStorage.setItem('currentTenantId', mappedTenants[0].id);
+                        }
                     }
+                } catch (rpcErr) {
+                    console.warn('TenantContext: RPC fallback also failed', rpcErr);
                 }
             }
         } catch (error) {
@@ -217,6 +226,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            console.log('TenantContext: Calling create_tenant RPC with:', { name, subdomain, userId: user.id });
+
             const { data, error } = await supabase.rpc('create_tenant', {
                 p_name: name,
                 p_subdomain: subdomain,
@@ -224,14 +235,25 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                 // Note: subscription_tier is hardcoded to 'trial' inside the RPC function
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error('TenantContext: create_tenant RPC failed:', {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code,
+                    fullError: JSON.stringify(error, null, 2)
+                });
+                throw error;
+            }
+
+            console.log('TenantContext: Tenant created successfully:', data);
 
             // Refresh tenants list
             await loadTenants();
 
             return data;
-        } catch (error) {
-            console.error('Error creating tenant:', error);
+        } catch (error: any) {
+            console.error('Error creating tenant:', error?.message || error, error);
             return null;
         }
     }, [user, loadTenants]);

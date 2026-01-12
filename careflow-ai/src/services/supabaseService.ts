@@ -184,6 +184,9 @@ export const visitService = {
             .single();
 
         if (error) throw error;
+
+        const client = Array.isArray(data.client) ? data.client[0] : data.client;
+
         return {
             ...data,
             visit_date: data.scheduled_date,
@@ -191,9 +194,9 @@ export const visitService = {
             end_time: data.scheduled_end,
             tasks: data.tasks_completed || [],
             client: {
-                ...data.client,
-                first_name: data.client?.name.split(' ')[0] || '',
-                last_name: data.client?.name.split(' ').slice(1).join(' ') || '',
+                ...client,
+                first_name: client?.name?.split(' ')[0] || '',
+                last_name: client?.name?.split(' ').slice(1).join(' ') || '',
                 postcode: ''
             }
         };
@@ -264,7 +267,7 @@ export const medicationService = {
         })) as MarRecord[];
     },
 
-    async signMar(record: { clientId: string, medicationId: string, status: string, staffId: string, note?: string }) {
+    async signMar(record: { clientId: string, medicationId: string, status: string, staffId: string, note?: string, date?: string, timeSlot?: string }) {
         const { data, error } = await supabase
             .from('careflow_medication_administrations')
             .insert([{
@@ -989,10 +992,11 @@ export const staffService = {
         if (error) throw error;
         return data.map((e: any) => ({
             id: e.id,
-            userId: e.id, // Add this line to map userId to staff ID
+            userId: e.user_id, // Correctly map user_id from e.user_id
             novumId: e.novumflow_employee_id,
             name: e.full_name,
             role: e.role,
+
             status: e.status || 'Active',
             phone: e.phone || '',
             email: e.email || '',
@@ -1013,7 +1017,7 @@ export const staffService = {
 
         // Use a generic training table for now
         const { data, error } = await supabase
-            .from('careflow_compliance_records') // Hypothetical, but likely what we want
+            .from('careflow_compliance') // Corrected from careflow_compliance_records
             .insert([{
                 staff_id: record.userId, // This might need to be looked up from auth ID if userId is auth ID
                 document_name: record.trainingName,
@@ -1090,7 +1094,39 @@ const mapper = {
 // Training Modules (replaces MOCK_TRAINING_MODULES)
 // ==========================================
 
+// ==========================================
+// Documents & Unified Repository
+// ==========================================
+
+export const documentService = {
+    async getStaffDocuments(employeeId: string, tenantId: string) {
+        if (!employeeId) return [];
+        const { data, error } = await supabase
+            .from('unified_employee_documents')
+            .select('*')
+            .eq('employee_id', employeeId)
+            .eq('tenant_id', tenantId);
+
+        if (error) {
+            console.error('Error fetching unified documents:', error);
+            return [];
+        }
+
+        return data.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            type: d.type?.toUpperCase() || 'PDF',
+            category: d.category || 'Staff Record',
+            uploadedDate: new Date(d.created_at).toLocaleDateString(),
+            size: `${(d.size / 1024 / 1024).toFixed(1)} MB`,
+            source: d.source,
+            url: d.file_url
+        }));
+    }
+};
+
 export const trainingService = {
+
     async getModules(tenantId?: string) {
         let query = supabase.from('careflow_training_modules').select('*').order('title');
         if (tenantId) query = query.eq('tenant_id', tenantId);

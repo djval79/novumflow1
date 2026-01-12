@@ -12,6 +12,8 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
+  // IMPORTANT: All hooks must be called at the top, before any conditional returns
+  const { tenants, loading: tenantLoading } = useTenant();
 
   const [showOverride, setShowOverride] = React.useState(false);
 
@@ -25,7 +27,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
     return () => clearTimeout(timer);
   }, [loading]);
 
-  if (loading) {
+  // Also wait for tenant loading to complete
+  if (loading || tenantLoading) {
     console.log('ProtectedRoute: Loading...');
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -85,11 +88,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   }
 
   // Tenant Check: If user has no tenants, force onboarding
-  // We use a window global or check pathname to avoid redirect loops if Onboarding was protected
-  // But Onboarding is public in App.tsx, so this is safe.
-  const { tenants, loading: tenantLoading } = useTenant();
+  // (tenants and tenantLoading are now loaded at the top with other hooks)
+  if (tenants.length === 0) {
+    // If we are already on the onboarding page, allow access
+    if (location.pathname === '/onboarding') {
+      return <Outlet />;
+    }
 
-  if (!tenantLoading && tenants.length === 0) {
     console.log('No tenants found for user. Redirecting to Onboarding.');
     return <Navigate to="/onboarding" replace />;
   }

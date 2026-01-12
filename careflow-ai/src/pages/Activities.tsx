@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-Sparkles, Loader2, Coffee, Plus, X, Heart, Activity, Star, Music, Palette, Dumbbell, Brain
+import {
+   Sparkles, Loader2, Coffee, Plus, X, Heart, Activity, Star, Music, Palette, Dumbbell, Brain, Clock, MapPin, Users
 } from 'lucide-react';
 import { eventService } from '../services/supabaseService';
 import { SocialEvent, ActivitySuggestion, UserRole } from '../types';
