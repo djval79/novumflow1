@@ -20,10 +20,8 @@ import {
     Briefcase,
     CalendarCheck,
     PoundSterling,
-    PoundSterling,
     ClipboardCheck,
     Server,
-    Lock,
     Gavel
 } from 'lucide-react';
 import DemoRequestModal from '../components/DemoRequestModal';
@@ -612,7 +610,7 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: stri
     return (
         <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/80 transition-all group">
             <div className="h-12 w-12 bg-slate-900 rounded-xl flex items-center justify-center mb-6 border border-slate-700 group-hover:scale-110 transition-transform">
-                {React.cloneElement(icon as React.ReactElement, { className: `w-6 h-6 ${(icon as React.ReactElement).props.className}` })}
+                {React.cloneElement(icon as React.ReactElement, { className: `w - 6 h - 6 ${(icon as React.ReactElement).props.className} ` })}
             </div>
             <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
             <p className="text-slate-400 leading-relaxed">
