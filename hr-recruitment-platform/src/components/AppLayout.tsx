@@ -40,7 +40,7 @@ import GlobalSearch from './GlobalSearch';
 import QuickActions from './QuickActions';
 import HelpCenter from './HelpCenter';
 import PWAInstallPrompt from './PWAInstallPrompt';
-import { QuickAppSwitcher } from './CrossAppNavigation';
+import { QuickAppSwitcher, CompactAppSwitcher } from './CrossAppNavigation';
 
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
