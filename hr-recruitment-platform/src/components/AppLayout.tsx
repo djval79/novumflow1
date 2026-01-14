@@ -147,6 +147,26 @@ export default function AppLayout() {
     feature: 'system'
   });
 
+  // Add Unified Suite (Admin/Manager)
+  if (profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'manager') {
+    navigation.push({
+      name: 'NovumFlow Suite',
+      href: '/suite',
+      icon: LayoutDashboard,
+      feature: 'dashboard'
+    });
+  }
+
+  // Add Developer Settings (Admin)
+  if (profile?.role === 'owner' || profile?.role === 'admin') {
+    navigation.push({
+      name: 'Developers',
+      href: '/developer',
+      icon: Settings,
+      feature: 'settings'
+    });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Navigation Bar */}

@@ -3,19 +3,20 @@ import React, { useState, useEffect } from 'react';
 import {
    Briefcase, Calendar, CheckCircle2, FileText, Clock,
    AlertCircle, ShieldCheck, ChevronRight, Download, X, Plus,
-   BookOpen, PenTool, Loader2, User, Activity, Zap, TrendingUp, Shield
+   BookOpen, PenTool, Loader2, User, Activity, Zap, TrendingUp, Shield, ArrowRight, History
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { supabase } from '../lib/supabase';
-import { leaveService, staffService, policyService } from '../services/supabaseService';
+import { leaveService, staffService, policyService, documentService } from '../services/supabaseService';
+import complianceCheckService, { ComplianceStatus } from '../services/ComplianceCheckService';
 import { LeaveRequest, PolicyDocument } from '../types';
 import { toast } from 'sonner';
 
 const StaffPortal: React.FC = () => {
    const { user } = useAuth();
    const { currentTenant } = useTenant();
-   const [activeTab, setActiveTab] = useState<'overview' | 'policies' | 'leave' | 'pay'>('overview');
+   const [activeTab, setActiveTab] = useState<'overview' | 'policies' | 'leave' | 'pay' | 'documents'>('overview');
    const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
    const [policies, setPolicies] = useState<PolicyDocument[]>([]);
    const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
@@ -24,6 +25,9 @@ const StaffPortal: React.FC = () => {
    const [profile, setProfile] = useState<any>(null);
    const [loading, setLoading] = useState(true);
    const [payslips, setPayslips] = useState<any[]>([]);
+   const [compliance, setCompliance] = useState<ComplianceStatus | null>(null);
+   const [documents, setDocuments] = useState<any[]>([]);
+   const [documentsLoading, setDocumentsLoading] = useState(false);
 
    const [leaveForm, setLeaveForm] = useState({
       type: 'Holiday',
@@ -49,6 +53,10 @@ const StaffPortal: React.FC = () => {
                setProfile(staffData);
                const requests = await leaveService.getAll(staffData.id);
                setLeaveRequests(requests);
+
+               // Fetch real compliance data
+               const comp = await complianceCheckService.checkStaffCompliance(staffData.id, currentTenant.id);
+               setCompliance(comp);
             }
 
             const policiesData = await policyService.getAll(currentTenant.id);
@@ -86,6 +94,24 @@ const StaffPortal: React.FC = () => {
 
       fetchData();
    }, [user, currentTenant]);
+
+   useEffect(() => {
+      const fetchDocs = async () => {
+         if (activeTab === 'documents' && profile && currentTenant) {
+            setDocumentsLoading(true);
+            try {
+               const docs = await documentService.getStaffDocuments(profile.novumflow_employee_id || profile.id, currentTenant.id);
+               setDocuments(docs);
+            } catch (err) {
+               console.error('Error fetching documents:', err);
+               toast.error('Failed to load documents');
+            } finally {
+               setDocumentsLoading(false);
+            }
+         }
+      };
+      fetchDocs();
+   }, [activeTab, profile, currentTenant]);
 
    const holidayAllowance = 28;
    const holidayUsed = leaveRequests
@@ -176,11 +202,25 @@ const StaffPortal: React.FC = () => {
             <div className="space-y-6">
                <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Right to Work</span>
-                  <CheckCircle2 size={18} className="text-green-500 animate-pulse" />
+                  {compliance?.rtw_status === 'valid' ? (
+                     <CheckCircle2 size={18} className="text-green-500 animate-pulse" />
+                  ) : (
+                     <AlertCircle size={18} className="text-amber-500" />
+                  )}
                </div>
                <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">DBS Verified</span>
-                  <CheckCircle2 size={18} className="text-green-500 animate-pulse" />
+                  {compliance?.dbs_status === 'valid' ? (
+                     <CheckCircle2 size={18} className="text-green-500 animate-pulse" />
+                  ) : (
+                     <AlertCircle size={18} className="text-amber-500" />
+                  )}
+               </div>
+               <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Training</span>
+                  <span className={`text-[10px] font-black ${compliance?.training_status === 'valid' ? 'text-green-500' : 'text-amber-500'}`}>
+                     {compliance?.compliancePercentage || 0}%
+                  </span>
                </div>
             </div>
             <button
@@ -403,6 +443,54 @@ const StaffPortal: React.FC = () => {
       </div>
    );
 
+   const renderDocuments = () => (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+         <div className="bg-white rounded-[4rem] border border-slate-100 shadow-2xl overflow-hidden">
+            <div className="p-10 border-b border-slate-50 bg-slate-50/20 flex justify-between items-center">
+               <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.5em] flex items-center gap-4">
+                  <FileText size={24} className="text-primary-600" /> Digital Document Repository
+               </h3>
+               {documentsLoading && <Loader2 className="animate-spin text-primary-600" size={20} />}
+            </div>
+            <div className="divide-y divide-slate-50">
+               {documents.length > 0 ? documents.map(doc => (
+                  <div key={doc.id} className="p-10 flex items-center justify-between hover:bg-slate-50/50 transition-all group">
+                     <div className="flex items-center gap-8">
+                        <div className="p-5 bg-primary-500 text-white rounded-2xl shadow-2xl group-hover:scale-110 transition-transform border-4 border-white">
+                           <FileText size={28} />
+                        </div>
+                        <div className="space-y-1">
+                           <p className="font-black text-slate-900 uppercase tracking-tight text-xl">{doc.name}</p>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widestAlpha">
+                              {doc.category} • {doc.type} • {doc.uploadedDate}
+                           </p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-4">
+                        <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[8px] font-black rounded-lg uppercase tracking-widest">
+                           {doc.source === 'novumflow' ? 'NovumFlow Sync' : 'CareFlow Local'}
+                        </span>
+                        <a
+                           href={doc.url}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="flex items-center gap-4 px-8 py-4 bg-slate-900 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-black transition-all shadow-xl active:scale-95"
+                        >
+                           <Download size={18} /> Download
+                        </a>
+                     </div>
+                  </div>
+               )) : !documentsLoading && (
+                  <div className="p-20 text-center flex flex-col items-center gap-6 grayscale opacity-20">
+                     <FileText size={64} className="text-slate-400" />
+                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em]">No documents archived</p>
+                  </div>
+               )}
+            </div>
+         </div>
+      </div>
+   );
+
    return (
       <div className="max-w-7xl mx-auto space-y-12 pb-12 animate-in fade-in duration-700 h-[calc(100vh-6.5rem)] overflow-y-auto pr-4 scrollbar-hide">
          <div className="flex flex-col md:flex-row justify-between items-end gap-10">
@@ -424,6 +512,7 @@ const StaffPortal: React.FC = () => {
                { id: 'policies', label: 'Protocols', icon: FileText },
                { id: 'leave', label: 'Absense', icon: Calendar },
                { id: 'pay', label: 'Fiscal', icon: CheckCircle2 },
+               { id: 'documents', label: 'Documents', icon: FileText },
             ].map(tab => (
                <button
                   key={tab.id}
@@ -442,6 +531,7 @@ const StaffPortal: React.FC = () => {
          {activeTab === 'policies' && renderPolicies()}
          {activeTab === 'leave' && renderLeave()}
          {activeTab === 'pay' && renderPay()}
+         {activeTab === 'documents' && renderDocuments()}
 
          {/* Policy Examination Modal */}
          {readingPolicy && (

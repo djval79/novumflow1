@@ -205,6 +205,11 @@ export default function RecruitmentPage() {
   const [showJobDetailsModal, setShowJobDetailsModal] = useState(false);
   const [selectedJobDetails, setSelectedJobDetails] = useState<any>(null);
 
+  // New Loading States for CTAs
+  const [isAiScreening, setIsAiScreening] = useState<string | null>(null);
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState<string | null>(null);
+  const [isUpdatingStage, setIsUpdatingStage] = useState<string | null>(null);
+
   useEffect(() => {
     loadData();
     loadWorkflowsAndStages();
@@ -302,73 +307,74 @@ export default function RecruitmentPage() {
       app.id === appId ? { ...app, current_stage_id: stageId } : app
     ));
 
-    const { error } = await supabase
-      .from('applications')
-      .update({
-        current_stage_id: stageId,
-        last_updated_by: user?.id
-      })
-      .eq('id', appId);
+    setIsUpdatingStage(appId);
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          current_stage_id: stageId,
+          last_updated_by: user?.id
+        })
+        .eq('id', appId);
 
-    if (!error) {
-      setToast({ message: 'Application stage updated', type: 'success' });
+      if (!error) {
+        setToast({ message: 'Application stage updated', type: 'success' });
+        // Refresh local state
+        setApplications(prev => prev.map(app =>
+          app.id === appId ? { ...app, current_stage_id: stageId } : app
+        ));
 
-      // Check for automations
-      try {
-        const { data: automations } = await supabase
-          .from('stage_automations')
-          .select('*')
-          .eq('stage_id', stageId)
-          .eq('is_active', true)
-          .eq('trigger_event', 'on_enter');
+        // Check for automations
+        try {
+          const { data: automations } = await supabase
+            .from('stage_automations')
+            .select('*')
+            .eq('stage_id', stageId)
+            .eq('is_active', true)
+            .eq('trigger_event', 'on_enter');
 
-        if (automations && automations.length > 0) {
-          // Log trigger events to automation service
-          const automationLogs = automations.map(auto => ({
-            rule_id: auto.id, // Using stage_automation id as rule_id
-            trigger_event: 'stage_change',
-            execution_status: 'pending',
-            created_by: user?.id, // Ensure we track who triggered it
-            trigger_data: {
-              action_type: auto.action_type,
-              action_config: auto.action_config,
-              application_id: appId,
-              stage_id: stageId,
-              automation_name: auto.name
-            }
-          }));
-
-          const { error: logError } = await supabase
-            .from('automation_execution_logs')
-            .insert(automationLogs);
-
-          if (logError) {
-            log.error('Failed to schedule automations', logError, { component: 'RecruitmentPage', action: 'updateApplicationStage', metadata: { stageId } });
-            setToast({ message: 'Stage updated, but failed to trigger automations', type: 'warning' });
-          } else {
-            // Notify user
-            const actionNames = automations.map(a => a.action_type.replace('_', ' ')).join(', ');
-            // Special handling for interview scheduling - might still want the modal fallback if not fully auto
-            automations.forEach(auto => {
-              if (auto.action_type === 'schedule_interview') {
-                // Start the flow or let the service handle it? 
-                // Service handles creation, but maybe we want to hint user?
+          if (automations && automations.length > 0) {
+            // Log trigger events to automation service
+            const automationLogs = automations.map(auto => ({
+              rule_id: auto.id,
+              trigger_event: 'stage_change',
+              execution_status: 'pending',
+              created_by: user?.id,
+              trigger_data: {
+                action_type: auto.action_type,
+                action_config: auto.action_config,
+                application_id: appId,
+                stage_id: stageId,
+                automation_name: auto.name
               }
-            });
+            }));
 
-            setToast({
-              message: `Stage updated. Scheduled actions: ${actionNames}`,
-              type: 'success'
-            });
+            const { error: logError } = await supabase
+              .from('automation_execution_logs')
+              .insert(automationLogs);
+
+            if (logError) {
+              log.error('Failed to schedule automations', logError, { component: 'RecruitmentPage', action: 'updateApplicationStage', metadata: { stageId } });
+            } else {
+              const actionNames = automations.map(a => a.action_type.replace('_', ' ')).join(', ');
+              setToast({
+                message: `Stage updated. Scheduled actions: ${actionNames}`,
+                type: 'success'
+              });
+            }
           }
+        } catch (err) {
+          log.error('Error executing automations', err, { component: 'RecruitmentPage', action: 'updateApplicationStage' });
         }
-      } catch (err) {
-        log.error('Error executing automations', err, { component: 'RecruitmentPage', action: 'updateApplicationStage' });
+      } else {
+        throw error;
       }
-
-    } else {
-      setToast({ message: 'Failed to update stage', type: 'error' });
+    } catch (err: any) {
+      log.error('Failed to update stage', err, { component: 'RecruitmentPage', action: 'updateApplicationStage' });
+      setToast({ message: `Error: ${err.message || 'Failed to update stage'}`, type: 'error' });
       loadData(); // Revert on error
+    } finally {
+      setIsUpdatingStage(null);
     }
   }
 
@@ -438,6 +444,8 @@ export default function RecruitmentPage() {
   }
 
   async function handleAiScreen(application: any) {
+    if (isAiScreening) return;
+    setIsAiScreening(application.id);
     try {
       const { data, error } = await supabase.functions.invoke('ai-screen-resume', {
         body: {
@@ -451,7 +459,10 @@ export default function RecruitmentPage() {
       setToast({ message: 'AI screening completed successfully!', type: 'success' });
       loadData(); // Refresh the application data to show the new score and summary
     } catch (error: any) {
+      log.error('AI screening failed', error, { component: 'RecruitmentPage', action: 'handleAiScreen', metadata: { appId: application.id } });
       setToast({ message: error.message || 'Failed to start AI screening', type: 'error' });
+    } finally {
+      setIsAiScreening(null);
     }
   }
 
@@ -513,6 +524,8 @@ export default function RecruitmentPage() {
   }
 
   async function handleGenerateDocument(application: any, templateId: string) {
+    if (isGeneratingDoc) return;
+    setIsGeneratingDoc(application.id);
     try {
       const { data, error } = await supabase.functions.invoke('generate-document', {
         body: {
@@ -524,9 +537,14 @@ export default function RecruitmentPage() {
       if (error) throw error;
 
       setToast({ message: 'Document generated successfully!', type: 'success' });
-      // You might want to open the document here, or provide a link
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
     } catch (error: any) {
+      log.error('Document generation failed', error, { component: 'RecruitmentPage', action: 'handleGenerateDocument', metadata: { appId: application.id } });
       setToast({ message: error.message || 'Failed to generate document', type: 'error' });
+    } finally {
+      setIsGeneratingDoc(null);
     }
   }
 
@@ -917,8 +935,9 @@ export default function RecruitmentPage() {
                               {appStages.length > 0 ? (
                                 <select
                                   value={app.current_stage_id || ''}
+                                  disabled={isUpdatingStage === app.id}
                                   onChange={(e) => updateApplicationStage(app.id, e.target.value)}
-                                  className="text-xs font-semibold rounded-full px-3 py-1 border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className="text-xs font-semibold rounded-full px-3 py-1 border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                                 >
                                   <option value="">Select Stage</option>
                                   {appStages.map((stage: any) => (
@@ -937,25 +956,31 @@ export default function RecruitmentPage() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <button
                                 onClick={() => viewApplicationDetails(app)}
-                                className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                                disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                                className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded disabled:opacity-50"
                                 title="View Details"
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => scheduleInterviewForApplication(app)}
-                                className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded"
+                                disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                                className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded disabled:opacity-50"
                                 title="Schedule Interview"
                               >
                                 <Calendar className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => deleteApplication(app.id)}
-                                className="text-gray-600 hover:text-gray-900 p-1 rounded"
+                                disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                                className="text-gray-600 hover:text-gray-900 p-1 rounded disabled:opacity-50"
                                 title="Delete Application"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
+                              {(isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id) && (
+                                <Clock className="w-4 h-4 ml-2 animate-spin text-indigo-600 inline-block align-text-bottom" />
+                              )}
                             </td>
                           </tr>
                         );
@@ -990,33 +1015,62 @@ export default function RecruitmentPage() {
                                 <div className="text-xs text-gray-500">{app.job_postings?.job_title}</div>
                               </div>
                             </div>
-                            {app.ai_score && (
-                              <span className="text-[10px] font-bold bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded-full flex items-center">
-                                <Zap className="w-2 h-2 mr-0.5" />
-                                {app.ai_score}%
-                              </span>
-                            )}
                           </div>
                           <div className="flex justify-between items-center text-xs">
-                            <span className="text-gray-400">{format(new Date(app.applied_at), 'MMM dd')}</span>
-                            {appStages.length > 0 ? (
-                              <select
-                                value={app.current_stage_id || ''}
-                                onChange={(e) => updateApplicationStage(app.id, e.target.value)}
-                                className="text-[10px] font-semibold bg-gray-50 border-gray-200 rounded px-1.5 py-0.5 outline-none"
-                              >
-                                {appStages.map((stage: any) => (
-                                  <option key={stage.id} value={stage.id}>{stage.name}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className="text-gray-400 italic font-medium">No workflow</span>
-                            )}
+                            <span className="text-gray-400">{format(new Date(app.applied_at), 'MMM dd, yyyy')}</span>
+                            <div className="flex bg-gray-50 rounded-lg p-1">
+                              {appStages.length > 0 ? (
+                                <select
+                                  value={app.current_stage_id || ''}
+                                  disabled={isUpdatingStage === app.id}
+                                  onChange={(e) => updateApplicationStage(app.id, e.target.value)}
+                                  className="text-[10px] font-semibold rounded px-2 py-0.5 border-none bg-transparent outline-none focus:ring-0"
+                                >
+                                  <option value="">Stage</option>
+                                  {appStages.map((stage: any) => (
+                                    <option key={stage.id} value={stage.id}>
+                                      {stage.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-[10px] text-gray-400 px-2">No workflow</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {app.ai_score && (
+                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full flex items-center">
+                                  <Zap className="w-2 h-2 mr-0.5" />
+                                  {app.ai_score}%
+                                </span>
+                              )}
+                              {(isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id) && (
+                                <Clock className="w-3 h-3 animate-spin text-indigo-600" />
+                              )}
+                            </div>
                           </div>
                           <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
-                            <button onClick={() => viewApplicationDetails(app)} className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"><Eye className="w-4 h-4" /></button>
-                            <button onClick={() => scheduleInterviewForApplication(app)} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Calendar className="w-4 h-4" /></button>
-                            <button onClick={() => deleteApplication(app.id)} className="p-2 text-red-600 bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                            <button
+                              onClick={() => viewApplicationDetails(app)}
+                              disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                              className="p-2 text-indigo-600 bg-indigo-50 rounded-lg disabled:opacity-50"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => scheduleInterviewForApplication(app)}
+                              disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                              className="p-2 text-blue-600 bg-blue-50 rounded-lg disabled:opacity-50"
+                            >
+                              <Calendar className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteApplication(app.id)}
+                              disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                              className="p-2 text-red-600 bg-red-50 rounded-lg disabled:opacity-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       );
@@ -1291,22 +1345,6 @@ export default function RecruitmentPage() {
           }}
           onError={(message) => setToast({ message, type: 'error' })}
         />
-
-        {showJobDetailsModal && (
-          <JobDetailsModal
-            job={selectedJobDetails}
-            isOpen={showJobDetailsModal}
-            onClose={() => {
-              setShowJobDetailsModal(false);
-              setSelectedJobDetails(null);
-            }}
-            onEdit={(job) => {
-              setShowJobDetailsModal(false);
-              editJob(job);
-            }}
-            onUpdateStatus={updateJobStatus}
-          />
-        )}
 
         {/* Toast Notification */}
         {toast && (

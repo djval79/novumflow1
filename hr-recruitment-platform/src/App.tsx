@@ -61,6 +61,8 @@ const ClientManagementPage = React.lazy(() => import('./pages/ClientManagementPa
 const IncidentReportingPage = React.lazy(() => import('./pages/IncidentReportingPage'));
 const ExpenseManagementPage = React.lazy(() => import('./pages/ExpenseManagementPage'));
 const AuditTrailPage = React.lazy(() => import('./pages/AuditTrailPage'));
+const UnifiedDashboardPage = React.lazy(() => import('./pages/UnifiedDashboardPage'));
+const DeveloperSettingsPage = React.lazy(() => import('./pages/DeveloperSettingsPage'));
 
 // Loading spinner for lazy-loaded pages
 const PageLoader = () => (
@@ -225,6 +227,8 @@ function App() {
                     <Route path="incidents" element={<IncidentReportingPage />} />
                     <Route path="expenses" element={<ExpenseManagementPage />} />
                     <Route path="audit" element={<AuditTrailPage />} />
+                    <Route path="suite" element={<UnifiedDashboardPage />} />
+                    <Route path="developer" element={<DeveloperSettingsPage />} />
                   </Route>
 
                   {/* Standalone Protected Routes (No App Layout) */}

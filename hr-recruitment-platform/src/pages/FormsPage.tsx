@@ -79,6 +79,8 @@ const formTypeColors: Record<FormType, string> = {
 export default function FormsPage() {
     const [forms, setForms] = useState<FormTemplate[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [isSavingSchema, setIsSavingSchema] = useState(false);
     const [activeTab, setActiveTab] = useState<'all' | 'create'>('all');
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [editingForm, setEditingForm] = useState<FormTemplate | null>(null);
@@ -147,33 +149,49 @@ export default function FormsPage() {
     async function deleteForm(id: string) {
         if (!confirm('Are you sure you want to delete this form?')) return;
 
-        const { error } = await supabase
-            .from('form_templates')
-            .delete()
-            .eq('id', id);
+        setIsDeleting(id);
+        try {
+            const { error } = await supabase
+                .from('form_templates')
+                .delete()
+                .eq('id', id);
 
-        if (error) {
+            if (error) {
+                setToast({ message: 'Failed to delete form', type: 'error' });
+            } else {
+                setToast({ message: 'Form deleted successfully', type: 'success' });
+                loadForms();
+            }
+        } catch (error) {
+            log.error('Delete form error', error, { component: 'FormsPage', action: 'deleteForm' });
             setToast({ message: 'Failed to delete form', type: 'error' });
-        } else {
-            setToast({ message: 'Form deleted successfully', type: 'success' });
-            loadForms();
+        } finally {
+            setIsDeleting(null);
         }
     }
 
     async function saveFormSchema(schema: FormField[]) {
         if (!editingForm) return;
 
-        const { error } = await supabase
-            .from('form_templates')
-            .update({ schema, updated_at: new Date().toISOString() })
-            .eq('id', editingForm.id);
+        setIsSavingSchema(true);
+        try {
+            const { error } = await supabase
+                .from('form_templates')
+                .update({ schema, updated_at: new Date().toISOString() })
+                .eq('id', editingForm.id);
 
-        if (error) {
+            if (error) {
+                setToast({ message: 'Failed to save form', type: 'error' });
+            } else {
+                setToast({ message: 'Form saved successfully', type: 'success' });
+                setEditingForm(null);
+                loadForms();
+            }
+        } catch (error) {
+            log.error('Save schema error', error, { component: 'FormsPage', action: 'saveFormSchema' });
             setToast({ message: 'Failed to save form', type: 'error' });
-        } else {
-            setToast({ message: 'Form saved successfully', type: 'success' });
-            setEditingForm(null);
-            loadForms();
+        } finally {
+            setIsSavingSchema(false);
         }
     }
 
@@ -306,6 +324,7 @@ export default function FormsPage() {
                                 key={editingForm.id}
                                 initialSchema={editingForm.schema}
                                 onSave={saveFormSchema}
+                                isSaving={isSavingSchema}
                             />
                         </div>
                     ) : (
@@ -343,9 +362,14 @@ export default function FormsPage() {
                                         </button>
                                         <button
                                             onClick={() => deleteForm(form.id)}
-                                            className="inline-flex items-center justify-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
+                                            disabled={isDeleting === form.id}
+                                            className="inline-flex items-center justify-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            {isDeleting === form.id ? (
+                                                <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                                            ) : (
+                                                <Trash2 className="w-4 h-4" />
+                                            )}
                                         </button>
                                     </div>
                                 </div>

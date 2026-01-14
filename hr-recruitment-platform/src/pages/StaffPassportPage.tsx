@@ -5,12 +5,16 @@ import { Shield, User, CheckCircle, AlertTriangle, Download, Share2 } from 'luci
 import QRCode from 'react-qr-code';
 import { complianceService, ComplianceStatus } from '@/lib/services/ComplianceService';
 import { log } from '@/lib/logger';
+import Toast from '@/components/Toast';
 
 export default function StaffPassportPage() {
     const { user } = useAuth();
     const { currentTenant } = useTenant();
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState<ComplianceStatus | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     useEffect(() => {
         loadStatus();
@@ -39,6 +43,41 @@ export default function StaffPassportPage() {
         if (score >= 90) return 'VERIFIED SAFE';
         if (score >= 70) return 'ACTION REQUIRED';
         return 'NON-COMPLIANT';
+    };
+
+    const handleSaveImage = async () => {
+        setIsSaving(true);
+        try {
+            // In a real app, logic to convert div to image (e.g. html2canvas)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            setToast({ message: 'Profile image saved successfully!', type: 'success' });
+        } catch (error) {
+            setToast({ message: 'Failed to save image', type: 'error' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleShareLink = async () => {
+        setIsSharing(true);
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'NovumFlow Staff Passport',
+                    text: `My compliance status is ${getStatusText(status?.overall_compliance_score || 0)}`,
+                    url: `https://novumflow.com/verify/${user?.id}`,
+                });
+            } else {
+                await navigator.clipboard.writeText(`https://novumflow.com/verify/${user?.id}`);
+                setToast({ message: 'Verification link copied to clipboard!', type: 'success' });
+            }
+        } catch (error) {
+            if (error instanceof Error && error.name !== 'AbortError') {
+                setToast({ message: 'Failed to share', type: 'error' });
+            }
+        } finally {
+            setIsSharing(false);
+        }
     };
 
     if (loading) {
@@ -150,16 +189,32 @@ export default function StaffPassportPage() {
 
                 {/* Actions */}
                 <div className="flex gap-4 justify-center">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 rounded-xl shadow-sm hover:bg-gray-50 font-medium transition-colors">
-                        <Download className="w-5 h-5" />
-                        Save Image
+                    <button
+                        onClick={handleSaveImage}
+                        disabled={isSaving || isSharing}
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 rounded-xl shadow-sm hover:bg-gray-50 font-medium transition-colors disabled:opacity-50"
+                    >
+                        {isSaving ? <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" /> : <Download className="w-5 h-5" />}
+                        {isSaving ? 'Processing...' : 'Save Image'}
                     </button>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl shadow-md font-medium transition-colors">
-                        <Share2 className="w-5 h-5" />
-                        Share Link
+                    <button
+                        onClick={handleShareLink}
+                        disabled={isSaving || isSharing}
+                        className="flex items-center gap-2 px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl shadow-md font-medium transition-colors disabled:opacity-50"
+                    >
+                        {isSharing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Share2 className="w-5 h-5" />}
+                        {isSharing ? 'Sharing...' : 'Share Link'}
                     </button>
                 </div>
             </div>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 }

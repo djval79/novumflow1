@@ -7,6 +7,7 @@ import {
     GraduationCap, CreditCard, Building, Key, Laptop,
     ChevronRight, Plus, Edit2, Trash2, Save, X
 } from 'lucide-react';
+import Toast from './Toast';
 
 interface ChecklistItem {
     id: string;
@@ -66,35 +67,92 @@ export default function OnboardingChecklist({ employeeId, employeeName, startDat
     const { currentTenant } = useTenant();
     const [items, setItems] = useState<ChecklistItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isToggling, setIsToggling] = useState<string | null>(null);
     const [expandedCategory, setExpandedCategory] = useState<string | null>('first_day');
     const [editingItem, setEditingItem] = useState<string | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
     useEffect(() => {
         loadChecklist();
     }, [employeeId, currentTenant]);
 
     async function loadChecklist() {
+        if (!currentTenant || !employeeId) return;
         setLoading(true);
         try {
-            if (employeeId) {
-                const { data, error } = await supabase
-                    .from('onboarding_checklists')
-                    .select('*')
-                    .eq('employee_id', employeeId)
-                    .order('order');
+            // 1. Get or create the checklist header
+            let { data: checklist, error: fetchError } = await supabase
+                .from('employee_onboarding_checklists')
+                .select('id')
+                .eq('employee_id', employeeId)
+                .single();
 
-                if (error) throw error;
-                if (data && data.length > 0) {
-                    setItems(data);
-                } else {
-                    // Initialize with default items
-                    initializeDefaultItems();
-                }
-            } else {
-                initializeDefaultItems();
+            if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+
+            let checklistId = checklist?.id;
+
+            if (!checklistId) {
+                // Create new checklist header
+                const { data: newChecklist, error: createError } = await supabase
+                    .from('employee_onboarding_checklists')
+                    .insert({
+                        employee_id: employeeId,
+                        tenant_id: currentTenant.id,
+                        template_name: 'Default Onboarding',
+                        status: 'in_progress'
+                    })
+                    .select()
+                    .single();
+
+                if (createError) throw createError;
+                checklistId = newChecklist.id;
+
+                // Seed default items
+                const itemsToInsert = defaultChecklistItems.map(item => ({
+                    checklist_id: checklistId,
+                    task_name: item.title,
+                    task_order: item.order,
+                    is_completed: false,
+                    notes: JSON.stringify({ category: item.category, is_required: item.is_required })
+                }));
+
+                const { error: seedError } = await supabase
+                    .from('onboarding_checklist_items')
+                    .insert(itemsToInsert);
+
+                if (seedError) throw seedError;
             }
-        } catch (error) {
+
+            // 2. Load latest items
+            const { data: dbItems, error: itemsError } = await supabase
+                .from('onboarding_checklist_items')
+                .select('*')
+                .eq('checklist_id', checklistId)
+                .order('task_order');
+
+            if (itemsError) throw itemsError;
+
+            // Map DB items to UI items
+            const mappedItems: ChecklistItem[] = dbItems.map(item => {
+                let extra: any = {};
+                try { extra = JSON.parse(item.notes || '{}'); } catch (e) { }
+                return {
+                    id: item.id,
+                    title: item.task_name,
+                    category: extra.category || 'other',
+                    is_required: extra.is_required || false,
+                    is_completed: item.is_completed,
+                    completed_at: item.completed_at,
+                    completed_by: item.completed_by,
+                    order: item.task_order,
+                    description: item.notes && !item.notes.startsWith('{') ? item.notes : ''
+                };
+            });
+
+            setItems(mappedItems);
+        } catch (error: any) {
             log.error('Error loading onboarding checklist', error, { component: 'OnboardingChecklist', action: 'loadChecklist', metadata: { employeeId } });
+            setToast({ message: error.message || 'Failed to load checklist', type: 'error' });
             initializeDefaultItems();
         } finally {
             setLoading(false);
@@ -111,29 +169,40 @@ export default function OnboardingChecklist({ employeeId, employeeName, startDat
     }
 
     async function toggleItem(itemId: string) {
+        if (isToggling) return;
         const item = items.find(i => i.id === itemId);
-        if (!item) return;
+        if (!item || item.id.startsWith('item-')) return; // Can't toggle mock items
 
-        const updated = {
-            ...item,
-            is_completed: !item.is_completed,
-            completed_at: !item.is_completed ? new Date().toISOString() : undefined,
-        };
+        setIsToggling(itemId);
+        const newStatus = !item.is_completed;
+        const completedAt = newStatus ? new Date().toISOString() : null;
 
-        setItems(prev => prev.map(i => i.id === itemId ? updated : i));
+        try {
+            const { error } = await supabase
+                .from('onboarding_checklist_items')
+                .update({
+                    is_completed: newStatus,
+                    completed_at: completedAt
+                })
+                .eq('id', itemId);
 
-        if (employeeId) {
-            try {
-                await supabase
-                    .from('onboarding_checklists')
-                    .upsert({
-                        id: itemId,
-                        employee_id: employeeId,
-                        ...updated,
-                    });
-            } catch (error) {
-                log.error('Error updating onboarding checklist item', error, { component: 'OnboardingChecklist', action: 'toggleItem', metadata: { employeeId, itemId, updatedStatus: updated.is_completed } });
-            }
+            if (error) throw error;
+
+            setItems(prev => prev.map(i => i.id === itemId ? {
+                ...i,
+                is_completed: newStatus,
+                completed_at: completedAt || undefined
+            } : i));
+
+            setToast({
+                message: `Task "${item.title}" ${newStatus ? 'completed' : 'unmarked'}`,
+                type: 'success'
+            });
+        } catch (error: any) {
+            log.error('Error toggling task', error, { itemId });
+            setToast({ message: 'Failed to update task', type: 'error' });
+        } finally {
+            setIsToggling(null);
         }
     }
 
@@ -281,9 +350,12 @@ export default function OnboardingChecklist({ employeeId, employeeName, startDat
                                         >
                                             <button
                                                 onClick={() => toggleItem(item.id)}
-                                                className="flex-shrink-0 mt-0.5"
+                                                disabled={isToggling === item.id}
+                                                className="flex-shrink-0 mt-0.5 disabled:opacity-50"
                                             >
-                                                {item.is_completed ? (
+                                                {isToggling === item.id ? (
+                                                    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                                                ) : item.is_completed ? (
                                                     <CheckCircle className="w-5 h-5 text-green-600" />
                                                 ) : (
                                                     <Circle className="w-5 h-5 text-gray-400 hover:text-indigo-600" />
@@ -331,6 +403,14 @@ export default function OnboardingChecklist({ employeeId, employeeName, startDat
                     </button>
                 </div>
             </div>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 }

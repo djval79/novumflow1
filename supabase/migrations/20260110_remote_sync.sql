@@ -1,0 +1,2 @@
+-- Remote migration reconciliation dummy file
+-- This file exists to satisfy Supabase CLI requirements for migrations already applied to the remote database but missing locally.

@@ -5,6 +5,8 @@ import { User, Calendar, CheckCircle, Clock, AlertCircle, Plus, Search, ChevronR
 import OnboardingChecklist from '@/components/OnboardingChecklist';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { log } from '@/lib/logger';
+import AddEmployeeModal from '@/components/AddEmployeeModal';
+import Toast from '@/components/Toast';
 
 interface NewHire {
     id: string;
@@ -25,45 +27,67 @@ export default function OnboardingPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
     useEffect(() => {
         loadNewHires();
     }, [currentTenant]);
 
     async function loadNewHires() {
+        if (!currentTenant) return;
         setLoading(true);
         try {
-            // Try to fetch from employees with recent hire dates
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 90);
+            // Fetch employees with recent hire dates
+            const ninetyDaysAgo = new Date();
+            ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
             const { data, error } = await supabase
                 .from('employees')
                 .select('*')
                 .eq('tenant_id', currentTenant?.id)
-                .gte('hire_date', thirtyDaysAgo.toISOString().split('T')[0])
-                .order('hire_date', { ascending: false });
+                .gte('date_hired', ninetyDaysAgo.toISOString().split('T')[0])
+                .order('date_hired', { ascending: false });
 
             if (error) throw error;
 
+            // In a real app, we'd join with employee_onboarding_checklists to get progress/status
+            // For now, we'll keep the simplified mapping but make it more realistic
             const hires: NewHire[] = (data || []).map(emp => ({
                 id: emp.id,
                 first_name: emp.first_name,
                 last_name: emp.last_name,
                 email: emp.email,
-                department: emp.department,
-                position: emp.position,
-                start_date: emp.hire_date,
-                onboarding_progress: Math.random() * 100, // This would come from actual onboarding data
-                status: Math.random() > 0.7 ? 'completed' : Math.random() > 0.5 ? 'in_progress' : 'pending' as any,
+                department: emp.department || 'N/A',
+                position: emp.position || 'N/A',
+                start_date: emp.date_hired || emp.created_at,
+                onboarding_progress: 0, // Should be fetched from DB
+                status: 'pending' as any, // Should be fetched from DB
             }));
 
+            // Fetch actual statuses and progress if available
+            const { data: checklists, error: checklistError } = await supabase
+                .from('employee_onboarding_checklists')
+                .select('employee_id, status, id')
+                .in('employee_id', hires.map(h => h.id));
+
+            if (!checklistError && checklists) {
+                hires.forEach(h => {
+                    const cl = checklists.find(c => c.employee_id === h.id);
+                    if (cl) {
+                        h.status = cl.status;
+                        // We could also count items here to get percentage
+                    }
+                });
+            }
+
             setNewHires(hires);
-            if (hires.length > 0) {
+            if (hires.length > 0 && !selectedHire) {
                 setSelectedHire(hires[0]);
             }
-        } catch (error) {
+        } catch (error: any) {
             log.error('Error loading new hires', error, { component: 'OnboardingPage', action: 'loadNewHires' });
+            setToast({ message: 'Failed to load new hires', type: 'error' });
             setNewHires(generateMockNewHires());
         } finally {
             setLoading(false);
@@ -150,7 +174,10 @@ export default function OnboardingPage() {
                     <h1 className="text-3xl font-bold text-gray-900">Employee Onboarding</h1>
                     <p className="mt-1 text-sm text-gray-600">Track and manage new hire onboarding progress</p>
                 </div>
-                <button className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                >
                     <Plus className="w-5 h-5 mr-2" />
                     Add New Hire
                 </button>
@@ -284,6 +311,24 @@ export default function OnboardingPage() {
                     )}
                 </div>
             </div>
+
+            <AddEmployeeModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSuccess={() => {
+                    setToast({ message: 'New hire added successfully', type: 'success' });
+                    loadNewHires();
+                }}
+                onError={(msg) => setToast({ message: msg, type: 'error' })}
+            />
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 }

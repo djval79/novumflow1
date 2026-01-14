@@ -28,6 +28,9 @@ export default function HRModulePage() {
   const [showAddLeaveModal, setShowAddLeaveModal] = useState(false);
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [isProcessingLeave, setIsProcessingLeave] = useState<string | null>(null);
+  const [isDeletingEmployee, setIsDeletingEmployee] = useState<string | null>(null);
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const { user } = useAuth();
 
@@ -96,17 +99,20 @@ export default function HRModulePage() {
   }
 
   async function handleApproveLeave(leaveId: string) {
-    const { error } = await supabase
-      .from('leave_requests')
-      .update({
-        status: 'approved',
-        reviewed_by: user?.id,
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('id', leaveId);
+    if (isProcessingLeave) return;
+    setIsProcessingLeave(leaveId);
+    try {
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({
+          status: 'approved',
+          reviewed_by: user?.id,
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', leaveId);
 
-    if (!error) {
-      loadData();
+      if (error) throw error;
+
       // Log action
       await supabase.from('audit_logs').insert({
         user_id: user?.id,
@@ -115,21 +121,32 @@ export default function HRModulePage() {
         entity_id: leaveId,
         timestamp: new Date().toISOString()
       });
+
+      setToast({ message: 'Leave request approved', type: 'success' });
+      loadData();
+    } catch (error: any) {
+      log.error('Error approving leave', error, { leaveId });
+      setToast({ message: error.message || 'Failed to approve leave', type: 'error' });
+    } finally {
+      setIsProcessingLeave(null);
     }
   }
 
   async function handleRejectLeave(leaveId: string) {
-    const { error } = await supabase
-      .from('leave_requests')
-      .update({
-        status: 'rejected',
-        reviewed_by: user?.id,
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('id', leaveId);
+    if (isProcessingLeave) return;
+    setIsProcessingLeave(leaveId);
+    try {
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({
+          status: 'rejected',
+          reviewed_by: user?.id,
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', leaveId);
 
-    if (!error) {
-      loadData();
+      if (error) throw error;
+
       await supabase.from('audit_logs').insert({
         user_id: user?.id,
         action: 'REJECT_LEAVE',
@@ -137,6 +154,14 @@ export default function HRModulePage() {
         entity_id: leaveId,
         timestamp: new Date().toISOString()
       });
+
+      setToast({ message: 'Leave request rejected', type: 'warning' });
+      loadData();
+    } catch (error: any) {
+      log.error('Error rejecting leave', error, { leaveId });
+      setToast({ message: error.message || 'Failed to reject leave', type: 'error' });
+    } finally {
+      setIsProcessingLeave(null);
     }
   }
 
@@ -162,13 +187,17 @@ export default function HRModulePage() {
   }
 
   async function deleteEmployee(employeeId: string) {
+    if (isDeletingEmployee) return;
     if (window.confirm('Are you sure you want to delete this employee? This will set their status to terminated.')) {
+      setIsDeletingEmployee(employeeId);
       try {
         await callEmployeeCrud('delete', { employee_id: employeeId });
         setToast({ message: 'Employee terminated successfully', type: 'success' });
         loadData();
       } catch (error: any) {
         setToast({ message: error.message || 'Error terminating employee', type: 'error' });
+      } finally {
+        setIsDeletingEmployee(null);
       }
     }
   }
@@ -179,6 +208,8 @@ export default function HRModulePage() {
   }
 
   async function handleGenerateDocument(employee: any, templateId: string) {
+    if (isGeneratingDoc) return;
+    setIsGeneratingDoc(`${employee.id}-${templateId}`);
     try {
       const { data, error } = await supabase.functions.invoke('generate-document', {
         body: {
@@ -190,25 +221,11 @@ export default function HRModulePage() {
       if (error) throw error;
 
       setToast({ message: 'Document generated successfully!', type: 'success' });
-      // You might want to open the document here, or provide a link
     } catch (error: any) {
+      log.error('Error generating document', error, { employeeId: employee.id, templateId });
       setToast({ message: error.message || 'Failed to generate document', type: 'error' });
-    }
-  }
-
-  function viewEmployeeDetails(employee: any) {
-    alert(`Employee Details:\n\nName: ${employee.first_name} ${employee.last_name}\nEmail: ${employee.email}\nPhone: ${employee.phone || 'Not provided'}\nDepartment: ${employee.department}\nPosition: ${employee.position}\nStatus: ${employee.status}\nHired: ${employee.date_hired || 'Not specified'}`);
-  }
-
-  function approveLeaveRequest(leaveId: string) {
-    if (window.confirm('Approve this leave request?')) {
-      setToast({ message: 'Leave request approved', type: 'success' });
-    }
-  }
-
-  function rejectLeaveRequest(leaveId: string) {
-    if (window.confirm('Reject this leave request?')) {
-      setToast({ message: 'Leave request rejected', type: 'warning' });
+    } finally {
+      setIsGeneratingDoc(null);
     }
   }
 
@@ -358,10 +375,15 @@ export default function HRModulePage() {
                             </button>
                             <button
                               onClick={() => deleteEmployee(emp.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded"
+                              disabled={isDeletingEmployee === emp.id}
+                              className="text-red-600 hover:text-red-900 p-1 rounded disabled:opacity-50"
                               title="Delete Employee"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {isDeletingEmployee === emp.id ? (
+                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
                             </button>
                             <CompactSyncButton employeeId={emp.id} onSuccess={loadData} />
                           </td>
@@ -408,7 +430,17 @@ export default function HRModulePage() {
                         <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
                           <button onClick={() => viewEmployeeDetails(emp)} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><User className="w-4 h-4" /></button>
                           <button onClick={() => editEmployee(emp)} className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"><Edit className="w-4 h-4" /></button>
-                          <button onClick={() => deleteEmployee(emp.id)} className="p-2 text-red-600 bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                          <button
+                            onClick={() => deleteEmployee(emp.id)}
+                            disabled={isDeletingEmployee === emp.id}
+                            className="p-2 text-red-600 bg-red-50 rounded-lg disabled:opacity-50"
+                          >
+                            {isDeletingEmployee === emp.id ? (
+                              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
                           <CompactSyncButton employeeId={emp.id} onSuccess={loadData} />
                         </div>
                       </div>
@@ -551,14 +583,18 @@ export default function HRModulePage() {
                               <div className="flex space-x-2">
                                 <button
                                   onClick={() => handleApproveLeave(leave.id)}
-                                  className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                  disabled={isProcessingLeave === leave.id}
+                                  className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
                                 >
+                                  {isProcessingLeave === leave.id && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                                   Approve
                                 </button>
                                 <button
                                   onClick={() => handleRejectLeave(leave.id)}
-                                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                                  disabled={isProcessingLeave === leave.id}
+                                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-1"
                                 >
+                                  {isProcessingLeave === leave.id && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                                   Reject
                                 </button>
                               </div>
@@ -600,14 +636,18 @@ export default function HRModulePage() {
                           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50">
                             <button
                               onClick={() => handleApproveLeave(leave.id)}
-                              className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg font-medium"
+                              disabled={isProcessingLeave === leave.id}
+                              className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                             >
+                              {isProcessingLeave === leave.id && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                               Approve
                             </button>
                             <button
                               onClick={() => handleRejectLeave(leave.id)}
-                              className="px-4 py-2 bg-red-600 text-white text-xs rounded-lg font-medium"
+                              disabled={isProcessingLeave === leave.id}
+                              className="px-4 py-2 bg-red-600 text-white text-xs rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                             >
+                              {isProcessingLeave === leave.id && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                               Reject
                             </button>
                           </div>

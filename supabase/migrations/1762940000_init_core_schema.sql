@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS users_profiles (
     department VARCHAR(100),
     position VARCHAR(100),
     is_active BOOLEAN DEFAULT true,
+    is_super_admin BOOLEAN DEFAULT false, -- Added for enterprise/multi-tenant
+    tenant_id UUID,                     -- Added for multi-tenant
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -45,7 +47,7 @@ CREATE TABLE IF NOT EXISTS employees (
     'temporary')),
     department VARCHAR(100),
     position VARCHAR(100),
-    reporting_to UUID REFERENCES employees(id) ON DELETE SET NULL, -- Self reference
+    manager_id UUID REFERENCES employees(id) ON DELETE SET NULL, -- Self reference (standardized)
     salary_grade VARCHAR(50),
     visa_type VARCHAR(100),
     visa_expiry_date DATE,
@@ -61,6 +63,10 @@ CREATE TABLE IF NOT EXISTS employees (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Ensure manager_id exists if table already existed (defensive)
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS manager_id UUID;
+
 
 -- 3. recruitment_workflows
 CREATE TABLE IF NOT EXISTS recruitment_workflows (

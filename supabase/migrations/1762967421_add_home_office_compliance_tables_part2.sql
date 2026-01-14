@@ -26,6 +26,19 @@ CREATE TABLE IF NOT EXISTS compliance_alerts (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Ensure all required columns exist if table already existed (defensive)
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS employee_id UUID;
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS alert_type VARCHAR(100);
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS alert_priority VARCHAR(50);
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS alert_title VARCHAR(255);
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS alert_message TEXT;
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS alert_date DATE;
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS due_date DATE;
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS status VARCHAR(50);
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+ALTER TABLE compliance_alerts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+
+
 CREATE TABLE IF NOT EXISTS audit_packs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pack_name VARCHAR(255) NOT NULL,

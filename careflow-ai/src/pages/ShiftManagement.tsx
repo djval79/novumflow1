@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useTenant } from '@/context/TenantContext';
 import { supabase } from '@/lib/supabase';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, User, Clock, ShieldCheck, Activity, Search, Filter, Download, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, User, Clock, ShieldCheck, Activity, Search, Filter, Download, Loader2, AlertTriangle } from 'lucide-react';
 import CreateShiftModal from '@/components/CreateShiftModal';
+import complianceCheckService, { ComplianceStatus } from '@/services/ComplianceCheckService';
 import { toast } from 'sonner';
 
 interface Shift {
@@ -25,6 +26,7 @@ export default function ShiftManagement() {
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [complianceMap, setComplianceMap] = useState<Map<string, ComplianceStatus>>(new Map());
 
     // Calculate week start (Monday)
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -73,6 +75,10 @@ export default function ShiftManagement() {
             }));
 
             setShifts(mappedShifts);
+
+            // Fetch all staff compliance
+            const compData = await complianceCheckService.checkAllStaffCompliance(currentTenant.id);
+            setComplianceMap(compData);
         } catch (error) {
             console.error('Fetch error:', error);
             toast.error('Schedule synchronization failed');
@@ -238,9 +244,12 @@ export default function ShiftManagement() {
                                                     <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${shift.staff_id ? 'bg-slate-900 text-white' : 'bg-slate-100'}`}>
                                                         <User className="w-3 h-3" />
                                                     </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 truncate">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 truncate max-w-[120px]">
                                                         {shift.staff ? `${shift.staff.first_name} ${shift.staff.last_name}` : 'Unsigned Vector'}
                                                     </span>
+                                                    {shift.staff_id && complianceMap.has(shift.staff_id) && !complianceMap.get(shift.staff_id)?.isCompliant && (
+                                                        <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse flex-shrink-0" />
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/shift:opacity-20 transition-opacity">

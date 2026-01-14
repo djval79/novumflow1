@@ -5,6 +5,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { Clock, Play, Square, Coffee, Calendar, TrendingUp, Users, MapPin } from 'lucide-react';
 import { format, differenceInMinutes, startOfWeek, endOfWeek, eachDayOfInterval, isToday, parseISO } from 'date-fns';
 import { log } from '@/lib/logger';
+import Toast from '@/components/Toast';
 
 interface TimeEntry {
     id: string;
@@ -40,6 +41,8 @@ export default function TimeClock() {
     const [breakStart, setBreakStart] = useState<Date | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [location, setLocation] = useState<string>('');
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [isBreaking, setIsBreaking] = useState(false);
 
     // Update current time every second
     useEffect(() => {
@@ -192,6 +195,7 @@ export default function TimeClock() {
 
             setCurrentEntry(data);
             setRecentEntries(prev => [data, ...prev]);
+            setToast({ message: 'Successfully clocked in!', type: 'success' });
         } catch (error) {
             log.error('Clock in error', error, { component: 'TimeClock', action: 'handleClockIn' });
             // Create mock entry for demo
@@ -231,6 +235,7 @@ export default function TimeClock() {
 
             setCurrentEntry(null);
             loadAttendanceData();
+            setToast({ message: 'Successfully clocked out. Have a great day!', type: 'success' });
         } catch (error) {
             log.error('Clock out error', error, { component: 'TimeClock', action: 'handleClockOut' });
             // Update mock entry
@@ -245,22 +250,43 @@ export default function TimeClock() {
         }
     }
 
-    function handleBreakToggle() {
-        if (onBreak) {
-            // End break
-            if (breakStart && currentEntry) {
-                const breakMinutes = differenceInMinutes(new Date(), breakStart);
-                setCurrentEntry({
-                    ...currentEntry,
-                    break_duration_minutes: currentEntry.break_duration_minutes + breakMinutes
-                });
+    async function handleBreakToggle() {
+        if (!currentEntry) return;
+        setIsBreaking(true);
+        try {
+            if (onBreak) {
+                // End break
+                if (breakStart) {
+                    const breakMinutes = differenceInMinutes(new Date(), breakStart);
+                    const totalBreak = currentEntry.break_duration_minutes + breakMinutes;
+
+                    // Persist break duration to DB
+                    const { error } = await supabase
+                        .from('attendance_records')
+                        .update({ break_duration_minutes: totalBreak })
+                        .eq('id', currentEntry.id);
+
+                    if (error) throw error;
+
+                    setCurrentEntry({
+                        ...currentEntry,
+                        break_duration_minutes: totalBreak
+                    });
+                    setToast({ message: 'Break ended. Welcome back!', type: 'success' });
+                }
+                setOnBreak(false);
+                setBreakStart(null);
+            } else {
+                // Start break
+                setOnBreak(true);
+                setBreakStart(new Date());
+                setToast({ message: 'Break started. Enjoy your rest!', type: 'success' });
             }
-            setOnBreak(false);
-            setBreakStart(null);
-        } else {
-            // Start break
-            setOnBreak(true);
-            setBreakStart(new Date());
+        } catch (error) {
+            log.error('Break toggle error', error, { component: 'TimeClock', action: 'handleBreakToggle' });
+            setToast({ message: 'Failed to update break status', type: 'error' });
+        } finally {
+            setIsBreaking(false);
         }
     }
 
@@ -335,20 +361,29 @@ export default function TimeClock() {
                         <div className="flex gap-3">
                             <button
                                 onClick={handleBreakToggle}
-                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition ${onBreak
+                                disabled={isBreaking || clockingIn}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition disabled:opacity-50 ${onBreak
                                     ? 'bg-yellow-500 text-yellow-900 hover:bg-yellow-400'
-                                    : 'bg-white/20 hover:bg-white/30'
+                                    : 'bg-white/20 hover:bg-white/30 text-white'
                                     }`}
                             >
-                                <Coffee className="w-5 h-5" />
+                                {isBreaking ? (
+                                    <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                                ) : (
+                                    <Coffee className="w-5 h-5" />
+                                )}
                                 {onBreak ? 'End Break' : 'Take Break'}
                             </button>
                             <button
                                 onClick={handleClockOut}
-                                disabled={clockingIn}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-500 hover:bg-red-600 rounded-xl font-medium transition disabled:opacity-50"
+                                disabled={clockingIn || isBreaking}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-500 hover:bg-red-600 rounded-xl font-medium transition disabled:opacity-50 text-white"
                             >
-                                <Square className="w-5 h-5" />
+                                {clockingIn ? (
+                                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                                ) : (
+                                    <Square className="w-5 h-5" />
+                                )}
                                 Clock Out
                             </button>
                         </div>
@@ -499,6 +534,14 @@ export default function TimeClock() {
                     ))}
                 </div>
             </div>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 }

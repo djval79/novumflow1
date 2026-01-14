@@ -19,9 +19,10 @@ export interface FormField {
 interface FormBuilderProps {
     initialSchema?: FormField[];
     onSave: (schema: FormField[]) => void;
+    isSaving?: boolean;
 }
 
-export default function FormBuilder({ initialSchema = [], onSave }: FormBuilderProps) {
+export default function FormBuilder({ initialSchema = [], onSave, isSaving }: FormBuilderProps) {
     const [fields, setFields] = useState<FormField[]>(initialSchema);
 
     const addField = () => {
@@ -221,10 +222,15 @@ export default function FormBuilder({ initialSchema = [], onSave }: FormBuilderP
 
                     <button
                         onClick={() => onSave(fields)}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        disabled={isSaving}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                     >
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Form
+                        {isSaving ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                        ) : (
+                            <Save className="w-4 h-4 mr-2" />
+                        )}
+                        {isSaving ? 'Saving...' : 'Save Form'}
                     </button>
                 </div>
             </div>

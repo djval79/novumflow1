@@ -256,11 +256,10 @@ const LandingPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
-        </div>
-            </section >
+            </section>
 
-    {/* Ghost Shift Calculator */ }
-    < section className = "py-24 px-6 bg-slate-950 relative overflow-hidden" >
+            {/* Ghost Shift Calculator */}
+            <section className="py-24 px-6 bg-slate-950 relative overflow-hidden">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-rose-900/10 rounded-full filter blur-[120px] pointer-events-none"></div>
                 <div className="max-w-4xl mx-auto relative z-10">
                     <div className="text-center mb-12">
@@ -305,65 +304,65 @@ const LandingPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </section >
+            </section>
 
-    {/* Features Detail */ }
-    < section id = "features" className = "py-24 px-6" >
-        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
-            <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 hover:border-indigo-500/50 transition-all group">
-                <Zap className="w-8 h-8 text-indigo-400 mb-6 group-hover:scale-110 transition-transform" />
-                <h4 className="text-2xl font-bold mb-4">AI Rostering</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">Our engine predicts staffing needs and auto-matches staff based on compliance, skills, and proximity.</p>
-            </div>
-            <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 hover:border-purple-500/50 transition-all group">
-                <Stethoscope className="w-8 h-8 text-purple-400 mb-6 group-hover:scale-110 transition-transform" />
-                <h4 className="text-2xl font-bold mb-4">eMAR Suite</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">Full electronic medication records with barcode verification and refusal tracking for zero-error delivery.</p>
-            </div>
-            <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 hover:border-pink-500/50 transition-all group">
-                <Smartphone className="w-8 h-8 text-pink-400 mb-6 group-hover:scale-110 transition-transform" />
-                <h4 className="text-2xl font-bold mb-4">Visit Verification</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">GPS check-ins and check-outs provide irrefutable proof of care, cutting claim disputes by 30%.</p>
-            </div>
-        </div>
-            </section >
-
-    {/* Compliance Warranty Section */ }
-    < section className = "py-24 px-6 bg-emerald-950/20 border-y border-emerald-500/10" >
-        <div className="max-w-4xl mx-auto text-center">
-            <Shield className="w-16 h-16 text-emerald-400 mx-auto mb-6" />
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">The "Hard Block" Guarantee</h2>
-            <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-                We don't just "flag" compliance issues. Our system <span className="text-emerald-400 font-bold">physically prevents</span> non-compliant staff from being rostered.
-            </p>
-            <div className="grid md:grid-cols-3 gap-6 text-left">
-                <div className="bg-slate-900 p-6 rounded-xl border border-white/5 flex items-start gap-4">
-                    <Lock className="w-6 h-6 text-emerald-400 shrink-0" />
-                    <div>
-                        <h4 className="font-bold text-white mb-1">Expired DBS?</h4>
-                        <p className="text-sm text-slate-400">Shift blocked instantly. No overrides.</p>
+            {/* Features Detail */}
+            <section id="features" className="py-24 px-6">
+                <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
+                    <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 hover:border-indigo-500/50 transition-all group">
+                        <Zap className="w-8 h-8 text-indigo-400 mb-6 group-hover:scale-110 transition-transform" />
+                        <h4 className="text-2xl font-bold mb-4">AI Rostering</h4>
+                        <p className="text-slate-400 text-sm leading-relaxed">Our engine predicts staffing needs and auto-matches staff based on compliance, skills, and proximity.</p>
+                    </div>
+                    <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 hover:border-purple-500/50 transition-all group">
+                        <Stethoscope className="w-8 h-8 text-purple-400 mb-6 group-hover:scale-110 transition-transform" />
+                        <h4 className="text-2xl font-bold mb-4">eMAR Suite</h4>
+                        <p className="text-slate-400 text-sm leading-relaxed">Full electronic medication records with barcode verification and refusal tracking for zero-error delivery.</p>
+                    </div>
+                    <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 hover:border-pink-500/50 transition-all group">
+                        <Smartphone className="w-8 h-8 text-pink-400 mb-6 group-hover:scale-110 transition-transform" />
+                        <h4 className="text-2xl font-bold mb-4">Visit Verification</h4>
+                        <p className="text-slate-400 text-sm leading-relaxed">GPS check-ins and check-outs provide irrefutable proof of care, cutting claim disputes by 30%.</p>
                     </div>
                 </div>
-                <div className="bg-slate-900 p-6 rounded-xl border border-white/5 flex items-start gap-4">
-                    <Scale className="w-6 h-6 text-emerald-400 shrink-0" />
-                    <div>
-                        <h4 className="font-bold text-white mb-1">No Right to Work?</h4>
-                        <p className="text-sm text-slate-400">Profile locked. Zero legal risk.</p>
-                    </div>
-                </div>
-                <div className="bg-slate-900 p-6 rounded-xl border border-white/5 flex items-start gap-4">
-                    <Server className="w-6 h-6 text-emerald-400 shrink-0" />
-                    <div>
-                        <h4 className="font-bold text-white mb-1">Audit Trail</h4>
-                        <p className="text-sm text-slate-400">Every decision logged immutably.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-            </section >
+            </section>
 
-    {/* Testimonial & Social Proof */ }
-    < section className = "py-24 px-6 bg-slate-900 overflow-hidden relative" >
+            {/* Compliance Warranty Section */}
+            <section className="py-24 px-6 bg-emerald-950/20 border-y border-emerald-500/10">
+                <div className="max-w-4xl mx-auto text-center">
+                    <Shield className="w-16 h-16 text-emerald-400 mx-auto mb-6" />
+                    <h2 className="text-3xl md:text-4xl font-bold mb-6">The "Hard Block" Guarantee</h2>
+                    <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
+                        We don't just "flag" compliance issues. Our system <span className="text-emerald-400 font-bold">physically prevents</span> non-compliant staff from being rostered.
+                    </p>
+                    <div className="grid md:grid-cols-3 gap-6 text-left">
+                        <div className="bg-slate-900 p-6 rounded-xl border border-white/5 flex items-start gap-4">
+                            <Lock className="w-6 h-6 text-emerald-400 shrink-0" />
+                            <div>
+                                <h4 className="font-bold text-white mb-1">Expired DBS?</h4>
+                                <p className="text-sm text-slate-400">Shift blocked instantly. No overrides.</p>
+                            </div>
+                        </div>
+                        <div className="bg-slate-900 p-6 rounded-xl border border-white/5 flex items-start gap-4">
+                            <Scale className="w-6 h-6 text-emerald-400 shrink-0" />
+                            <div>
+                                <h4 className="font-bold text-white mb-1">No Right to Work?</h4>
+                                <p className="text-sm text-slate-400">Profile locked. Zero legal risk.</p>
+                            </div>
+                        </div>
+                        <div className="bg-slate-900 p-6 rounded-xl border border-white/5 flex items-start gap-4">
+                            <Server className="w-6 h-6 text-emerald-400 shrink-0" />
+                            <div>
+                                <h4 className="font-bold text-white mb-1">Audit Trail</h4>
+                                <p className="text-sm text-slate-400">Every decision logged immutably.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Testimonial & Social Proof */}
+            <section className="py-24 px-6 bg-slate-900 overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
                     <div className="grid grid-cols-12 gap-4 h-full"> {[...Array(12)].map((_, i) => <div key={i} className="border-r border-white/5" />)} </div>
                 </div>
@@ -383,69 +382,69 @@ const LandingPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </section >
+            </section>
 
-    {/* Final CTA / Downloads */ }
-    < section className = "py-32 px-6" >
-        <div className="max-w-4xl mx-auto bg-gradient-to-br from-indigo-600 to-purple-700 rounded-[3rem] p-12 text-center shadow-2xl shadow-indigo-500/20 relative overflow-hidden">
-            <div className="relative z-10">
-                <h2 className="text-4xl md:text-5xl font-extrabold mb-8 italic">Ready to Lead?</h2>
-                <p className="text-xl opacity-90 mb-12 max-w-2xl mx-auto">
-                    Join the elite care providers who are using AI to protect their patients and their profits.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                    <button
-                        onClick={() => setIsDemoModalOpen(true)}
-                        className="px-10 py-5 bg-white text-indigo-600 font-extra-bold text-lg rounded-full hover:bg-slate-100 transition-all shadow-xl"
-                    >
-                        Request Enterprise Demo
-                    </button>
-                    <a
-                        href="/marketing/compliance-checklist.html"
-                        target="_blank"
-                        className="px-10 py-5 bg-indigo-500 text-white border border-white/20 font-bold text-lg rounded-full hover:bg-indigo-400 transition-all flex items-center justify-center gap-3"
-                    >
-                        <FileText className="w-6 h-6" /> Download Compliance Checklist
-                    </a>
+            {/* Final CTA / Downloads */}
+            <section className="py-32 px-6">
+                <div className="max-w-4xl mx-auto bg-gradient-to-br from-indigo-600 to-purple-700 rounded-[3rem] p-12 text-center shadow-2xl shadow-indigo-500/20 relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h2 className="text-4xl md:text-5xl font-extrabold mb-8 italic">Ready to Lead?</h2>
+                        <p className="text-xl opacity-90 mb-12 max-w-2xl mx-auto">
+                            Join the elite care providers who are using AI to protect their patients and their profits.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                            <button
+                                onClick={() => setIsDemoModalOpen(true)}
+                                className="px-10 py-5 bg-white text-indigo-600 font-extra-bold text-lg rounded-full hover:bg-slate-100 transition-all shadow-xl"
+                            >
+                                Request Enterprise Demo
+                            </button>
+                            <a
+                                href="/marketing/compliance-checklist.html"
+                                target="_blank"
+                                className="px-10 py-5 bg-indigo-500 text-white border border-white/20 font-bold text-lg rounded-full hover:bg-indigo-400 transition-all flex items-center justify-center gap-3"
+                            >
+                                <FileText className="w-6 h-6" /> Download Compliance Checklist
+                            </a>
+                        </div>
+                        <div className="mt-8">
+                            <a
+                                href="/marketing/one-pager.html"
+                                target="_blank"
+                                className="text-sm font-bold text-white/60 hover:text-white transition-all underline decoration-white/20 underline-offset-4"
+                            >
+                                View Product One-Pager (PDF Brief)
+                            </a>
+                        </div>
+                    </div>
+                    {/* Decorative Blurs */}
+                    <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -ml-32 -mt-32 filter blur-3xl"></div>
+                    <div className="absolute bottom-0 right-0 w-64 h-64 bg-black/10 rounded-full -mr-32 -mb-32 filter blur-3xl"></div>
                 </div>
-                <div className="mt-8">
-                    <a
-                        href="/marketing/one-pager.html"
-                        target="_blank"
-                        className="text-sm font-bold text-white/60 hover:text-white transition-all underline decoration-white/20 underline-offset-4"
-                    >
-                        View Product One-Pager (PDF Brief)
-                    </a>
+            </section>
+
+            {/* Footer */}
+            <footer className="py-12 border-t border-white/5 opacity-40 px-6">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-sm">
+                    <div className="flex items-center gap-2">
+                        <Zap className="w-5 h-5 text-indigo-500 fill-indigo-500" />
+                        <span className="font-bold">CareFlow AI Suite</span>
+                    </div>
+                    <div>&copy; 2026 NovumSolvo Ltd. All rights reserved.</div>
+                    <div className="flex gap-6">
+                        <a href="#" className="hover:text-white transition-colors">Privacy</a>
+                        <a href="#" className="hover:text-white transition-colors">Terms</a>
+                        <a href="#" className="hover:text-white transition-colors">Legal</a>
+                    </div>
                 </div>
-            </div>
-            {/* Decorative Blurs */}
-            <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -ml-32 -mt-32 filter blur-3xl"></div>
-            <div className="absolute bottom-0 right-0 w-64 h-64 bg-black/10 rounded-full -mr-32 -mb-32 filter blur-3xl"></div>
-        </div>
-            </section >
+            </footer>
 
-    {/* Footer */ }
-    < footer className = "py-12 border-t border-white/5 opacity-40 px-6" >
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-indigo-500 fill-indigo-500" />
-                <span className="font-bold">CareFlow AI Suite</span>
-            </div>
-            <div>&copy; 2026 NovumSolvo Ltd. All rights reserved.</div>
-            <div className="flex gap-6">
-                <a href="#" className="hover:text-white transition-colors">Privacy</a>
-                <a href="#" className="hover:text-white transition-colors">Terms</a>
-                <a href="#" className="hover:text-white transition-colors">Legal</a>
-            </div>
+            <DemoRequestModal
+                isOpen={isDemoModalOpen}
+                onClose={() => setIsDemoModalOpen(false)}
+                productInterest="careflow"
+            />
         </div>
-            </footer >
-
-    <DemoRequestModal
-        isOpen={isDemoModalOpen}
-        onClose={() => setIsDemoModalOpen(false)}
-        productInterest="careflow"
-    />
-        </div >
     );
 };
 

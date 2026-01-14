@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
+import Toast from '@/components/Toast';
 import {
   useComplianceStats,
   useCompliancePersons,
@@ -386,8 +387,9 @@ const OverviewTab: React.FC<{
 
 const ExpiringDocumentsTab: React.FC<{
   tenantId: string;
+  isSendingReminder: string | null;
   onSendReminder: (doc: ExpiringDocument) => void;
-}> = ({ tenantId, onSendReminder }) => {
+}> = ({ tenantId, isSendingReminder, onSendReminder }) => {
   const [daysFilter, setDaysFilter] = useState(30);
   const { data: expiringDocs, isLoading } = useExpiringDocuments(tenantId, daysFilter);
 
@@ -472,10 +474,15 @@ const ExpiringDocumentsTab: React.FC<{
                   <td className="px-4 py-3">
                     <button
                       onClick={() => onSendReminder(doc)}
-                      className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                      disabled={!!isSendingReminder}
+                      className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-sm font-medium disabled:opacity-50"
                     >
-                      <Send className="w-3 h-3" />
-                      Remind
+                      {isSendingReminder === doc.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Send className="w-3 h-3" />
+                      )}
+                      {isSendingReminder === doc.id ? 'Sending...' : 'Remind'}
                     </button>
                   </td>
                 </tr>
@@ -501,11 +508,18 @@ const PendingVerificationTab: React.FC<{
   const verifyMutation = useVerifyDocument(tenantId);
 
   const handleVerify = async (docId: string, approved: boolean) => {
-    await verifyMutation.mutateAsync({
-      documentId: docId,
-      verified: approved,
-      rejectedReason: !approved ? 'Document verification failed' : undefined,
-    });
+    try {
+      await verifyMutation.mutateAsync({
+        documentId: docId,
+        verified: approved,
+        rejectedReason: !approved ? 'Document verification failed' : undefined,
+      });
+      // Toast is handled by onSuccess in useVerifyDocument?
+      // Let's assume we want local toast too if not. 
+      // useVerifyDocument from useComplianceData.ts doesn't seem to have toast.
+    } catch (error) {
+      log.error('Verify document error', error, { component: 'ComplianceHubPage', action: 'handleVerify' });
+    }
   };
 
   return (
@@ -544,15 +558,17 @@ const PendingVerificationTab: React.FC<{
                 <button
                   onClick={() => handleVerify(doc.id, true)}
                   disabled={verifyMutation.isPending}
-                  className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors disabled:opacity-50"
+                  className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
+                  {verifyMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
                   Verify
                 </button>
                 <button
                   onClick={() => handleVerify(doc.id, false)}
                   disabled={verifyMutation.isPending}
-                  className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
+                  className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
+                  {verifyMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
                   Reject
                 </button>
                 <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
@@ -580,10 +596,14 @@ const TasksTab: React.FC<{
   const updateTask = useUpdateTask(tenantId);
 
   const handleCompleteTask = async (taskId: string) => {
-    await updateTask.mutateAsync({
-      id: taskId,
-      updates: { status: 'COMPLETED', completed_at: new Date().toISOString() },
-    });
+    try {
+      await updateTask.mutateAsync({
+        id: taskId,
+        updates: { status: 'COMPLETED', completed_at: new Date().toISOString() },
+      });
+    } catch (error) {
+      log.error('Complete task error', error, { component: 'ComplianceHubPage', action: 'handleCompleteTask' });
+    }
   };
 
   return (
@@ -646,9 +666,10 @@ const TasksTab: React.FC<{
                 <button
                   onClick={() => handleCompleteTask(task.id)}
                   disabled={updateTask.isPending}
-                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
-                  Complete
+                  {updateTask.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {updateTask.isPending ? 'Processing...' : 'Complete'}
                 </button>
               </div>
             </div>
@@ -808,6 +829,11 @@ const ComplianceHubPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'expiring' | 'pending' | 'tasks' | 'people'>('overview');
   const [stageFilter, setStageFilter] = useState<ComplianceStage | undefined>();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isSendingReminder, setIsSendingReminder] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isBulkVerifying, setIsBulkVerifying] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Queries
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useComplianceStats(tenantId);
@@ -827,6 +853,7 @@ const ComplianceHubPage: React.FC = () => {
   };
 
   const handleSendReminder = async (doc: ExpiringDocument) => {
+    setIsSendingReminder(doc.id);
     try {
       // Call the send-email edge function to send a reminder
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
@@ -851,19 +878,22 @@ const ComplianceHubPage: React.FC = () => {
       });
 
       if (response.ok) {
-        alert(`Reminder sent successfully to ${doc.person_email}`);
+        setToast({ message: `Reminder sent successfully to ${doc.person_email}`, type: 'success' });
       } else {
         const err = await response.json();
         log.error('Send reminder error', err, { component: 'ComplianceHubPage', action: 'handleSendReminder', metadata: { email: doc.person_email } });
-        alert('Failed to send reminder. Please try again.');
+        setToast({ message: 'Failed to send reminder. Please try again.', type: 'error' });
       }
     } catch (error) {
       log.error('Send reminder error', error, { component: 'ComplianceHubPage', action: 'handleSendReminder' });
-      alert('Failed to send reminder. Please check your connection.');
+      setToast({ message: 'Failed to send reminder. Please check your connection.', type: 'error' });
+    } finally {
+      setIsSendingReminder(null);
     }
   };
 
   const handleSync = async () => {
+    setIsSyncing(true);
     try {
       // Call the sync-to-careflow edge function
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-to-careflow`, {
@@ -880,20 +910,23 @@ const ComplianceHubPage: React.FC = () => {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Sync completed! ${result.synced || 0} records synchronized to CareFlow.`);
+        setToast({ message: `Sync completed! ${result.synced || 0} records synchronized to CareFlow.`, type: 'success' });
         await refetchStats();
       } else {
         const err = await response.json();
         log.error('Sync error', err, { component: 'ComplianceHubPage', action: 'handleSync' });
-        alert('Sync failed. Please try again.');
+        setToast({ message: 'Sync failed. Please try again.', type: 'error' });
       }
     } catch (error) {
       log.error('Sync error', error, { component: 'ComplianceHubPage', action: 'handleSync' });
-      alert('Sync failed. Please check your connection.');
+      setToast({ message: 'Sync failed. Please check your connection.', type: 'error' });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const handleExportReport = async () => {
+    setIsExporting(true);
     // Generate compliance report as CSV/PDF
     try {
       // Get all compliance data
@@ -903,6 +936,9 @@ const ComplianceHubPage: React.FC = () => {
         stats: stats,
         overallScore: overallScore
       };
+
+      // Wait a bit to show loading state (visual cue)
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Generate HTML report for printing
       const html = `
@@ -987,7 +1023,9 @@ const ComplianceHubPage: React.FC = () => {
       }
     } catch (error) {
       log.error('Export error', error, { component: 'ComplianceHubPage', action: 'handleExportReport' });
-      alert('Failed to generate report.');
+      setToast({ message: 'Failed to generate report.', type: 'error' });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -1037,17 +1075,19 @@ const ComplianceHubPage: React.FC = () => {
               {/* Actions */}
               <button
                 onClick={handleSync}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                disabled={isSyncing}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
               >
-                <RefreshCw className="w-4 h-4" />
-                Sync to CareFlow
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Syncing...' : 'Sync to CareFlow'}
               </button>
               <button
                 onClick={handleExportReport}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={isExporting}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                <Download className="w-4 h-4" />
-                Export Report
+                {isExporting ? <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> : <Download className="w-4 h-4" />}
+                {isExporting ? 'Generating...' : 'Export Report'}
               </button>
             </div>
           </div>
@@ -1239,6 +1279,7 @@ const ComplianceHubPage: React.FC = () => {
                 {activeTab === 'expiring' && (
                   <ExpiringDocumentsTab
                     tenantId={tenantId}
+                    isSendingReminder={isSendingReminder}
                     onSendReminder={handleSendReminder}
                   />
                 )}
@@ -1267,6 +1308,14 @@ const ComplianceHubPage: React.FC = () => {
           <Info className="w-6 h-6" />
         </button>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

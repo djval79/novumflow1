@@ -91,8 +91,8 @@ describe('ComplianceCheckService', () => {
 
     it('should block shift assignment if non-compliant', async () => {
         (supabase.from as any).mockImplementation((table: string) => {
-            if (table === 'careflow_staff') return { select: () => ({ eq: () => ({ eq: () => ({ single: async () => ({ data: {}, error: null }) }) }) }) };
-            if (table === 'careflow_compliance') {
+            if (table === 'careflow_staff') return { select: () => ({ eq: () => ({ eq: () => ({ single: async () => ({ data: { novumflow_employee_id: 'emp-123' }, error: null }) }) }) }) };
+            if (table === 'staff_compliance_summary' || table === 'careflow_compliance') {
                 return {
                     select: () => ({
                         eq: () => ({
@@ -101,7 +101,9 @@ describe('ComplianceCheckService', () => {
                                     data: {
                                         is_compliant: false,
                                         missing_documents: ['Right to Work'],
-                                        rtw_status: 'missing'
+                                        rtw_status: 'missing',
+                                        dbs_status: 'valid',
+                                        training_status: 'valid'
                                     },
                                     error: null
                                 })
@@ -117,6 +119,6 @@ describe('ComplianceCheckService', () => {
 
         expect(result.allowed).toBe(false);
         expect(result.reason).toContain('Compliance Block');
-        expect(result.reason).toContain('Right to Work');
+        expect(result.reason).toContain('Right to Work not verified');
     });
 });

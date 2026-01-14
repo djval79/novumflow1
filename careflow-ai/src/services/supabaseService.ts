@@ -1098,32 +1098,7 @@ const mapper = {
 // Documents & Unified Repository
 // ==========================================
 
-export const documentService = {
-    async getStaffDocuments(employeeId: string, tenantId: string) {
-        if (!employeeId) return [];
-        const { data, error } = await supabase
-            .from('unified_employee_documents')
-            .select('*')
-            .eq('employee_id', employeeId)
-            .eq('tenant_id', tenantId);
 
-        if (error) {
-            console.error('Error fetching unified documents:', error);
-            return [];
-        }
-
-        return data.map((d: any) => ({
-            id: d.id,
-            name: d.name,
-            type: d.type?.toUpperCase() || 'PDF',
-            category: d.category || 'Staff Record',
-            uploadedDate: new Date(d.created_at).toLocaleDateString(),
-            size: `${(d.size / 1024 / 1024).toFixed(1)} MB`,
-            source: d.source,
-            url: d.file_url
-        }));
-    }
-};
 
 export const trainingService = {
 
@@ -1419,6 +1394,31 @@ export const feedbackService = {
 // ==========================================
 
 export const documentService = {
+    async getStaffDocuments(employeeId: string, tenantId: string) {
+        if (!employeeId) return [];
+        const { data, error } = await supabase
+            .from('unified_employee_documents')
+            .select('*')
+            .eq('employee_id', employeeId)
+            .eq('tenant_id', tenantId);
+
+        if (error) {
+            console.error('Error fetching unified documents:', error);
+            return [];
+        }
+
+        return data.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            type: d.type?.toUpperCase() || 'PDF',
+            category: d.category || 'Staff Record',
+            uploadedDate: new Date(d.created_at).toLocaleDateString(),
+            size: `${(d.size / 1024 / 1024).toFixed(1)} MB`,
+            source: d.source,
+            url: d.file_url
+        }));
+    },
+
     async getAll(tenantId?: string, category?: string) {
         let query = supabase.from('careflow_documents').select('*').order('name');
         if (tenantId) query = query.eq('tenant_id', tenantId);

@@ -43,6 +43,8 @@ export default function OnboardingChecklistManager({ employeeId, employeeName, o
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
     const [dueDate, setDueDate] = useState<string>('');
+    const [isToggling, setIsToggling] = useState<string | null>(null);
+    const [isAssigning, setIsAssigning] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     useEffect(() => {
@@ -100,7 +102,8 @@ export default function OnboardingChecklistManager({ employeeId, employeeName, o
     }
 
     async function assignChecklist() {
-        if (!selectedTemplateId || !currentTenant || !user) return;
+        if (!selectedTemplateId || !currentTenant || !user || isAssigning) return;
+        setIsAssigning(true);
 
         const template = templates.find(t => t.id === selectedTemplateId);
         if (!template) return;
@@ -143,6 +146,7 @@ export default function OnboardingChecklistManager({ employeeId, employeeName, o
             setToast({ message: 'Onboarding checklist assigned successfully!', type: 'success' });
         }
 
+        setIsAssigning(false);
         setShowAssignModal(false);
         setSelectedTemplateId('');
         setDueDate('');
@@ -150,36 +154,45 @@ export default function OnboardingChecklistManager({ employeeId, employeeName, o
     }
 
     async function toggleItemCompletion(checklistId: string, itemId: string, currentState: boolean) {
-        const { error } = await supabase
-            .from('onboarding_checklist_items')
-            .update({
-                is_completed: !currentState,
-                completed_at: !currentState ? new Date().toISOString() : null,
-                completed_by: !currentState ? user?.id : null,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', itemId);
+        if (isToggling) return;
+        setIsToggling(itemId);
+        try {
+            const { error } = await supabase
+                .from('onboarding_checklist_items')
+                .update({
+                    is_completed: !currentState,
+                    completed_at: !currentState ? new Date().toISOString() : null,
+                    completed_by: !currentState ? user?.id : null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', itemId);
 
-        if (error) {
-            setToast({ message: 'Failed to update item', type: 'error' });
-        } else {
-            // Update local state immediately for responsiveness
-            setChecklists(prev => prev.map(cl => {
-                if (cl.id === checklistId) {
-                    return {
-                        ...cl,
-                        items: cl.items.map(item =>
-                            item.id === itemId
-                                ? { ...item, is_completed: !currentState, completed_at: !currentState ? new Date().toISOString() : null }
-                                : item
-                        )
-                    };
-                }
-                return cl;
-            }));
+            if (error) {
+                setToast({ message: 'Failed to update item', type: 'error' });
+            } else {
+                // Update local state immediately for responsiveness
+                setChecklists(prev => prev.map(cl => {
+                    if (cl.id === checklistId) {
+                        return {
+                            ...cl,
+                            items: cl.items.map(item =>
+                                item.id === itemId
+                                    ? { ...item, is_completed: !currentState, completed_at: !currentState ? new Date().toISOString() : null }
+                                    : item
+                            )
+                        };
+                    }
+                    return cl;
+                }));
 
-            // Reload to get updated status from trigger
-            setTimeout(() => loadChecklists(), 500);
+                // Reload to get updated status from trigger
+                setTimeout(() => loadChecklists(), 500);
+            }
+        } catch (error) {
+            console.error('Error updating item:', error);
+            setToast({ message: 'Error updating item', type: 'error' });
+        } finally {
+            setIsToggling(null);
         }
     }
 
@@ -295,7 +308,9 @@ export default function OnboardingChecklistManager({ employeeId, employeeName, o
                                                         }`}
                                                 >
                                                     <div className="flex items-center space-x-3">
-                                                        {item.is_completed ? (
+                                                        {isToggling === item.id ? (
+                                                            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                                                        ) : item.is_completed ? (
                                                             <CheckCircle className="w-5 h-5 text-green-600" />
                                                         ) : (
                                                             <Circle className="w-5 h-5 text-gray-400" />
