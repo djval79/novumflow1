@@ -36,6 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON webhook_deliveries(s
 ALTER TABLE webhooks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE webhook_deliveries ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage their tenant webhooks" ON webhooks;
 CREATE POLICY "Users can manage their tenant webhooks" ON webhooks
     FOR ALL USING (
         tenant_id IN (
@@ -44,6 +45,7 @@ CREATE POLICY "Users can manage their tenant webhooks" ON webhooks
         )
     );
 
+DROP POLICY IF EXISTS "Users can view their tenant webhook logs" ON webhook_deliveries;
 CREATE POLICY "Users can view their tenant webhook logs" ON webhook_deliveries
     FOR SELECT USING (
         tenant_id IN (

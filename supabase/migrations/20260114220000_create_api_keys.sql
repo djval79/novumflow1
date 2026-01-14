@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 -- RLS
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage their tenant api keys" ON api_keys;
 CREATE POLICY "Users can manage their tenant api keys" ON api_keys
     FOR ALL USING (
         tenant_id IN (

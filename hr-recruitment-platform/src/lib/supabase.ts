@@ -84,7 +84,11 @@ export function getSupabaseClient() {
 
 export const supabase = getSupabaseClient();
 
-export type UserRole = 'admin' | 'hr_manager' | 'recruiter' | 'employee' | 'carer' | 'staff' | 'inspector' | 'super_admin';
+export type UserRole =
+  | 'admin' | 'hr_manager' | 'recruiter' | 'employee'  // HR Platform
+  | 'carer' | 'staff' | 'inspector' | 'super_admin'    // CareFlow
+  | 'owner' | 'manager' | 'member'                      // Multi-tenant
+  | 'demo';                                             // Demo accounts
 
 export interface UserProfile {
   id: string;
