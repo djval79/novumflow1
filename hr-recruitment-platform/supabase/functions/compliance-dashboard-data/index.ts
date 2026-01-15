@@ -1,7 +1,25 @@
-Deno.serve(async (req) => {
-    const corsHeaders = {
+/// <reference lib="deno.ns" />
+
+interface VisaRecord {
+    expiry_date: string;
+    current_status: string;
+}
+
+interface DBSCertificate {
+    expiry_date: string | null;
+    status: string;
+}
+
+interface ComplianceAlert {
+    alert_priority: 'critical' | 'urgent' | 'high' | 'medium' | 'low';
+    status: string;
+    due_date: string;
+}
+
+Deno.serve(async (req: Request): Promise<Response> => {
+    const corsHeaders: Record<string, string> = {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept, cache-control, pragma, expires, x-requested-with',
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
         'Access-Control-Max-Age': '86400',
         'Access-Control-Allow-Credentials': 'false'
@@ -31,7 +49,7 @@ Deno.serve(async (req) => {
             }
         });
 
-        const alerts = alertsResponse.ok ? await alertsResponse.json() : [];
+        const alerts: ComplianceAlert[] = alertsResponse.ok ? await alertsResponse.json() : [];
 
         const visaResponse = await fetch(`${supabaseUrl}/rest/v1/visa_records?current_status=eq.active&order=expiry_date.asc`, {
             headers: {
@@ -40,7 +58,7 @@ Deno.serve(async (req) => {
             }
         });
 
-        const visaRecords = visaResponse.ok ? await visaResponse.json() : [];
+        const visaRecords: VisaRecord[] = visaResponse.ok ? await visaResponse.json() : [];
 
         const dbsResponse = await fetch(`${supabaseUrl}/rest/v1/dbs_certificates?status=in.(pending,approved)&order=expiry_date.asc`, {
             headers: {
@@ -49,7 +67,7 @@ Deno.serve(async (req) => {
             }
         });
 
-        const dbsCertificates = dbsResponse.ok ? await dbsResponse.json() : [];
+        const dbsCertificates: DBSCertificate[] = dbsResponse.ok ? await dbsResponse.json() : [];
 
         const rtwResponse = await fetch(`${supabaseUrl}/rest/v1/right_to_work_checks?order=check_date.desc&limit=50`, {
             headers: {
@@ -58,27 +76,26 @@ Deno.serve(async (req) => {
             }
         });
 
-        const rtwChecks = rtwResponse.ok ? await rtwResponse.json() : [];
+        const rtwChecks: unknown[] = rtwResponse.ok ? await rtwResponse.json() : [];
 
         const now = new Date();
-        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
-        const expiringVisas = visaRecords.filter(v => {
+        const expiringVisas = visaRecords.filter((v: VisaRecord) => {
             const expiryDate = new Date(v.expiry_date);
             return expiryDate <= ninetyDaysFromNow && expiryDate > now;
         });
 
-        const expiringDBS = dbsCertificates.filter(d => {
+        const expiringDBS = dbsCertificates.filter((d: DBSCertificate) => {
             if (!d.expiry_date) return false;
             const expiryDate = new Date(d.expiry_date);
             return expiryDate <= ninetyDaysFromNow && expiryDate > now;
         });
 
-        const criticalAlerts = alerts.filter(a => a.alert_priority === 'critical' || a.alert_priority === 'urgent');
-        const highAlerts = alerts.filter(a => a.alert_priority === 'high');
+        const criticalAlerts = alerts.filter((a: ComplianceAlert) => a.alert_priority === 'critical' || a.alert_priority === 'urgent');
+        const highAlerts = alerts.filter((a: ComplianceAlert) => a.alert_priority === 'high');
 
-        const complianceScore = Math.max(0, Math.min(100, 
+        const complianceScore = Math.max(0, Math.min(100,
             100 - (criticalAlerts.length * 10) - (highAlerts.length * 5) - (expiringVisas.length * 3)
         ));
 
@@ -108,13 +125,15 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Compliance dashboard error:', error);
+
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
         const errorResponse = {
             error: {
                 code: 'COMPLIANCE_DASHBOARD_ERROR',
-                message: error.message
+                message: errorMessage
             }
         };
 
