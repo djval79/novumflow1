@@ -43,7 +43,7 @@ export default function QuickAdminSetup() {
           .upsert({
             user_id: authData.user.id,
             full_name: 'System Administrator',
-            role: 'Admin',
+            role: 'admin',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             permissions: JSON.stringify([

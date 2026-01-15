@@ -4,7 +4,7 @@ import OpenAI from 'https://esm.sh/openai@4.24.1'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cache-control, x-requested-with, pragma',
 }
 
 serve(async (req) => {

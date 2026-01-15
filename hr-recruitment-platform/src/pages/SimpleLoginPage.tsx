@@ -40,7 +40,7 @@ export default function SimpleLoginPage() {
           .upsert({
             user_id: data.user.id,
             full_name: 'Administrator',
-            role: 'Admin',
+            role: 'admin',
             email: data.user.email,
             created_at: new Date().toISOString(),
           })
@@ -80,7 +80,7 @@ export default function SimpleLoginPage() {
           .upsert({
             user_id: data.user.id,
             full_name: 'System Administrator',
-            role: 'Admin',
+            role: 'admin',
             email: data.user.email,
             created_at: new Date().toISOString(),
           });

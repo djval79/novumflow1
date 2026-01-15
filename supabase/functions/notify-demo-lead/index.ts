@@ -6,7 +6,7 @@ const adminEmail = Deno.env.get("ADMIN_EMAIL") || "admin@novumflow.com";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cache-control, x-requested-with, pragma',
 };
 
 serve(async (req) => {

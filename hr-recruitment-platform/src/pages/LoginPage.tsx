@@ -50,7 +50,7 @@ export default function LoginPage() {
             .upsert({
               user_id: user.id,
               full_name: 'System Administrator',
-              role: 'Admin',
+              role: 'admin',
               created_at: new Date().toISOString(),
             });
         }

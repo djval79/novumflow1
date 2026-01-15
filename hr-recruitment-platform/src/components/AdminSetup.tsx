@@ -18,7 +18,7 @@ export default function AdminSetup() {
         .upsert({
           user_id: user.id,
           full_name: 'System Administrator',
-          role: 'Admin',
+          role: 'admin',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
