@@ -51,7 +51,7 @@ export default function AdminPrivilegeSetup() {
           user_id: user.id,
           email: user.email,
           full_name: 'System Administrator',
-          role: 'Admin',
+          role: 'admin',
           updated_at: new Date().toISOString(),
           permissions: JSON.stringify([
             'create_jobs',
@@ -72,7 +72,7 @@ export default function AdminPrivilegeSetup() {
       if (error) throw error;
       if (error) throw error;
 
-      setUserRole('Admin');
+      setUserRole('admin');
       setSuccess(true);
 
       // Add audit log (best effort)
@@ -100,7 +100,7 @@ export default function AdminPrivilegeSetup() {
 
   if (!user) return null;
 
-  const isAdmin = userRole === 'Admin';
+  const isAdmin = userRole === 'admin';
   const needsSetup = !isAdmin && userRole !== 'checking';
 
   // Hide badge if user is already Admin
