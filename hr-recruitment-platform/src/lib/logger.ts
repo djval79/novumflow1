@@ -254,24 +254,43 @@ class Logger {
   private async flushSecurityEvents() {
     if (this.securityEvents.length === 0) return;
 
-    const eventsToSend = [...this.securityEvents];
-    this.securityEvents = [];
-
     try {
       // Import supabase dynamically to avoid circular dependencies
       const { supabase } = await import('@/lib/supabase');
+      if (!supabase) return;
 
-      await supabase.from('security_audit_logs').insert(
+      // Check for active session to avoid 401 errors
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Keep events in queue until authenticated if we really want them, 
+        // but for now let's just avoid the noise if it's high volume.
+        // We'll limit the queue size so it doesn't leak memory.
+        if (this.securityEvents.length > 50) {
+          this.securityEvents = this.securityEvents.slice(-50);
+        }
+        return;
+      }
+
+      const eventsToSend = [...this.securityEvents];
+      this.securityEvents = [];
+
+      const { error } = await supabase.from('security_audit_logs').insert(
         eventsToSend.map(e => ({
           event_type: e.event_type,
           severity: e.severity,
           details: e.details,
-          created_at: e.timestamp
+          created_at: e.timestamp,
+          user_id: session.user.id // Attach current user
         }))
       );
-    } catch {
-      // If sync fails, put events back in queue
-      this.securityEvents.unshift(...eventsToSend);
+
+      if (error) {
+        // If sync fails due to other reasons, put events back in queue
+        this.securityEvents.unshift(...eventsToSend);
+        if (isDevelopment) console.error('[Logger] Sync failed', error);
+      }
+    } catch (err) {
+      if (isDevelopment) console.error('[Logger] Unexpected error', err);
     }
   }
 

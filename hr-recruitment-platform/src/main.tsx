@@ -8,11 +8,16 @@ import posthog from 'posthog-js'
 import App from './App.tsx'
 
 if (typeof window !== 'undefined') {
-  posthog.init(import.meta.env.VITE_POSTHOG_KEY || 'phc_placeholder', {
-    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://eu.posthog.com',
-    person_profiles: 'identified_only',
-    capture_pageview: false // We will handle this in a router hook
-  })
+  const phKey = import.meta.env.VITE_POSTHOG_KEY;
+  if (phKey && phKey !== 'phc_placeholder') {
+    posthog.init(phKey, {
+      api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://eu.posthog.com',
+      person_profiles: 'identified_only',
+      capture_pageview: false // We will handle this in a router hook
+    });
+  } else {
+    console.warn('[PH] PostHog initialization skipped: Missing VITE_POSTHOG_KEY');
+  }
 }
 
 Sentry.init({

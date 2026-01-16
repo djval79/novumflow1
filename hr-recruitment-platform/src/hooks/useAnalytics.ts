@@ -8,11 +8,15 @@ export const useAnalytics = () => {
 
     // Track Pageviews
     useEffect(() => {
-        posthog.capture('$pageview');
+        if (import.meta.env.VITE_POSTHOG_KEY && import.meta.env.VITE_POSTHOG_KEY !== 'phc_placeholder') {
+            posthog.capture('$pageview');
+        }
     }, [location]);
 
     const trackEvent = (eventName: string, properties?: Record<string, any>) => {
-        posthog.capture(eventName, properties);
+        if (import.meta.env.VITE_POSTHOG_KEY && import.meta.env.VITE_POSTHOG_KEY !== 'phc_placeholder') {
+            posthog.capture(eventName, properties);
+        }
 
         // Also log to Sentry breadcrumbs for better debugging
         Sentry.addBreadcrumb({
@@ -24,7 +28,9 @@ export const useAnalytics = () => {
     };
 
     const identifyUser = (userId: string, traits?: Record<string, any>) => {
-        posthog.identify(userId, traits);
+        if (import.meta.env.VITE_POSTHOG_KEY && import.meta.env.VITE_POSTHOG_KEY !== 'phc_placeholder') {
+            posthog.identify(userId, traits);
+        }
         Sentry.setUser({ id: userId, ...traits });
     };
 
