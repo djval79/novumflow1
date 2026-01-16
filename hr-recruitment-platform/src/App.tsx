@@ -1,6 +1,6 @@
 import React, { useEffect, Suspense } from 'react';
 import { automationService } from '@/lib/services/AutomationService';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { QueryProvider } from './contexts/QueryProvider';
@@ -201,138 +201,137 @@ function App() {
       <AuthProvider>
         <TenantProvider>
           <HelpProvider>
-            <BrowserRouter>
-              <PWAUpdateNotification />
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {/* Public Routes */}
-                  <Route
-                    path="/login"
-                    element={
-                      <PublicRoute>
-                        <LoginPage />
-                      </PublicRoute>
-                    }
-                  />
-                  <Route
-                    path="/signup"
-                    element={
-                      <PublicRoute>
-                        <SignUpPage />
-                      </PublicRoute>
-                    }
-                  />
-                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                  <Route path="/reset-password" element={<ResetPasswordPage />} />
-                  <Route path="/privacy" element={<PrivacyPage />} />
-                  <Route path="/terms" element={<TermsPage />} />
-                  <Route path="/audit-logs" element={<AuditLogsPage />} />
-                  <Route path="/subscription/success" element={<SubscriptionSuccess />} />
-                  <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
-                  <Route path="/support" element={<SupportPage />} />
-                  <Route path="/tenant/create" element={<TenantSignupPage />} />
+            <PWAUpdateNotification />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public Routes */}
+                <Route
+                  path="/login"
+                  element={
+                    <PublicRoute>
+                      <LoginPage />
+                    </PublicRoute>
+                  }
+                />
+                <Route
+                  path="/signup"
+                  element={
+                    <PublicRoute>
+                      <SignUpPage />
+                    </PublicRoute>
+                  }
+                />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/audit-logs" element={<AuditLogsPage />} />
+                <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+                <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
+                <Route path="/support" element={<SupportPage />} />
+                <Route path="/tenant/create" element={<TenantSignupPage />} />
 
-                  {/* NovumFlow Landing Page */}
-                  <Route
-                    path="/"
-                    element={
-                      <Suspense fallback={<PageLoader />}>
-                        <LandingPage />
-                      </Suspense>
-                    }
-                  />
+                {/* NovumFlow Landing Page */}
+                <Route
+                  path="/"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <LandingPage />
+                    </Suspense>
+                  }
+                />
 
-                  {/* Protected Routes (App Wrapper) */}
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="dashboard" element={<FeatureRoute feature="dashboard"><DashboardPage /></FeatureRoute>} />
-                    <Route path="hr" element={<FeatureRoute feature="hr_module"><HRModulePage /></FeatureRoute>} />
-                    <Route path="recruitment" element={<FeatureRoute feature="recruitment"><RecruitmentPage /></FeatureRoute>} />
-                    <Route path="performance" element={<FeatureRoute feature="performance"><PerformancePageRefactored /></FeatureRoute>} />
-                    <Route path="integrations" element={<FeatureRoute feature="integrations"><IntegrationsPage /></FeatureRoute>} />
-                    <Route path="documents" element={<FeatureRoute feature="documents"><DocumentsPage /></FeatureRoute>} />
-                    <Route path="messaging" element={<FeatureRoute feature="messaging"><MessagingPage /></FeatureRoute>} />
-                    <Route path="noticeboard" element={<FeatureRoute feature="noticeboard"><NoticeBoardPage /></FeatureRoute>} />
-                    <Route path="compliance" element={<FeatureRoute feature="compliance"><CompliancePage /></FeatureRoute>} />
-                    <Route path="biometric" element={<FeatureRoute feature="biometric"><BiometricPage /></FeatureRoute>} />
-                    <Route path="automation" element={<FeatureRoute feature="automation"><AutomationPage /></FeatureRoute>} />
-                    <Route path="letters" element={<FeatureRoute feature="letters"><LettersPage /></FeatureRoute>} />
-                    <Route path="settings" element={<FeatureRoute feature="settings"><SettingsPage /></FeatureRoute>} />
-                    <Route path="recruit-settings" element={<FeatureRoute feature="recruit_settings"><RecruitSettingsPage /></FeatureRoute>} />
-                    <Route path="forms" element={<FeatureRoute feature="forms"><FormsPage /></FeatureRoute>} />
-                    <Route path="tenant-management" element={<TenantManagementPage />} />
-                    <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
-                    <Route path="compliance-hub" element={<ComplianceHubPage />} />
-                    <Route path="compliance/mock-inspection" element={<CQCMockInspection />} />
-                    <Route path="docs" element={<ApiDocsPage />} />
-                    <Route path="analytics/bi" element={<AdvancedBIDashboard />} />
-                    <Route path="analytics/turnover" element={<TurnoverPredictor />} />
-                    <Route path="marketplace" element={<Marketplace />} />
-                    <Route path="compliance-forms" element={<ComplianceFormsPage />} />
-                    <Route path="audit-logs" element={<AuditLogPage />} />
-                    <Route path="admin" element={<AdminPortalPage />} />
-                    <Route path="admin/security" element={<AdminSecurityDashboard />} />
-                    <Route path="attendance" element={<AttendancePage />} />
-                    <Route path="reports" element={<ReportsPage />} />
-                    <Route path="team" element={<TeamPage />} />
-                    <Route path="onboarding" element={<OnboardingPage />} />
-                    <Route path="training" element={<TrainingPage />} />
-                    <Route path="workforce-management" element={<WorkforceManagementPage />} />
-                    <Route path="governance" element={<GovernanceDashboard />} />
-                    <Route path="sponsor-guardian" element={<SponsorGuardianPage />} />
-                    <Route path="billing" element={<BillingPage />} />
-                    <Route path="shifts" element={<ShiftManagementPage />} />
-                    <Route path="clients" element={<ClientManagementPage />} />
-                    <Route path="incidents" element={<IncidentReportingPage />} />
-                    <Route path="expenses" element={<ExpenseManagementPage />} />
-                    <Route path="audit" element={<AuditTrailPage />} />
-                    <Route path="suite" element={<UnifiedDashboardPage />} />
-                    <Route path="developer" element={<DeveloperSettingsPage />} />
-                  </Route>
+                {/* Protected Routes (App Wrapper) */}
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="dashboard" element={<FeatureRoute feature="dashboard"><DashboardPage /></FeatureRoute>} />
+                  <Route path="hr" element={<FeatureRoute feature="hr_module"><HRModulePage /></FeatureRoute>} />
+                  <Route path="recruitment" element={<FeatureRoute feature="recruitment"><RecruitmentPage /></FeatureRoute>} />
+                  <Route path="performance" element={<FeatureRoute feature="performance"><PerformancePageRefactored /></FeatureRoute>} />
+                  <Route path="integrations" element={<FeatureRoute feature="integrations"><IntegrationsPage /></FeatureRoute>} />
+                  <Route path="documents" element={<FeatureRoute feature="documents"><DocumentsPage /></FeatureRoute>} />
+                  <Route path="messaging" element={<FeatureRoute feature="messaging"><MessagingPage /></FeatureRoute>} />
+                  <Route path="noticeboard" element={<FeatureRoute feature="noticeboard"><NoticeBoardPage /></FeatureRoute>} />
+                  <Route path="compliance" element={<FeatureRoute feature="compliance"><CompliancePage /></FeatureRoute>} />
+                  <Route path="biometric" element={<FeatureRoute feature="biometric"><BiometricPage /></FeatureRoute>} />
+                  <Route path="automation" element={<FeatureRoute feature="automation"><AutomationPage /></FeatureRoute>} />
+                  <Route path="letters" element={<FeatureRoute feature="letters"><LettersPage /></FeatureRoute>} />
+                  <Route path="settings" element={<FeatureRoute feature="settings"><SettingsPage /></FeatureRoute>} />
+                  <Route path="recruit-settings" element={<FeatureRoute feature="recruit_settings"><RecruitSettingsPage /></FeatureRoute>} />
+                  <Route path="forms" element={<FeatureRoute feature="forms"><FormsPage /></FeatureRoute>} />
+                  <Route path="tenant-management" element={<TenantManagementPage />} />
+                  <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
+                  <Route path="compliance-hub" element={<ComplianceHubPage />} />
+                  <Route path="compliance/mock-inspection" element={<CQCMockInspection />} />
+                  <Route path="docs" element={<ApiDocsPage />} />
+                  <Route path="analytics/bi" element={<AdvancedBIDashboard />} />
+                  <Route path="analytics/turnover" element={<TurnoverPredictor />} />
+                  <Route path="marketplace" element={<Marketplace />} />
+                  <Route path="compliance-forms" element={<ComplianceFormsPage />} />
+                  <Route path="audit-logs" element={<AuditLogPage />} />
+                  <Route path="admin" element={<AdminPortalPage />} />
+                  <Route path="admin/security" element={<AdminSecurityDashboard />} />
+                  <Route path="attendance" element={<AttendancePage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="team" element={<TeamPage />} />
+                  <Route path="onboarding" element={<OnboardingPage />} />
+                  <Route path="training" element={<TrainingPage />} />
+                  <Route path="workforce-management" element={<WorkforceManagementPage />} />
+                  <Route path="governance" element={<GovernanceDashboard />} />
+                  <Route path="sponsor-guardian" element={<SponsorGuardianPage />} />
+                  <Route path="billing" element={<BillingPage />} />
+                  <Route path="shifts" element={<ShiftManagementPage />} />
+                  <Route path="clients" element={<ClientManagementPage />} />
+                  <Route path="incidents" element={<IncidentReportingPage />} />
+                  <Route path="expenses" element={<ExpenseManagementPage />} />
+                  <Route path="audit" element={<AuditTrailPage />} />
+                  <Route path="suite" element={<UnifiedDashboardPage />} />
+                  <Route path="developer" element={<DeveloperSettingsPage />} />
+                </Route>
 
-                  {/* Standalone Protected Routes (No App Layout) */}
-                  <Route
-                    path="/inspector-mode"
-                    element={
-                      <ProtectedRoute>
-                        <InspectorDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/my-passport"
-                    element={
-                      <ProtectedRoute>
-                        <StaffPassportPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/staff-portal"
-                    element={
-                      <ProtectedRoute>
-                        <StaffPortalPage />
-                      </ProtectedRoute>
-                    }
-                  />
+                {/* Standalone Protected Routes (No App Layout) */}
+                <Route
+                  path="/inspector-mode"
+                  element={
+                    <ProtectedRoute>
+                      <InspectorDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/my-passport"
+                  element={
+                    <ProtectedRoute>
+                      <StaffPassportPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/staff-portal"
+                  element={
+                    <ProtectedRoute>
+                      <StaffPortalPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-                  {/* Standalone Protected Routes (No App Layout) */}{/*  */}
+                {/* Standalone Protected Routes (No App Layout) */}{/*  */}
 
-                  {/* Catch all */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-                <AIComplianceAssistant />
-              </Suspense>
-            </BrowserRouter>
+                {/* Catch all */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+              <AIComplianceAssistant />
+            </Suspense>
+
           </HelpProvider>
         </TenantProvider>
       </AuthProvider>
-    </QueryProvider>
+    </QueryProvider >
   );
 }
 

@@ -21,6 +21,35 @@ CREATE TABLE IF NOT EXISTS application_notes (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 1.5. Form Templates (Required by Form Submissions)
+CREATE TABLE IF NOT EXISTS form_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    form_type VARCHAR(100) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    folder VARCHAR(100) DEFAULT 'general',
+    schema JSONB NOT NULL DEFAULT '[]',
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE form_templates ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+    CREATE POLICY "Tenant isolation" ON form_templates
+        FOR ALL USING (
+            tenant_id IN (
+                SELECT tenant_id FROM user_tenant_memberships 
+                WHERE user_id = auth.uid() AND is_active = true
+            )
+        );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 2. Form Submissions (for completed form responses)
 -- NOTE: This table may already exist in some deployments - skipping if exists
 -- If the existing table has a different schema, you may need to migrate data
