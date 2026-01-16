@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, UserProfile } from '@/lib/supabase';
 import { log } from '@/lib/logger';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import ServiceUnavailablePage from '@/pages/ServiceUnavailablePage';
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { identifyUser } = useAnalytics();
   const [isServiceUnavailable, setIsServiceUnavailable] = useState(false);
 
   // Effect 1: Initialize Auth (Run once)
@@ -182,6 +184,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('scroll', updateActivity);
     };
   }, [user]); // Run when user changes
+
+  // Effect 3: Identify User for Analytics
+  useEffect(() => {
+    if (user && profile) {
+      identifyUser(user.id, {
+        email: user.email,
+        role: profile.role,
+        tenant_id: profile.tenant_id,
+        is_super_admin: profile.is_super_admin
+      });
+    }
+  }, [user, profile]);
 
   async function signIn(email: string, password: string) {
     if (!supabase) return { error: new Error('Supabase client not initialized') };

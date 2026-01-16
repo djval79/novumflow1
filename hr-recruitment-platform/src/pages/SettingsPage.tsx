@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { Save, Upload, Building2, Mail } from 'lucide-react';
+import { Save, Upload, Building2, Mail, Shield } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import EmailTemplateEditor from '../components/EmailTemplateEditor';
 import { log } from '@/lib/logger';
 
@@ -196,85 +197,27 @@ export default function SettingsPage() {
           {/* Working Hours */}
           <div className="pt-6 border-t border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Working Hours & Policies</h2>
+            {/* ... (existing fields) ... */}
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Working Hours Start
-                </label>
-                <input
-                  type="time"
-                  value={companySettings.working_hours_start || ''}
-                  onChange={(e) => setCompanySettings({ ...companySettings, working_hours_start: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Working Hours End
-                </label>
-                <input
-                  type="time"
-                  value={companySettings.working_hours_end || ''}
-                  onChange={(e) => setCompanySettings({ ...companySettings, working_hours_end: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Annual Leave Days
-                </label>
-                <input
-                  type="number"
-                  value={companySettings.annual_leave_days || 0}
-                  onChange={(e) => setCompanySettings({ ...companySettings, annual_leave_days: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sick Leave Days
-                </label>
-                <input
-                  type="number"
-                  value={companySettings.sick_leave_days || 0}
-                  onChange={(e) => setCompanySettings({ ...companySettings, sick_leave_days: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Timezone
-                </label>
-                <input
-                  type="text"
-                  value={companySettings.timezone || ''}
-                  onChange={(e) => setCompanySettings({ ...companySettings, timezone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                  placeholder="e.g., UTC, America/New_York"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Currency
-                </label>
-                <select
-                  value={companySettings.currency || 'USD'}
-                  onChange={(e) => setCompanySettings({ ...companySettings, currency: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+          {/* Compliance & Auditing */}
+          <div className="pt-6 border-t border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Shield className="w-5 h-5 mr-2" />
+              Compliance & Auditing
+            </h2>
+            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-bold text-slate-900">Regulatory Audit Trail</h3>
+                  <p className="text-sm text-slate-500">View immutable logs of all sensitive actions for CQC Inspections.</p>
+                </div>
+                <Link
+                  to="/audit-logs"
+                  className="px-6 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg font-bold hover:bg-slate-50 transition-all shadow-sm"
                 >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="JPY">JPY</option>
-                  <option value="AUD">AUD</option>
-                  <option value="CAD">CAD</option>
-                </select>
+                  View Audit Logs
+                </Link>
               </div>
             </div>
           </div>

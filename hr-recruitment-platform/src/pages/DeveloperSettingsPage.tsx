@@ -161,7 +161,7 @@ export default function DeveloperSettingsPage() {
                 <div>
                     <h3 className="font-semibold text-blue-900 text-sm">API Documentation</h3>
                     <p className="text-sm text-blue-700 mt-1">
-                        Read the <a href="#" className="underline">NovumFlow API Docs</a> to learn how to authenticate requests and access data programmatically.
+                        Read the <button onClick={() => window.location.href = '/docs'} className="underline font-bold">NovumFlow API Docs</button> to learn how to authenticate requests and access data programmatically.
                     </p>
                 </div>
             </div>

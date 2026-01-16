@@ -1,0 +1,14 @@
+{
+    "common": {
+        "dashboard": "Dashboard",
+        "compliance": "Compliance",
+        "settings": "Settings",
+        "logout": "Logout",
+        "loading": "Loading..."
+    },
+    "dashboard": {
+        "welcome": "Welcome back, {{name}}",
+        "total_employees": "Total Employees",
+        "active_jobs": "Active Jobs"
+    }
+}

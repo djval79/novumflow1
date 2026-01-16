@@ -1,0 +1,52 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "NovumFlow Enterprise API",
+        "description": "Powerful API for managing staff, compliance, and recruitment in high-complexity care environments.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "https://api.novumflow.com/v1",
+            "description": "Production Server"
+        }
+    ],
+    "paths": {
+        "/employees": {
+            "get": {
+                "summary": "List all employees",
+                "description": "Returns a list of employees for the authenticated tenant.",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation"
+                    }
+                }
+            }
+        },
+        "/compliance/sync": {
+            "post": {
+                "summary": "Trigger cross-region sync",
+                "description": "Manually trigger a compliance data sync to a remote CareFlow instance.",
+                "responses": {
+                    "202": {
+                        "description": "Sync accepted"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-API-KEY"
+            }
+        }
+    },
+    "security": [
+        {
+            "ApiKeyAuth": []
+        }
+    ]
+}

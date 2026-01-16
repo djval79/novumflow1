@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 import { Capacitor } from '@capacitor/core';
 import { log } from '@/lib/logger';
+import { toast } from 'sonner';
 
 interface BiometricEnrollment {
   id: string;
@@ -83,7 +84,10 @@ export default function BiometricPage() {
     try {
       setLoading(true);
       const session = await supabase.auth.getSession();
-      if (!session.data.session) return;
+      if (!session.data.session) {
+        toast.error('No active session found');
+        return;
+      }
 
       await supabase.functions.invoke('biometric-processing', {
         body: {
@@ -94,7 +98,7 @@ export default function BiometricPage() {
             fingerprint_template: biometricType === 'fingerprint' ? 'ENCRYPTED_TEMPLATE_DATA' : null,
             face_template: biometricType === 'face' ? 'ENCRYPTED_TEMPLATE_DATA' : null,
             quality_score: 95,
-            device_id: 'WEB_INTERFACE'
+            device_id: Capacitor.isNativePlatform() ? 'MOBILE_DEVICE' : 'WEB_INTERFACE'
           }
         },
         headers: {
@@ -102,11 +106,11 @@ export default function BiometricPage() {
         }
       });
 
-      alert('Biometric enrollment successful!');
+      toast.success(`Biometric ${biometricType} enrollment successful!`);
       loadBiometricData();
     } catch (error) {
       log.error('Error enrolling biometric', error, { component: 'BiometricPage', action: 'handleEnrollEmployee', metadata: { employeeId, biometricType } });
-      alert('Enrollment failed');
+      toast.error('Enrollment failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -144,18 +148,22 @@ export default function BiometricPage() {
             subtitle: "Confirm your identity",
             description: "Please authenticate to log your attendance"
           });
-          // If we get here, verification was successful
-        } catch (error) {
-          alert('Biometric verification failed');
+          toast.success('Identity verified via biometrics');
+        } catch (error: any) {
+          log.warn('Biometric verification failed', { error });
+          toast.error('Biometric verification failed: ' + (error.message || 'Unknown error'));
           setLoading(false);
           return;
         }
       }
 
       const session = await supabase.auth.getSession();
-      if (!session.data.session) return;
+      if (!session.data.session) {
+        toast.error('No active session found');
+        return;
+      }
 
-      await supabase.functions.invoke('biometric-processing', {
+      const { data, error: invokeError } = await supabase.functions.invoke('biometric-processing', {
         body: {
           action: 'LOG_ATTENDANCE',
           data: {
@@ -171,11 +179,13 @@ export default function BiometricPage() {
         }
       });
 
-      alert('Attendance logged successfully!');
+      if (invokeError) throw invokeError;
+
+      toast.success('Attendance logged successfully!');
       loadBiometricData();
     } catch (error) {
       log.error('Error logging attendance', error, { component: 'BiometricPage', action: 'handleLogAttendance', metadata: { employeeId } });
-      alert('Failed to log attendance');
+      toast.error('Failed to log attendance. Please check your network connection.');
     } finally {
       setLoading(false);
     }

@@ -115,14 +115,15 @@ export default function LandingPage() {
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-8 leading-[1.1]">
-                        The Operating System for <br />
+                        The Unified Suite for <br />
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-600 to-blue-700">
-                            Regulated Workforces
+                            Regulated Healthcare
                         </span>
                     </h1>
 
-                    <p className="mt-6 max-w-2xl mx-auto text-xl text-slate-600 mb-12 leading-relaxed">
-                        Automate your CQC compliance, streamline recruitment, and manage rosters in one unified platform. Built for Healthcare, Security, and Education.
+                    <p className="mt-6 max-w-3xl mx-auto text-xl text-slate-600 mb-12 leading-relaxed">
+                        Combine <strong>NovumFlow HR</strong> with <strong>CareFlow AI</strong> for a complete end-to-end operating system.
+                        Automate CQC compliance, AI-powered recruitment, and clinical care management in one seamless ecosystem.
                     </p>
 
                     <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -130,7 +131,7 @@ export default function LandingPage() {
                             onClick={() => setIsDemoModalOpen(true)}
                             className="px-8 py-4 rounded-full bg-cyan-600 text-white font-bold text-lg shadow-xl hover:bg-cyan-700 hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
                         >
-                            Book a Demo <ArrowRight className="w-5 h-5" />
+                            Explore the Suite <ArrowRight className="w-5 h-5" />
                         </button>
                         <a href="#demo" className="px-8 py-4 rounded-full bg-white text-slate-900 border border-slate-200 font-bold text-lg hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center gap-2">
                             <LayoutDashboard className="w-5 h-5 text-gray-400" />

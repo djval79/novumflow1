@@ -24,6 +24,9 @@ const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const RecruitSettingsPage = React.lazy(() => import('./pages/RecruitSettingsPage'));
 const CompliancePage = React.lazy(() => import('./pages/CompliancePage'));
 const BiometricPage = React.lazy(() => import('./pages/BiometricPage'));
+const AuditLogsPage = React.lazy(() => import('./pages/AuditLogsPage'));
+const SubscriptionSuccess = React.lazy(() => import('./pages/SubscriptionSuccess'));
+const SubscriptionCancel = React.lazy(() => import('./pages/SubscriptionCancel'));
 const AutomationPage = React.lazy(() => import('./pages/AutomationPage'));
 const DocumentsPage = React.lazy(() => import('./pages/DocumentsPage'));
 const MessagingPage = React.lazy(() => import('./pages/MessagingPage'));
@@ -63,6 +66,11 @@ const ExpenseManagementPage = React.lazy(() => import('./pages/ExpenseManagement
 const AuditTrailPage = React.lazy(() => import('./pages/AuditTrailPage'));
 const UnifiedDashboardPage = React.lazy(() => import('./pages/UnifiedDashboardPage'));
 const DeveloperSettingsPage = React.lazy(() => import('./pages/DeveloperSettingsPage'));
+const CQCMockInspection = React.lazy(() => import('./pages/CQCMockInspection'));
+const ApiDocsPage = React.lazy(() => import('./pages/ApiDocsPage'));
+const AdvancedBIDashboard = React.lazy(() => import('./pages/AdvancedBIDashboard'));
+const TurnoverPredictor = React.lazy(() => import('./pages/TurnoverPredictor'));
+const Marketplace = React.lazy(() => import('./pages/Marketplace'));
 
 // Loading spinner for lazy-loaded pages
 const PageLoader = () => (
@@ -132,11 +140,59 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 
 
+import { PushNotifications } from '@capacitor/push-notifications';
+import { Capacitor } from '@capacitor/core';
+import { useAnalytics } from '@/hooks/useAnalytics';
+import AIComplianceAssistant from '@/components/AIComplianceAssistant';
+
 function App() {
+  useAnalytics();
   useEffect(() => {
     // Service is initialized on import, but we can add cleanup here if needed
+    const setupMobileFeatures = async () => {
+      if (Capacitor.isNativePlatform()) {
+        // --- PUSH NOTIFICATIONS ---
+        let permStatus = await PushNotifications.checkPermissions();
+
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive !== 'granted') {
+          console.warn('Push notification permissions not granted');
+        } else {
+          await PushNotifications.register();
+        }
+
+        // Handle registration status
+        PushNotifications.addListener('registration', (token) => {
+          console.info('Push registration success, token: ' + token.value);
+          // Here you would typically send the token to your backend
+        });
+
+        PushNotifications.addListener('registrationError', (err) => {
+          console.error('Push registration error: ', err.error);
+        });
+
+        // Handle received notifications
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.info('Push received: ', notification);
+        });
+
+        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+          console.info('Push action performed: ', notification.actionId, notification.inputValue);
+          // Handle navigation or specific actions here
+        });
+      }
+    };
+
+    setupMobileFeatures();
+
     return () => {
       automationService.cleanup();
+      if (Capacitor.isNativePlatform()) {
+        PushNotifications.removeAllListeners();
+      }
     };
   }, []);
 
@@ -170,6 +226,9 @@ function App() {
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/audit-logs" element={<AuditLogsPage />} />
+                  <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+                  <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/tenant/create" element={<TenantSignupPage />} />
 
@@ -209,6 +268,11 @@ function App() {
                     <Route path="tenant-management" element={<TenantManagementPage />} />
                     <Route path="compliance-dashboard" element={<ComplianceDashboardPage />} />
                     <Route path="compliance-hub" element={<ComplianceHubPage />} />
+                    <Route path="compliance/mock-inspection" element={<CQCMockInspection />} />
+                    <Route path="docs" element={<ApiDocsPage />} />
+                    <Route path="analytics/bi" element={<AdvancedBIDashboard />} />
+                    <Route path="analytics/turnover" element={<TurnoverPredictor />} />
+                    <Route path="marketplace" element={<Marketplace />} />
                     <Route path="compliance-forms" element={<ComplianceFormsPage />} />
                     <Route path="audit-logs" element={<AuditLogPage />} />
                     <Route path="admin" element={<AdminPortalPage />} />
@@ -262,6 +326,7 @@ function App() {
                   {/* Catch all */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+                <AIComplianceAssistant />
               </Suspense>
             </BrowserRouter>
           </HelpProvider>

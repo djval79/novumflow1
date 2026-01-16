@@ -11,6 +11,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   Shield,
   AlertTriangle,
@@ -50,6 +51,9 @@ import {
 import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import Toast from '@/components/Toast';
+import RegulatoryNewsFeed from '@/components/RegulatoryNewsFeed';
+import { generateGapAnalysis } from '@/lib/GapAnalysisReport';
+import { exportGapAnalysisToPDF } from '@/lib/GapAnalysisPDF';
 import {
   useComplianceStats,
   useCompliancePersons,
@@ -787,19 +791,6 @@ const PeopleTab: React.FC<{
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -821,6 +812,7 @@ const PeopleTab: React.FC<{
 // ===========================================
 
 const ComplianceHubPage: React.FC = () => {
+  const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id || '';
   const queryClient = useQueryClient();
@@ -833,7 +825,7 @@ const ComplianceHubPage: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isBulkVerifying, setIsBulkVerifying] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
   // Queries
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useComplianceStats(tenantId);
@@ -846,6 +838,24 @@ const ComplianceHubPage: React.FC = () => {
   }, [stats]);
 
   const unreadNotificationCount = notifications?.length || 0;
+
+  const handleGenerateGapReport = async () => {
+    if (!tenantId) return;
+    setToast({ message: 'Gemini AI is analyzing compliance gaps...', type: 'warning' });
+    try {
+      const result = await generateGapAnalysis(tenantId);
+      setToast({ message: 'AI Report Generated!', type: 'success' });
+
+      const confirmDownload = window.confirm(`AI Analysis Complete!\n\nRisk Score: ${result.riskScore}\n\nWould you like to download the full Regulatory Gap Report as a PDF?`);
+
+      if (confirmDownload) {
+        exportGapAnalysisToPDF(result, currentTenant?.name || 'Care Agency');
+        setToast({ message: 'PDF Report Downloaded', type: 'success' });
+      }
+    } catch (error) {
+      setToast({ message: 'Failed to generate AI report.', type: 'error' });
+    }
+  };
 
   const handleStageClick = (stage: ComplianceStage) => {
     setStageFilter(stage);
@@ -1074,6 +1084,29 @@ const ComplianceHubPage: React.FC = () => {
 
               {/* Actions */}
               <button
+                onClick={() => window.location.href = '/audit-logs'}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                title="View Audit Trail"
+              >
+                <Activity className="w-4 h-4 text-indigo-600" />
+                <span className="hidden md:inline">Audit Record</span>
+              </button>
+
+              <button
+                onClick={handleGenerateGapReport}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-900 text-white rounded-lg hover:bg-indigo-800 transition-colors text-sm font-bold shadow-sm"
+              >
+                <TrendingUp className="w-4 h-4" /> AI Gap Report
+              </button>
+
+              <button
+                onClick={() => navigate('/compliance/mock-inspection')}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-bold shadow-sm"
+              >
+                <Activity className="w-4 h-4" /> CQC Mock Inspection
+              </button>
+
+              <button
                 onClick={handleSync}
                 disabled={isSyncing}
                 className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
@@ -1234,6 +1267,9 @@ const ComplianceHubPage: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {/* Regulatory Feed Widget */}
+            <RegulatoryNewsFeed />
           </div>
 
           {/* Main Content Area */}
@@ -1319,5 +1355,6 @@ const ComplianceHubPage: React.FC = () => {
     </div>
   );
 };
+
 
 export default ComplianceHubPage;

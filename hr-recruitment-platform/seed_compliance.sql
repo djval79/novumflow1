@@ -1,128 +1,74 @@
--- Compliance Test Data Seed Script
--- Populates compliance dashboards with realistic sample data
+-- Compliance Test Data Seed Script (Multi-Tenant)
+-- Populates compliance dashboards across common demo tenants
 
 DO $$
 DECLARE
-    org_id uuid;
-    emp_id uuid;
+    v_t_id uuid;
+    v_u_id uuid;
+    v_person_id uuid;
+    v_tenant_record RECORD;
 BEGIN
-    -- Get the first organization
-    SELECT id INTO org_id FROM organizations LIMIT 1;
-    
-    IF org_id IS NULL THEN
-        RAISE NOTICE 'No organization found, skipping compliance seed';
-        RETURN;
-    END IF;
+    RAISE NOTICE 'Starting multi-tenant compliance seeding...';
 
-    -- Get first employee
-    SELECT id INTO emp_id FROM employees WHERE organization_id = org_id LIMIT 1;
+    -- Loop through primary demo tenants
+    FOR v_tenant_record IN 
+        SELECT id, name FROM tenants 
+        WHERE name IN ('MeCare Health Services', 'mecare', 'Novum Analytics (Demo)', 'Caring Hands')
+    LOOP
+        v_t_id := v_tenant_record.id;
+        RAISE NOTICE 'Seeding for tenant: % (%)', v_tenant_record.name, v_t_id;
 
-    -- ============================================
-    -- 1. Seed Compliance Alerts
-    -- ============================================
-    
-    -- Critical alert - visa expiring soon
-    INSERT INTO compliance_alerts (organization_id, alert_type, alert_priority, title, description, status, due_date, created_at)
-    SELECT org_id, 'visa_expiry', 'critical', 'Visa Expiring in 14 Days', 
-           'Maria Santos visa expires on ' || (CURRENT_DATE + INTERVAL '14 days')::text, 
-           'active', CURRENT_DATE + INTERVAL '14 days', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM compliance_alerts WHERE title = 'Visa Expiring in 14 Days' AND organization_id = org_id);
+        -- Get an admin user for this tenant if possible, else pick first user
+        SELECT user_id INTO v_u_id FROM users_profiles WHERE tenant_id = v_t_id LIMIT 1;
+        IF v_u_id IS NULL THEN
+            SELECT id INTO v_u_id FROM auth.users LIMIT 1;
+        END IF;
 
-    -- High priority - DBS renewal
-    INSERT INTO compliance_alerts (organization_id, alert_type, alert_priority, title, description, status, due_date, created_at)
-    SELECT org_id, 'dbs_renewal', 'high', 'DBS Certificate Renewal Required', 
-           '3 staff members require DBS renewal within 30 days', 
-           'active', CURRENT_DATE + INTERVAL '30 days', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM compliance_alerts WHERE title = 'DBS Certificate Renewal Required' AND organization_id = org_id);
+        -- 1. Sponsored Workers
+        INSERT INTO sponsored_workers (tenant_id, first_name, last_name, email, nationality, visa_type, visa_number, visa_start_date, visa_expiry_date, cos_number, sponsorship_status, job_title, department)
+        SELECT v_t_id, 'Maria', 'Santos', 'maria.santos.' || v_t_id || '@example.com', 'Brazil', 'Health and Care Worker', 'VIS-' || substr(v_t_id::text, 1, 8), 
+               CURRENT_DATE - INTERVAL '2 years', CURRENT_DATE + INTERVAL '14 days', 
+               'COS-' || substr(v_t_id::text, 1, 8), 'active', 'Senior Care Assistant', 'Care'
+        WHERE NOT EXISTS (SELECT 1 FROM sponsored_workers WHERE tenant_id = v_t_id AND first_name = 'Maria' AND last_name = 'Santos');
 
-    -- Medium - training due
-    INSERT INTO compliance_alerts (organization_id, alert_type, alert_priority, title, description, status, due_date, created_at)
-    SELECT org_id, 'training_due', 'medium', 'Mandatory Training Due', 
-           '5 staff members need to complete safeguarding training', 
-           'active', CURRENT_DATE + INTERVAL '60 days', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM compliance_alerts WHERE title = 'Mandatory Training Due' AND organization_id = org_id);
+        -- 2. Compliance Alerts
+        INSERT INTO sponsor_compliance_alerts (tenant_id, worker_id, alert_type, severity, title, description, due_date, status)
+        SELECT v_t_id, 
+               (SELECT id FROM sponsored_workers WHERE tenant_id = v_t_id AND first_name = 'Maria' LIMIT 1),
+               'visa_expiry', 'critical', 
+               'Maria Santos visa expires in 14 days',
+               'Immediate action required. Visa expires on ' || (CURRENT_DATE + INTERVAL '14 days')::text,
+               CURRENT_DATE + INTERVAL '14 days', 'active'
+        WHERE NOT EXISTS (SELECT 1 FROM sponsor_compliance_alerts WHERE tenant_id = v_t_id AND title LIKE '%Maria Santos%');
 
-    -- Low - policy review
-    INSERT INTO compliance_alerts (organization_id, alert_type, alert_priority, title, description, status, due_date, created_at)
-    SELECT org_id, 'policy_review', 'low', 'Annual Policy Review', 
-           'Infection Control policy due for annual review', 
-           'active', CURRENT_DATE + INTERVAL '90 days', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM compliance_alerts WHERE title = 'Annual Policy Review' AND organization_id = org_id);
+        -- 3. DBS Checks
+        INSERT INTO dbs_checks (tenant_id, user_id, applicant_name, applicant_email, certificate_number, check_type, issue_date, expiry_date, status)
+        SELECT v_t_id, v_u_id, 'Sarah Jenkins', 's.jenkins.' || v_t_id || '@example.com', 'DBS-' || substr(v_t_id::text, 1, 8), 'enhanced_barred', 
+               CURRENT_DATE - INTERVAL '3 years', CURRENT_DATE + INTERVAL '14 days', 'clear'
+        WHERE NOT EXISTS (SELECT 1 FROM dbs_checks WHERE tenant_id = v_t_id AND applicant_name = 'Sarah Jenkins');
 
-    -- ============================================
-    -- 2. Seed Visa Records
-    -- ============================================
-    
-    -- Active visa expiring in 30 days
-    INSERT INTO visa_records (organization_id, employee_name, visa_type, visa_number, issue_date, expiry_date, current_status, cos_number, created_at)
-    SELECT org_id, 'Maria Santos', 'Skilled Worker', 'VIS-2024-001', 
-           CURRENT_DATE - INTERVAL '2 years', CURRENT_DATE + INTERVAL '30 days', 
-           'active', 'COS-2024-0001', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM visa_records WHERE visa_number = 'VIS-2024-001');
+        -- 4. Right to Work
+        INSERT INTO right_to_work_checks (tenant_id, user_id, staff_name, document_type, check_date, status)
+        SELECT v_t_id, v_u_id, 'Sarah Jenkins', 'share_code', CURRENT_DATE - INTERVAL '30 days', 'verified'
+        WHERE NOT EXISTS (SELECT 1 FROM right_to_work_checks WHERE tenant_id = v_t_id AND staff_name = 'Sarah Jenkins');
 
-    -- Active visa - expiring in 60 days
-    INSERT INTO visa_records (organization_id, employee_name, visa_type, visa_number, issue_date, expiry_date, current_status, cos_number, created_at)
-    SELECT org_id, 'Ahmed Khan', 'Skilled Worker', 'VIS-2024-002', 
-           CURRENT_DATE - INTERVAL '18 months', CURRENT_DATE + INTERVAL '60 days', 
-           'active', 'COS-2024-0002', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM visa_records WHERE visa_number = 'VIS-2024-002');
+        -- 5. Compliance Hub
+        INSERT INTO compliance_persons (tenant_id, full_name, email, person_type, current_stage, compliance_status, overall_compliance_score)
+        SELECT v_t_id, 'David Smith', 'd.smith.' || v_t_id || '@example.com', 'EMPLOYEE', 'ONGOING', 'AT_RISK', 75
+        WHERE NOT EXISTS (SELECT 1 FROM compliance_persons WHERE tenant_id = v_t_id AND full_name = 'David Smith')
+        RETURNING id INTO v_person_id;
 
-    -- Active visa - good standing (1 year left)
-    INSERT INTO visa_records (organization_id, employee_name, visa_type, visa_number, issue_date, expiry_date, current_status, cos_number, created_at)
-    SELECT org_id, 'Priya Patel', 'Skilled Worker', 'VIS-2024-003', 
-           CURRENT_DATE - INTERVAL '1 year', CURRENT_DATE + INTERVAL '365 days', 
-           'active', 'COS-2024-0003', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM visa_records WHERE visa_number = 'VIS-2024-003');
+        IF v_person_id IS NOT NULL THEN
+            INSERT INTO compliance_documents (tenant_id, person_id, document_type_id, file_name, file_path, status, authority, is_current, expiry_date)
+            SELECT v_t_id, v_person_id, 'dbs_certificate', 'dbs_cert.pdf', '/storage/docs/dbs.pdf', 'VERIFIED', 'CQC', true, CURRENT_DATE + INTERVAL '30 days'
+            WHERE NOT EXISTS (SELECT 1 FROM compliance_documents cd WHERE cd.person_id = v_person_id AND cd.document_type_id = 'dbs_certificate');
+            
+            INSERT INTO compliance_tasks (tenant_id, person_id, title, description, urgency, status, due_date, task_type)
+            SELECT v_t_id, v_person_id, 'Renew DBS Certificate', 'DBS expiring in 30 days', 'MEDIUM', 'PENDING', CURRENT_DATE + INTERVAL '30 days', 'DOCUMENT_EXPIRY'
+            WHERE NOT EXISTS (SELECT 1 FROM compliance_tasks ct WHERE ct.person_id = v_person_id AND ct.title = 'Renew DBS Certificate');
+        END IF;
 
-    -- ============================================
-    -- 3. Seed DBS Certificates
-    -- ============================================
-    
-    -- DBS expiring soon
-    INSERT INTO dbs_certificates (organization_id, employee_name, certificate_number, issue_date, expiry_date, level, status, created_at)
-    SELECT org_id, 'John Smith', 'DBS-001-2021', 
-           CURRENT_DATE - INTERVAL '3 years', CURRENT_DATE + INTERVAL '14 days', 
-           'enhanced', 'approved', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM dbs_certificates WHERE certificate_number = 'DBS-001-2021');
+    END LOOP;
 
-    INSERT INTO dbs_certificates (organization_id, employee_name, certificate_number, issue_date, expiry_date, level, status, created_at)
-    SELECT org_id, 'Sarah Jones', 'DBS-002-2021', 
-           CURRENT_DATE - INTERVAL '3 years', CURRENT_DATE + INTERVAL '21 days', 
-           'enhanced', 'approved', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM dbs_certificates WHERE certificate_number = 'DBS-002-2021');
-
-    -- DBS good standing
-    INSERT INTO dbs_certificates (organization_id, employee_name, certificate_number, issue_date, expiry_date, level, status, created_at)
-    SELECT org_id, 'Mike Wilson', 'DBS-003-2023', 
-           CURRENT_DATE - INTERVAL '1 year', CURRENT_DATE + INTERVAL '2 years', 
-           'enhanced', 'approved', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM dbs_certificates WHERE certificate_number = 'DBS-003-2023');
-
-    -- DBS pending
-    INSERT INTO dbs_certificates (organization_id, employee_name, certificate_number, issue_date, expiry_date, level, status, created_at)
-    SELECT org_id, 'Emma Brown', 'DBS-004-2024', 
-           CURRENT_DATE, NULL, 
-           'enhanced', 'pending', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM dbs_certificates WHERE certificate_number = 'DBS-004-2024');
-
-    -- ============================================
-    -- 4. Seed Right to Work Checks
-    -- ============================================
-    
-    INSERT INTO right_to_work_checks (organization_id, employee_name, check_type, check_date, outcome, document_type, verified_by, created_at)
-    SELECT org_id, 'Maria Santos', 'share_code', CURRENT_DATE - INTERVAL '30 days', 
-           'passed', 'biometric_residence_permit', 'HR Manager', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM right_to_work_checks WHERE employee_name = 'Maria Santos' AND organization_id = org_id);
-
-    INSERT INTO right_to_work_checks (organization_id, employee_name, check_type, check_date, outcome, document_type, verified_by, created_at)
-    SELECT org_id, 'Ahmed Khan', 'share_code', CURRENT_DATE - INTERVAL '60 days', 
-           'passed', 'biometric_residence_permit', 'HR Manager', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM right_to_work_checks WHERE employee_name = 'Ahmed Khan' AND organization_id = org_id);
-
-    INSERT INTO right_to_work_checks (organization_id, employee_name, check_type, check_date, outcome, document_type, verified_by, created_at)
-    SELECT org_id, 'John Smith', 'manual', CURRENT_DATE - INTERVAL '90 days', 
-           'passed', 'passport', 'HR Manager', NOW()
-    WHERE NOT EXISTS (SELECT 1 FROM right_to_work_checks WHERE employee_name = 'John Smith' AND organization_id = org_id);
-
-    RAISE NOTICE 'Compliance seed data created successfully for organization %', org_id;
+    RAISE NOTICE 'Multi-tenant compliance seeding completed successfully!';
 END $$;

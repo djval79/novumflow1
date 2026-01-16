@@ -195,40 +195,47 @@ export const InstallPrompt: React.FC = () => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
     return (
-        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white border border-slate-200 p-4 rounded-xl shadow-xl z-50 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center text-primary-600 font-bold text-lg">
-                    CF
+        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white border border-slate-200 p-4 rounded-xl shadow-2xl z-50 animate-in slide-in-from-bottom-4 duration-500 overflow-hidden">
+            {/* Top accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 to-indigo-600"></div>
+
+            <div className="flex items-start gap-4">
+                <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center p-1 border border-slate-100 shadow-sm relative overflow-hidden shrink-0">
+                    <img
+                        src="/icons/icon-192x192.png"
+                        alt="CareFlow"
+                        className="w-full h-full object-contain"
+                    />
                 </div>
                 <div className="flex-1">
-                    <h4 className="font-bold text-slate-900">Install CareFlow</h4>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <h4 className="font-bold text-slate-800 text-base">Get the Mobile Experience</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-500 mt-1">
                         {isIOS
-                            ? 'Tap the share button, then "Add to Home Screen"'
-                            : 'Install for quick access and offline support'}
+                            ? 'Tap the share button and select "Add to Home Screen" to install CareFlow for offline care access.'
+                            : 'Install CareFlow on your device for lightning-fast access, offline care planning, and a premium full-screen experience.'}
                     </p>
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2 mt-4">
                         {deferredPrompt && (
                             <button
                                 onClick={handleInstall}
-                                className="px-4 py-1.5 bg-primary-600 text-white font-bold text-xs rounded-lg hover:bg-primary-700 transition-colors"
+                                className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-lg hover:bg-slate-800 transition-all shadow-md active:scale-95"
                             >
-                                Install
+                                Install App
                             </button>
                         )}
                         <button
                             onClick={handleDismiss}
-                            className="px-4 py-1.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-lg hover:bg-slate-200 transition-colors"
+                            className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-lg hover:bg-slate-200 transition-colors"
                         >
-                            Not now
+                            Maybe Later
                         </button>
                     </div>
                 </div>
                 <button
                     onClick={handleDismiss}
-                    className="text-slate-400 hover:text-slate-600 p-1"
+                    className="text-slate-400 hover:text-slate-600 p-1 -mr-1"
                 >
-                    <X size={16} />
+                    <X size={18} />
                 </button>
             </div>
         </div>

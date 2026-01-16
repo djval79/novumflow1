@@ -31,8 +31,12 @@ import {
   CreditCard,
   CalendarDays,
   AlertOctagon,
-  Receipt
+  Receipt,
+  Languages,
+  BrainCircuit,
+  ShoppingBag
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import TenantSwitcher from './TenantSwitcher';
 import NotificationCenter from './NotificationCenter';
@@ -45,6 +49,7 @@ import { QuickAppSwitcher, CompactAppSwitcher } from './CrossAppNavigation';
 export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
   const { hasFeature } = useTenant();
+  const { i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -120,7 +125,31 @@ export default function AppLayout() {
     name: 'Compliance Hub',
     href: '/compliance-hub',
     icon: ShieldCheck,
-    feature: 'system'
+    feature: 'system',
+  });
+
+  // Add Executive BI
+  navigation.push({
+    name: 'Executive BI',
+    href: '/analytics/bi',
+    icon: TrendingUp,
+    feature: 'system',
+  });
+
+  // Add turnover predictor
+  navigation.push({
+    name: 'AI Predictor',
+    href: '/analytics/turnover',
+    icon: BrainCircuit,
+    feature: 'system',
+  });
+
+  // Add marketplace
+  navigation.push({
+    name: 'Marketplace',
+    href: '/marketplace',
+    icon: ShoppingBag,
+    feature: 'system',
   });
 
   // Add Sponsor Guardian (Visa & RTW Compliance)
@@ -207,6 +236,16 @@ export default function AppLayout() {
 
                 {/* Notification Center */}
                 <NotificationCenter />
+
+                {/* Language Switcher */}
+                <button
+                  onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'es' : 'en')}
+                  className="p-2 text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-all"
+                  title="Switch Language"
+                >
+                  <Languages className="w-5 h-5" />
+                  <span className="sr-only">Switch Language</span>
+                </button>
               </div>
 
               <div className="hidden lg:block text-right border-l border-gray-100 pl-4 ml-2">

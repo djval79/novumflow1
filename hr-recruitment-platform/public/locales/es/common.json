@@ -1,0 +1,14 @@
+{
+    "common": {
+        "dashboard": "Panel de Control",
+        "compliance": "Cumplimiento",
+        "settings": "Ajustes",
+        "logout": "Cerrar Sesión",
+        "loading": "Cargando..."
+    },
+    "dashboard": {
+        "welcome": "Bienvenido de nuevo, {{name}}",
+        "total_employees": "Total de Empleados",
+        "active_jobs": "Trabajos Activos"
+    }
+}

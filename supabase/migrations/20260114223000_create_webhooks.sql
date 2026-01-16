@@ -75,12 +75,42 @@ BEGIN
 
     IF v_event_type IS NULL THEN RETURN NULL; END IF;
 
-    -- Prepare Payload
-    v_payload := jsonb_build_object(
-        'event', v_event_type,
-        'timestamp', NOW(),
-        'data', row_to_json(NEW)
-    );
+    -- Prepare Payload (Filtered for security)
+    IF TG_TABLE_NAME = 'employees' THEN
+        v_payload := jsonb_build_object(
+            'event', v_event_type,
+            'timestamp', NOW(),
+            'data', jsonb_build_object(
+                'id', NEW.id,
+                'first_name', NEW.first_name,
+                'last_name', NEW.last_name,
+                'email', NEW.email,
+                'position', NEW.position,
+                'department', NEW.department,
+                'status', NEW.status,
+                'tenant_id', NEW.tenant_id
+            )
+        );
+    ELSIF TG_TABLE_NAME = 'applications' THEN
+        v_payload := jsonb_build_object(
+            'event', v_event_type,
+            'timestamp', NOW(),
+            'data', jsonb_build_object(
+                'id', NEW.id,
+                'job_posting_id', NEW.job_posting_id,
+                'status', NEW.status,
+                'pipeline_stage', NEW.pipeline_stage,
+                'score', NEW.score,
+                'tenant_id', NEW.tenant_id
+            )
+        );
+    ELSE
+        v_payload := jsonb_build_object(
+            'event', v_event_type,
+            'timestamp', NOW(),
+            'data', row_to_json(NEW)
+        );
+    END IF;
 
     -- Find matching webhooks
     FOR v_webhook IN 

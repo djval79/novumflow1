@@ -51,8 +51,8 @@ serve(async (req: Request) => {
                     tenant_id: tenantId
                 }
             },
-            success_url: `${req.headers.get("origin")}/dashboard?payment=success`,
-            cancel_url: `${req.headers.get("origin")}/tenant/create?payment=cancelled`,
+            success_url: `${req.headers.get("origin")}/subscription/success`,
+            cancel_url: `${req.headers.get("origin")}/subscription/cancel`,
         })
 
         return new Response(JSON.stringify({ url: session.url }), {
