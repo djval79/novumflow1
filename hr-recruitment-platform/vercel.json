@@ -20,6 +20,10 @@
       "destination": "/manifest.webmanifest"
     },
     {
+      "source": "/locales/:path*",
+      "destination": "/locales/:path*"
+    },
+    {
       "source": "/registerSW.js",
       "destination": "/registerSW.js"
     },
@@ -28,11 +32,24 @@
       "destination": "/assets/:path*"
     },
     {
-      "source": "/:path((?!assets|sw\\.js|workbox|manifest|registerSW).*)",
+      "source": "/:path((?!assets|sw\\.js|workbox|manifest|registerSW|locales|favicon|.*\\.png|.*\\.ico).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [
@@ -56,6 +73,15 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/locales/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
         }
       ]
     }
