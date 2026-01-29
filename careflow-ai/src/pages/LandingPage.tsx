@@ -21,9 +21,30 @@ import {
 } from 'lucide-react';
 import DemoRequestModal from '../components/DemoRequestModal';
 
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
+
 const LandingPage: React.FC = () => {
+    const { user, profile } = useAuth();
+    const { tenants } = useTenant();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'rostering' | 'emar' | 'compliance'>('rostering');
     const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+
+    // Redirect authenticated users to the app
+    useEffect(() => {
+        if (user) {
+            const role = profile?.role?.toLowerCase();
+            if (role === 'carer' || role === 'staff') {
+                navigate('/my-day', { replace: true });
+            } else if (tenants.length === 0) {
+                navigate('/onboarding', { replace: true });
+            } else {
+                navigate('/dashboard', { replace: true });
+            }
+        }
+    }, [user, profile, tenants, navigate]);
 
     return (
         <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-indigo-500/30">

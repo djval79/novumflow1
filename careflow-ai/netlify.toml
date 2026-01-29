@@ -1,31 +1,27 @@
-# Netlify Configuration for CareFlow AI
+# =====================================================
+# CAREFLOW AI - NETLIFY DEPLOYMENT CONFIGURATION
+# =====================================================
 # Optimized for React + TypeScript + Vite deployment
 
 [build]
-  # Base directory for the build - runs commands from this subdirectory
-  base = "careflow-ai"
-  
-  # Build command for production - runs from base directory
-  command = "corepack enable && corepack prepare pnpm@10.22.0 --activate && pnpm install && pnpm run build"
-  
-  # Directory containing the built static files (relative to base)
-  publish = "dist"
-  
-  # Directory containing Netlify functions (relative to base)
-  functions = "netlify/functions"
-
+   # Base directory for the build - runs commands from this subdirectory
+   base = "careflow-ai"
+   
+   # Build command for production
+   command = "npm run build:prod"
+   
+   # Directory containing the built static files (relative to base)
+   publish = "dist"
+   
+   # Directory containing Netlify functions (relative to base)
+   functions = "netlify/functions"
+ 
 [build.environment]
-  # Node.js version for build
-  NODE_VERSION = "20"
-  
-  # Force pnpm to install devDependencies and handle lockfile
-  PNPM_FLAGS = "--include=dev --no-frozen-lockfile"
-  
-  # Enable public folder processing
-  NODE_ENV = "production"
-  
-  # Optimize build performance
-  CI = "true"
+   # Production environment
+   NODE_ENV = "production"
+   
+   # Optimize build performance
+   CI = "true"
 
 # Redirect rules for Single Page Application
 [[redirects]]

@@ -1,25 +1,16 @@
 {
     "name": "novumflow-suite",
     "private": true,
-    "description": "Monorepo root for NovumFlow and CareFlow suites",
     "workspaces": [
         "hr-recruitment-platform",
-        "careflow-ai"
+        "careflow-ai",
+        "ComplyFlow"
     ],
     "scripts": {
-        "install:all": "npm install",
-        "dev": "npm run dev --workspaces --if-present",
-        "build": "npm run build --workspaces --if-present",
-        "test": "npm run test --workspaces --if-present",
-        "clean": "rm -rf node_modules && npm run clean --workspaces --if-present",
-        "verify:compliance": "npx tsx scripts/verify_compliance_readiness.ts",
-        "test:compliance": "npm run verify:compliance"
-    },
-    "engines": {
-        "node": ">=18.0.0"
-    },
-    "devDependencies": {
-        "dotenv": "^17.2.3",
-        "vercel": "^50.1.6"
+        "dev:hr": "npm run dev --workspace=hr-recruitment-platform",
+        "dev:care": "npm run dev --workspace=careflow-ai",
+        "dev:comply": "npm run dev --workspace=complyflow",
+        "build:all": "npm run build --workspaces",
+        "test:all": "npm run test --workspaces"
     }
 }

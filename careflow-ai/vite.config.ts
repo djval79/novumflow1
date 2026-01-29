@@ -120,7 +120,8 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true
         },
         devOptions: {
-          enabled: false // Disable in development
+          enabled: false, // Disable in development
+          type: 'module'
         }
       })
     ],
@@ -131,6 +132,12 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(process.cwd(), './src'),
+        '@/components': path.resolve(process.cwd(), './src/components'),
+        '@/context': path.resolve(process.cwd(), './src/context'),
+        '@/lib': path.resolve(process.cwd(), './src/lib'),
+        '@/pages': path.resolve(process.cwd(), './src/pages'),
+        '@/services': path.resolve(process.cwd(), './src/services'),
+        '@/types': path.resolve(process.cwd(), './src/types')
       }
     }
   };

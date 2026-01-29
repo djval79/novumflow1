@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { supabase } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -12,8 +13,10 @@ import {
     ShieldCheck,
     Zap
 } from 'lucide-react';
-import { log } from '@/lib/logger';
 import CrossAppNavigation from '../components/CrossAppNavigation';
+import { complianceOracle, ComplianceRisk } from '@/lib/services/ComplianceOracle';
+import { naturalLanguageService } from '@/lib/services/NaturalLanguageService';
+import { Sparkles, BrainCircuit, AlertTriangle, MessageSquare, Terminal, ChevronRight } from 'lucide-react';
 
 interface SuiteStats {
     hr: {
@@ -36,6 +39,10 @@ export default function UnifiedDashboardPage() {
         care: { activeClients: 0, todayVisits: 0, openIncidents: 0 },
     });
     const [loading, setLoading] = useState(true);
+    const [risks, setRisks] = useState<ComplianceRisk[]>([]);
+    const [aiQuery, setAiQuery] = useState('');
+    const [aiResponse, setAiResponse] = useState<string | null>(null);
+    const [isAiLoading, setIsAiLoading] = useState(false);
 
     useEffect(() => {
         if (currentTenant) {
@@ -81,6 +88,10 @@ export default function UnifiedDashboardPage() {
                 },
             });
 
+            // Compliance Oracle Analysis
+            const complianceRisks = await complianceOracle.predictRisks(currentTenant.id);
+            setRisks(complianceRisks);
+
         } catch (error) {
             log.error('Error loading suite data', error, { component: 'UnifiedDashboardPage' });
         } finally {
@@ -103,15 +114,14 @@ export default function UnifiedDashboardPage() {
         </div>
     );
 
-    if (loading) {
-        return (
-            <div className="p-8 animate-pulse space-y-8">
-                <div className="h-48 bg-gray-100 rounded-3xl"></div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-32 bg-gray-50 rounded-2xl"></div>)}
-                </div>
-            </div>
-        );
+    async function handleAiQuery(e: FormEvent) {
+        e.preventDefault();
+        if (!aiQuery || !currentTenant) return;
+
+        setIsAiLoading(true);
+        const answer = await naturalLanguageService.askData(aiQuery, currentTenant.id);
+        setAiResponse(answer);
+        setIsAiLoading(false);
     }
 
     return (
@@ -126,11 +136,10 @@ export default function UnifiedDashboardPage() {
                     <p className="text-gray-500 font-medium">Unified Command Center for {currentTenant?.name}</p>
                 </div>
                 <div className="flex gap-3">
-                    {/* Using existing CrossAppNavigation directly might be cleaner if we extract the button, but for now we link */}
                     <a href="/dashboard" className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all flex items-center gap-2">
                         <LayoutGrid className="w-4 h-4" /> HR Dashboard
                     </a>
-                    <a href={`https://careflow-ai.vercel.app?tenant=${currentTenant?.id}`} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
+                    <a href={`http://localhost:5180/?tenant=${currentTenant?.id}`} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
                         <Activity className="w-4 h-4" /> CareFlow Dashboard
                     </a>
                 </div>
@@ -198,6 +207,111 @@ export default function UnifiedDashboardPage() {
                 </div>
             </div>
 
+            {/* Phase 8: Clinical Intelligence & Scale */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                {/* Compliance Oracle (Predictive Alerts) */}
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                                <BrainCircuit size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black tracking-tight text-gray-900">Compliance Oracle</h3>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Predictive Risk Analysis</p>
+                            </div>
+                        </div>
+                        <div className="px-3 py-1 bg-gray-50 text-gray-500 rounded-full text-[10px] font-bold">Live AI Stream</div>
+                    </div>
+
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                        {risks.length > 0 ? risks.map((risk, i) => (
+                            <div key={i} className="group p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:border-orange-200 hover:bg-orange-50/30 transition-all">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`w-2 h-2 rounded-full ${risk.severity === 'critical' ? 'bg-red-500 animate-pulse' : risk.severity === 'high' ? 'bg-orange-500' : 'bg-yellow-500'}`} />
+                                            <span className="text-xs font-black uppercase tracking-widest text-gray-500">{risk.risk_type} Risk</span>
+                                        </div>
+                                        <h4 className="text-sm font-bold text-gray-900">{risk.staff_name}</h4>
+                                        <p className="text-xs text-gray-500 mt-1">{risk.recommendation}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-lg font-black text-gray-900">{risk.days_remaining}d</div>
+                                        <div className="text-[10px] font-bold text-gray-400">Remaining</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                <ShieldCheck className="mx-auto w-12 h-12 text-gray-200 mb-4" />
+                                <p className="text-sm font-bold text-gray-400">No immediate compliance risks detected.</p>
+                                <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Oracle is monitoring in real-time</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* AI Query Terminal */}
+                <div className="bg-slate-900 rounded-3xl p-8 text-white flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="p-2 bg-indigo-500 rounded-lg">
+                                <Terminal size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black tracking-tight">NovumFlow AI Oracle</h3>
+                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Natural Language Reporting</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="bg-black/30 rounded-2xl border border-white/5 p-6 min-h-[160px] flex flex-col">
+                                {isAiLoading ? (
+                                    <div className="flex-1 flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"></div>
+                                    </div>
+                                ) : aiResponse ? (
+                                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="flex items-center gap-2 mb-4 text-indigo-400">
+                                            <Sparkles size={14} />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Response Synthesized</span>
+                                        </div>
+                                        <p className="text-sm text-gray-200 leading-relaxed font-medium">
+                                            {aiResponse}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30">
+                                        <MessageSquare size={32} className="mb-3" />
+                                        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Ask the Oracle a question about your workforce...</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <form onSubmit={handleAiQuery} className="relative">
+                                <input
+                                    type="text"
+                                    value={aiQuery}
+                                    onChange={(e) => setAiQuery(e.target.value)}
+                                    placeholder="e.g. 'Who is due for training renewal this month?'"
+                                    className="w-full bg-white/10 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-gray-500"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={isAiLoading || !aiQuery}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50"
+                                >
+                                    <ChevronRight size={18} />
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
             {/* Quick Launchpad */}
             <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-3xl p-8 text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
@@ -207,9 +321,9 @@ export default function UnifiedDashboardPage() {
                         <p className="text-gray-400 max-w-md">Switch seamlessly between human resource management and care delivery protocols.</p>
                     </div>
                     <div className="flex gap-4">
-                        <button className="px-8 py-4 bg-white text-gray-900 rounded-2xl font-bold uppercase tracking-wide hover:bg-gray-100 transition-all flex items-center gap-2">
+                        <a href="/dashboard" className="px-8 py-4 bg-white text-gray-900 rounded-2xl font-bold uppercase tracking-wide hover:bg-gray-100 transition-all flex items-center gap-2">
                             Open HR Platform <ArrowRight className="w-4 h-4" />
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>

@@ -41,26 +41,34 @@ export default function Onboarding() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('Onboarding: handleSubmit initiated with name:', name);
         setLoading(true);
         const setupToast = toast.loading('Initializing Neural Workspace Lattice...');
         const subdomain = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
         try {
+            console.log('Onboarding: Requesting createTenant...');
             const tenant = await createTenant(name, subdomain);
+            console.log('Onboarding: createTenant response:', tenant);
+
             if (tenant) {
                 toast.success('Organization Matrix Established', { id: setupToast });
+                console.log('Onboarding: Success - Redirecting to /');
                 setTimeout(() => {
                     window.location.href = '/';
-                }, 1000);
+                }, 1500);
             } else {
+                console.warn('Onboarding: createTenant returned null');
                 toast.error('Initialization Aborted', {
                     id: setupToast,
                     description: 'The specified organizational identifier is already occupied.'
                 });
             }
         } catch (error) {
+            console.error('Onboarding: Submission exception:', error);
             toast.error('Unexpected System Logic Failure', { id: setupToast });
         } finally {
+            console.log('Onboarding: handleSubmit finished');
             setLoading(false);
         }
     };
@@ -108,10 +116,25 @@ export default function Onboarding() {
                     <button
                         type="submit"
                         disabled={loading || !name}
-                        className="group w-full bg-slate-900 hover:bg-black text-white font-black uppercase tracking-[0.5em] text-[11px] py-8 rounded-[2.5rem] transition-all flex items-center justify-center gap-6 disabled:opacity-20 disabled:cursor-not-allowed shadow-[0_30px_60px_rgba(0,0,0,0.3)] hover:shadow-primary-500/20 active:scale-95"
+                        className="group w-full bg-slate-900 hover:bg-black text-white font-black uppercase tracking-[0.5em] text-[11px] py-8 rounded-[2rem] transition-all flex items-center justify-center gap-6 disabled:opacity-20 disabled:cursor-not-allowed shadow-[0_30px_60px_rgba(0,0,0,0.3)] hover:shadow-primary-500/20 active:scale-95"
                     >
                         {loading ? <Loader2 className="animate-spin" size={24} /> : <>Initialize Infrastructure <ArrowRight size={24} className="text-primary-500 group-hover:translate-x-3 transition-transform" /></>}
                     </button>
+
+                    {/* Diagnostic/Fallback Button */}
+                    {!loading && (
+                        <div className="pt-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    window.location.reload();
+                                }}
+                                className="w-full text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-primary-500 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Zap size={12} /> Sync Neural Status
+                            </button>
+                        </div>
+                    )}
                 </form>
 
                 <div className="mt-20 pt-10 border-t border-slate-50 flex flex-col items-center gap-6 grayscale opacity-20">

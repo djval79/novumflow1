@@ -1,6 +1,7 @@
 
 import { supabase } from '../lib/supabase';
 import { Client, CareGoal, Visit, Medication, MarRecord, Incident, CarePlan, LeaveRequest, ExpenseClaim, FormSubmission, FormTemplate, ProgressLog, Invoice, PayrollRecord, TelehealthSession } from '../types';
+import errorMonitoring from './errorMonitoring';
 
 // ==========================================
 // Clients
@@ -8,9 +9,17 @@ import { Client, CareGoal, Visit, Medication, MarRecord, Incident, CarePlan, Lea
 
 export const clientService = {
     async getAll() {
-        const { data, error } = await supabase.from('careflow_clients').select('*').order('name');
-        if (error) throw error;
-        return data.map(mapper.toClient) as Client[];
+        try {
+            const { data, error } = await supabase.from('careflow_clients').select('*').order('name');
+            if (error) {
+                await errorMonitoring.reportApiError('clients.getAll', error, { operation: 'selectAll' });
+                throw error;
+            }
+            return data.map(mapper.toClient) as Client[];
+        } catch (error) {
+            await errorMonitoring.reportError(error as Error, { operation: 'clientService.getAll' });
+            throw error;
+        }
     },
 
     async getByTenant(tenantId: string) {

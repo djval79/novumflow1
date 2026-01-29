@@ -48,7 +48,7 @@ export default function TrainingTracker() {
         try {
             const { data, error } = await supabase
                 .from('training_records')
-                .select('*, courses(*)')
+                .select('*')
                 .eq('tenant_id', currentTenant?.id)
                 .order('created_at', { ascending: false });
 

@@ -167,8 +167,8 @@ export default function AutomationDashboard() {
             <span className="text-sm font-medium text-blue-900">Trigger</span>
           </div>
           <p className="text-sm text-blue-700">
-            When {rule.trigger.entity} {rule.trigger.type.replace('_', ' ')}
-            {rule.trigger.value && ` (${rule.trigger.value})`}
+            When {rule.trigger?.entity || 'entity'} {rule.trigger?.type?.replace('_', ' ') || 'event occurs'}
+            {rule.trigger?.value && ` (${rule.trigger.value})`}
           </p>
         </div>
 
@@ -198,7 +198,7 @@ export default function AutomationDashboard() {
           <div className="space-y-1">
             {rule.actions && rule.actions.map((action, index) => (
               <p key={index} className="text-sm text-green-700">
-                {action.type.replace('_', ' ')}
+                {action.type?.replace('_', ' ') || 'action'}
                 {action.parameters?.status && ` to ${action.parameters.status}`}
                 {action.parameters?.title && `: "${action.parameters.title}"`}
               </p>

@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, Clock, Users, MapPin, ArrowRight, CalendarHeart, ShieldCheck, Zap, TrendingUp, Activity, Target, History, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
@@ -15,6 +16,7 @@ import { useDashboardRealtime } from '../hooks/useRealtime';
 import { RealtimeNotification, LiveBadge } from '../components/RealtimeIndicator';
 import { toast } from 'sonner';
 
+
 const visitData = [
   { name: 'Mon', visits: 45, completed: 42 },
   { name: 'Tue', visits: 52, completed: 50 },
@@ -25,29 +27,85 @@ const visitData = [
   { name: 'Sun', visits: 40, completed: 39 },
 ];
 
-const StatCard: React.FC<{ title: string; value: string; change: string; icon: React.ElementType; color: string; trend?: string }> = ({
-  title, value, change, icon: Icon, color, trend
+const StatCard: React.FC<{ title: string; value: string; change: string; icon: React.ElementType; color: string; trend?: string; index: number }> = ({
+  title, value, change, icon: Icon, color, trend, index
 }) => (
-  <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-2xl hover:shadow-primary-500/10 transition-all group relative overflow-hidden">
-    <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 group-hover:bg-primary-50 transition-colors" />
+  <motion.div
+    className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-2xl hover:shadow-primary-500/10 transition-all group relative overflow-hidden"
+    initial={{ opacity: 0, y: 30, scale: 0.9 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: 0.5, delay: index * 0.1, ease: [0.4, 0, 0.2, 1] }}
+    whileHover={{ 
+      y: -5, 
+      scale: 1.02,
+      boxShadow: "0 40px 100px rgba(14, 165, 233, 0.15)"
+    }}
+  >
+    <motion.div 
+      className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16"
+      animate={{ 
+        backgroundColor: ["#f8fafc", "#dbeafe", "#f8fafc"],
+        scale: [1, 1.1, 1]
+      }}
+      whileHover={{ backgroundColor: "#dbeafe" }}
+      transition={{ 
+        duration: 3, 
+        repeat: Infinity, 
+        ease: "easeInOut"
+      }}
+    />
     <div className="relative z-10 flex flex-col h-full justify-between">
       <div className="flex justify-between items-start mb-10">
-        <div className={`p-4 rounded-2xl shadow-xl ${color} group-hover:scale-110 transition-all border-4 border-white`}>
+        <motion.div 
+          className={`p-4 rounded-2xl shadow-xl ${color} border-4 border-white`}
+          whileHover={{ scale: 1.1, rotate: [0, 5, -5, 0] }}
+          transition={{ scale: { duration: 0.3 }, rotate: { duration: 0.5, repeat: 2 } }}
+        >
           <Icon size={24} className="text-white" />
-        </div>
+        </motion.div>
         <div className="text-right">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">{title}</p>
-          <h3 className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{value}</h3>
+          <motion.p 
+            className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 + index * 0.1 }}
+          >
+            {title}
+          </motion.p>
+          <motion.h3 
+            className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 + index * 0.1 }}
+          >
+            {value}
+          </motion.h3>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-[8px] font-black text-green-600 bg-green-50 px-3 py-1.5 rounded-xl border border-green-100 uppercase tracking-widestAlpha shadow-sm">
+        <motion.span 
+          className="text-[8px] font-black text-green-600 bg-green-50 px-3 py-1.5 rounded-xl border border-green-100 uppercase tracking-widestAlpha shadow-sm"
+          animate={{ 
+            scale: [1, 1.05, 1],
+            opacity: [0.8, 1, 0.8]
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
           {change}
-        </span>
-        {trend && <span className="text-[8px] font-black text-slate-300 uppercase tracking-widestAlpha">{trend}</span>}
+        </motion.span>
+        {trend && (
+          <motion.span 
+            className="text-[8px] font-black text-slate-300 uppercase tracking-widestAlpha"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 + index * 0.1 }}
+          >
+            {trend}
+          </motion.span>
+        )}
       </div>
     </div>
-  </div>
+  </motion.div>
 );
 
 const Dashboard: React.FC = () => {

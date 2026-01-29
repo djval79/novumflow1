@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Plus, Filter, Pin, Eye, CheckCircle, AlertTriangle, Calendar, User, X } from 'lucide-react';
 import { supabase, supabaseUrl } from '../lib/supabase';
 import { log } from '@/lib/logger';
+import { SkeletonList } from '@/components/ui/Skeleton';
 
 interface Announcement {
   id: string;
@@ -293,9 +294,7 @@ export default function NoticeBoardPage() {
         {/* Announcements List */}
         <div className="space-y-4">
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            </div>
+            <SkeletonList count={5} />
           ) : filteredAnnouncements.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm p-12 text-center">
               <Bell className="w-16 h-16 mx-auto text-gray-300 mb-4" />

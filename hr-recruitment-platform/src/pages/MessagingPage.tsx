@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, Search, Plus, X, CheckCheck } from 'lucide-react';
 import { supabase, supabaseUrl } from '../lib/supabase';
 import { log } from '@/lib/logger';
+import { SkeletonList, Skeleton } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Message {
   id: string;
@@ -39,6 +41,7 @@ export default function MessagingPage() {
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [conversationTitle, setConversationTitle] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +67,7 @@ export default function MessagingPage() {
   };
 
   const loadConversations = async () => {
+    setIsPageLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(`${supabaseUrl}/functions/v1/messaging-crud`, {
@@ -81,6 +85,8 @@ export default function MessagingPage() {
       }
     } catch (error) {
       log.error('Failed to load conversations', error, { component: 'MessagingPage', action: 'loadConversations' });
+    } finally {
+      setIsPageLoading(false);
     }
   };
 
@@ -248,46 +254,54 @@ export default function MessagingPage() {
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
-            <button
-              onClick={() => setShowNewConversation(true)}
-              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
+            <Tooltip content="New Conversation">
+              <button
+                onClick={() => setShowNewConversation(true)}
+                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </Tooltip>
           </div>
         </div>
 
         {/* Conversation List */}
         <div className="flex-1 overflow-y-auto">
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              onClick={() => setSelectedConversation(conv.id)}
-              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${selectedConversation === conv.id ? 'bg-indigo-50' : ''
-                }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-gray-900">{conv.title || 'Conversation'}</h3>
-                    {conv.unread_count > 0 && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-indigo-600 text-white rounded-full">
-                        {conv.unread_count}
-                      </span>
+          {isPageLoading ? (
+            <div className="p-4">
+              <SkeletonList count={5} />
+            </div>
+          ) : (
+            conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => setSelectedConversation(conv.id)}
+                className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${selectedConversation === conv.id ? 'bg-indigo-50' : ''
+                  }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-gray-900">{conv.title || 'Conversation'}</h3>
+                      {conv.unread_count > 0 && (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-indigo-600 text-white rounded-full">
+                          {conv.unread_count}
+                        </span>
+                      )}
+                    </div>
+                    {conv.last_message && (
+                      <p className="text-sm text-gray-600 truncate mt-1">
+                        {conv.last_message.content}
+                      </p>
                     )}
                   </div>
-                  {conv.last_message && (
-                    <p className="text-sm text-gray-600 truncate mt-1">
-                      {conv.last_message.content}
-                    </p>
-                  )}
+                  <span className="text-xs text-gray-500">
+                    {formatDate(conv.updated_at)}
+                  </span>
                 </div>
-                <span className="text-xs text-gray-500">
-                  {formatDate(conv.updated_at)}
-                </span>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -318,8 +332,8 @@ export default function MessagingPage() {
                 >
                   <div
                     className={`max-w-md px-4 py-2 rounded-lg ${msg.sender_id === currentUser?.id
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-200 text-gray-900'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-200 text-gray-900'
                       }`}
                   >
                     <p className="text-sm">{msg.content}</p>
@@ -349,13 +363,15 @@ export default function MessagingPage() {
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   disabled={loading}
                 />
-                <button
-                  onClick={sendMessage}
-                  disabled={loading || !messageInput.trim()}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
+                <Tooltip content="Send Message">
+                  <button
+                    onClick={sendMessage}
+                    disabled={loading || !messageInput.trim()}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </Tooltip>
               </div>
             </div>
           </>

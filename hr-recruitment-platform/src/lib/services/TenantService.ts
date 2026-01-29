@@ -13,7 +13,9 @@ export interface Tenant {
     is_active?: boolean;
     max_users?: number;
     careflow_enabled?: boolean;
+    complyflow_enabled?: boolean;
     cardflow_enabled?: boolean;
+    region?: string;
     settings?: Record<string, unknown>;
 }
 
@@ -195,6 +197,7 @@ export const tenantService = {
                 subscription_interval: tenant.subscription_interval || 'monthly',
                 is_active: tenant.is_active ?? true,
                 max_users: tenant.max_users || 10,
+                complyflow_enabled: tenant.complyflow_enabled ?? false,
             })
             .select()
             .single();

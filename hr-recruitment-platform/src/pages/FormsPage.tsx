@@ -5,6 +5,8 @@ import FormBuilder, { FormField } from '@/components/FormBuilder/FormBuilder';
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
 import { log } from '@/lib/logger';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 type FormType =
     | 'job_application'
@@ -273,15 +275,17 @@ export default function FormsPage() {
                     >
                         All Forms
                     </button>
-                    <button
-                        onClick={() => setActiveTab('create')}
-                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'create'
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }`}
-                    >
-                        Create New
-                    </button>
+                    <Tooltip content="Create a new form template">
+                        <button
+                            onClick={() => setActiveTab('create')}
+                            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'create'
+                                ? 'border-indigo-500 text-indigo-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Create New
+                        </button>
+                    </Tooltip>
                 </nav>
             </div>
 
@@ -353,27 +357,37 @@ export default function FormsPage() {
                                     </div>
 
                                     <div className="flex gap-2">
-                                        <button
-                                            onClick={() => setEditingForm(form)}
-                                            className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                                        >
-                                            <Edit className="w-4 h-4 mr-1" />
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => deleteForm(form.id)}
-                                            disabled={isDeleting === form.id}
-                                            className="inline-flex items-center justify-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
-                                        >
-                                            {isDeleting === form.id ? (
-                                                <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
-                                            ) : (
-                                                <Trash2 className="w-4 h-4" />
-                                            )}
-                                        </button>
+                                        <Tooltip content="Edit Form Template">
+                                            <button
+                                                onClick={() => setEditingForm(form)}
+                                                className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                            >
+                                                <Edit className="w-4 h-4 mr-1" />
+                                                Edit
+                                            </button>
+                                        </Tooltip>
+                                        <Tooltip content="Delete Form Template">
+                                            <button
+                                                onClick={() => deleteForm(form.id)}
+                                                disabled={isDeleting === form.id}
+                                                className="inline-flex items-center justify-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
+                                            >
+                                                {isDeleting === form.id ? (
+                                                    <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="w-4 h-4" />
+                                                )}
+                                            </button>
+                                        </Tooltip>
                                     </div>
                                 </div>
                             ))}
+
+                            {loading && (
+                                <>
+                                    {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
+                                </>
+                            )}
 
                             {filteredForms.length === 0 && !loading && (
                                 <div className="col-span-full text-center py-12">

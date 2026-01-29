@@ -18,6 +18,7 @@ export interface Tenant {
     };
     subscription_tier: 'trial' | 'basic' | 'professional' | 'enterprise';
     subscription_status: 'active' | 'trial' | 'cancelled' | 'suspended' | 'expired';
+    region?: 'eu-west-1' | 'us-east-1' | 'ap-southeast-1';
     created_at: string;
 }
 

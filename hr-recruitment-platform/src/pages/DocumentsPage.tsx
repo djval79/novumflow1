@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Upload, Filter, Search } from 'lucide-react';
+import { FileText, Upload, Filter, Search, Download } from 'lucide-react';
 import DragDropUpload from '@/components/DragDropUpload';
 import { supabase } from '@/lib/supabase';
 import { log } from '@/lib/logger';
+import { SkeletonList } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Document {
   id: string;
@@ -11,6 +13,7 @@ interface Document {
   file_size_bytes: number;
   uploaded_at: string;
   is_verified: boolean;
+  file_path: string;
 }
 
 export default function DocumentsPage() {
@@ -141,8 +144,8 @@ export default function DocumentsPage() {
 
         <div className="p-6">
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <div className="p-0">
+              <SkeletonList count={5} />
             </div>
           ) : filteredDocuments.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -180,6 +183,19 @@ export default function DocumentsPage() {
                           }`}>
                           {doc.is_verified ? 'Verified' : 'Pending'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <Tooltip content="Download Document">
+                          <button
+                            onClick={() => {
+                              const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(doc.file_path);
+                              window.open(publicUrl, '_blank');
+                            }}
+                            className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                       </td>
                     </tr>
                   ))}

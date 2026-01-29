@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   BadgePoundSterling, FileText, Download, Send, CheckCircle2,
-  AlertCircle, Printer, DollarSign, Wallet, TrendingUp, MoreHorizontal, Plus, X, PieChart, Landmark, ArrowUpRight, Scale
+  AlertCircle, Printer, DollarSign, Wallet, TrendingUp, MoreHorizontal, Plus, X, PieChart, Landmark, ArrowUpRight, Scale, Clock
 } from 'lucide-react';
 import { PayrollRecord, Invoice, Client } from '../types';
 import { financeService, clientService } from '../services/supabaseService';
@@ -311,7 +311,9 @@ const Finance: React.FC = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">ID_{inv.id.substring(0, 8).toUpperCase()}</span>
                     <div className="w-1.5 h-1.5 bg-slate-200 rounded-full" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                      <Clock size={12} /> Due for Settlement: {inv.dueDate}
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3v4m0 4v.01M5 3h14a2 2 0 012 0v12a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4m16 4v12a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4m6 4v12a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4" />
+</svg> Due for Settlement: {inv.dueDate}
                     </span>
                   </div>
                 </div>

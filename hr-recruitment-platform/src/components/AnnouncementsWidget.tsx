@@ -7,6 +7,8 @@ import {
     Plus, Edit2, Trash2, X, Check, AlertTriangle
 } from 'lucide-react';
 import { format, parseISO, isAfter, isBefore, formatDistanceToNow } from 'date-fns';
+import { Skeleton, SkeletonList } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Announcement {
     id: string;
@@ -129,11 +131,19 @@ export default function AnnouncementsWidget() {
     if (loading) {
         return (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-6 bg-gray-200 rounded w-1/3" />
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-20 bg-gray-100 rounded-lg" />
-                    ))}
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <Skeleton className="h-6 w-1/3" />
+                        <Skeleton variant="circle" className="h-8 w-8" />
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex space-x-2">
+                            <Skeleton className="h-6 w-16 rounded-lg" />
+                            <Skeleton className="h-6 w-16 rounded-lg" />
+                            <Skeleton className="h-6 w-16 rounded-lg" />
+                        </div>
+                        <SkeletonList count={3} />
+                    </div>
                 </div>
             </div>
         );
@@ -153,9 +163,11 @@ export default function AnnouncementsWidget() {
                             </span>
                         )}
                     </div>
-                    <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-                        <Plus className="w-4 h-4" />
-                    </button>
+                    <Tooltip content="New Announcement">
+                        <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+                            <Plus className="w-4 h-4" />
+                        </button>
+                    </Tooltip>
                 </div>
 
                 {/* Filters */}
@@ -264,8 +276,8 @@ export default function AnnouncementsWidget() {
                             </p>
                             <div className="mt-6 pt-4 border-t border-gray-100 flex items-center text-sm text-gray-500">
                                 <User className="w-4 h-4 mr-1" />
-                                <span>{selectedAnnouncement.author_name}</span>
-                                <span className="mx-2">•</span>
+                                <span className="font-medium">{selectedAnnouncement.author_name}</span>
+                                <span className="mx-2 text-gray-300">•</span>
                                 <Calendar className="w-4 h-4 mr-1" />
                                 <span>{format(parseISO(selectedAnnouncement.publish_date), 'PPP')}</span>
                             </div>
@@ -277,7 +289,10 @@ export default function AnnouncementsWidget() {
                             >
                                 Close
                             </button>
-                            <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center">
+                            <button
+                                onClick={() => setSelectedAnnouncement(null)}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center"
+                            >
                                 <Check className="w-4 h-4 mr-1" />
                                 Mark as Read
                             </button>

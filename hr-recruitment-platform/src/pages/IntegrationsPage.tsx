@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { Loader2, Check, X, Send, Eye, RefreshCw, Slack, Video, Mail, Calendar, HardDrive, Plus, Settings, Zap, CreditCard, Shield, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Integration {
     id: string;
@@ -175,8 +177,10 @@ export default function IntegrationsPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-cyan-600" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                    <SkeletonCard key={i} />
+                ))}
             </div>
         );
     }
@@ -232,42 +236,48 @@ export default function IntegrationsPage() {
                         </div>
 
                         <div className="mt-4 flex gap-2">
-                            <button
-                                onClick={() => {
-                                    setSelectedService(integration.service_name);
-                                    loadLogs(integration.service_name);
-                                }}
-                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium flex items-center justify-center gap-2"
-                            >
-                                <Eye className="w-4 h-4" />
-                                Logs
-                            </button>
+                            <Tooltip content="View Integration Logs">
+                                <button
+                                    onClick={() => {
+                                        setSelectedService(integration.service_name);
+                                        loadLogs(integration.service_name);
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium flex items-center justify-center gap-2"
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    Logs
+                                </button>
+                            </Tooltip>
 
                             {integration.is_connected ? (
                                 <>
-                                    <button
-                                        onClick={() => testIntegration(integration.service_name)}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                                        title="Test Integration"
-                                    >
-                                        <Send className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => toggleConnection(integration)}
-                                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm font-medium"
-                                        title="Disconnect"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
+                                    <Tooltip content="Test Connection">
+                                        <button
+                                            onClick={() => testIntegration(integration.service_name)}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                        </button>
+                                    </Tooltip>
+                                    <Tooltip content="Disconnect Service">
+                                        <button
+                                            onClick={() => toggleConnection(integration)}
+                                            className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm font-medium"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </Tooltip>
                                 </>
                             ) : (
-                                <button
-                                    onClick={() => toggleConnection(integration)}
-                                    className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-sm font-medium flex items-center justify-center gap-2"
-                                >
-                                    <RefreshCw className="w-4 h-4" />
-                                    Connect
-                                </button>
+                                <Tooltip content="Connect Service">
+                                    <button
+                                        onClick={() => toggleConnection(integration)}
+                                        className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-sm font-medium flex items-center justify-center gap-2"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        Connect
+                                    </button>
+                                </Tooltip>
                             )}
                         </div>
                     </div>

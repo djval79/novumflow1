@@ -4,6 +4,8 @@ import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { TrendingUp, TrendingDown, Users, Briefcase, Clock, Target, BarChart3, PieChart } from 'lucide-react';
 import { formatNumber, formatPercentage /* formatCurrency */ } from '@/lib/utils';
+import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface AnalyticsData {
     hiring: {
@@ -170,15 +172,59 @@ export default function DashboardAnalytics() {
         );
     }
 
+
+
     if (loading) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
-                        <div className="h-8 bg-gray-200 rounded w-3/4" />
+            <div className="space-y-6">
+                {/* Header Skeleton */}
+                <div className="flex justify-between items-center">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-8 w-64 rounded-lg" />
+                </div>
+
+                {/* Pipeline Stats Skeleton */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                    <Skeleton className="h-6 w-32 mb-6" />
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i}>
+                                <Skeleton variant="text" className="w-20 mb-2" />
+                                <Skeleton className="h-8 w-24 mb-1" />
+                                <Skeleton variant="text" className="w-16" />
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </div>
+
+                {/* Main Charts Skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm h-80">
+                        <Skeleton className="h-6 w-40 mb-6" />
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-8 w-full rounded-md" />)}
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm h-80">
+                        <Skeleton className="h-6 w-40 mb-6" />
+                        <div className="flex justify-around items-center h-48">
+                            {[1, 2, 3].map(i => <Skeleton key={i} variant="circle" className="h-24 w-24" />)}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom Stats Skeleton */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center space-x-3">
+                            <Skeleton variant="circle" className="h-10 w-10" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-6 w-16" />
+                                <Skeleton variant="text" className="w-20" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -212,10 +258,15 @@ export default function DashboardAnalytics() {
             {/* Hiring/Delivery Metrics */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="font-bold text-gray-900 flex items-center uppercase tracking-wider text-sm">
+                    <div className="flex items-center">
                         <Briefcase className="w-5 h-5 mr-2 text-cyan-600" />
-                        Hiring Pipeline
-                    </h3>
+                        <h3 className="font-bold text-gray-900 uppercase tracking-wider text-sm mr-2">
+                            Hiring Pipeline
+                        </h3>
+                        <Tooltip content="Overview of recruitment funnel performance" position="right">
+                            <div className="w-4 h-4 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-[10px] font-bold cursor-help">?</div>
+                        </Tooltip>
+                    </div>
                     <span className="text-xs text-gray-400 font-medium">vs last {timeRange}</span>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
@@ -236,12 +287,22 @@ export default function DashboardAnalytics() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Avg Time to Hire</p>
+                        <div className="flex items-center gap-1">
+                            <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Avg Time to Hire</p>
+                            <Tooltip content="Average days from application to offer acceptance">
+                                <div className="w-3 h-3 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-[8px] font-bold cursor-help">?</div>
+                            </Tooltip>
+                        </div>
                         <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1">{data.hiring.timeToHireAvg}</p>
                         <p className="text-[9px] text-gray-400 font-bold uppercase">days</p>
                     </div>
                     <div>
-                        <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Conversion</p>
+                        <div className="flex items-center gap-1">
+                            <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Conversion</p>
+                            <Tooltip content="Percentage of applicants who are hired">
+                                <div className="w-3 h-3 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-[8px] font-bold cursor-help">?</div>
+                            </Tooltip>
+                        </div>
                         <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1">{formatPercentage(data.hiring.conversionRate, 1)}</p>
                         <p className="text-[9px] text-gray-400 font-bold uppercase">app to hire</p>
                     </div>

@@ -3,16 +3,25 @@ import { useTenant } from '@/contexts/TenantContext';
 import { ExternalLink, Heart, Users } from 'lucide-react';
 
 // Configuration - use localhost in development
-const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isDev = window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname.endsWith('.local');
+
 const CAREFLOW_URL = isDev
-    ? 'http://localhost:5174'
+    ? 'http://localhost:5180'
     : (import.meta.env.VITE_CAREFLOW_URL || 'https://careflow-ai.vercel.app');
+
 const NOVUMFLOW_URL = isDev
-    ? 'http://localhost:5173'
+    ? `http://${window.location.host}` // Use current host for HR
     : (import.meta.env.VITE_NOVUMFLOW_URL || 'https://hr-recruitment-platform.vercel.app');
 
+const COMPLYFLOW_URL = isDev
+    ? 'http://localhost:5190'
+    : (import.meta.env.VITE_COMPLYFLOW_URL || 'https://complyflow.vercel.app');
+
 interface CrossAppNavigationProps {
-    app: 'novumflow' | 'careflow';
+    app: 'novumflow' | 'careflow' | 'complyflow';
 }
 
 export default function CrossAppNavigation({ app }: CrossAppNavigationProps) {
@@ -21,7 +30,10 @@ export default function CrossAppNavigation({ app }: CrossAppNavigationProps) {
     if (!currentTenant) return null;
 
     const handleNavigate = () => {
-        const targetUrl = app === 'novumflow' ? CAREFLOW_URL : NOVUMFLOW_URL;
+        let targetUrl = NOVUMFLOW_URL;
+        if (app === 'careflow') targetUrl = CAREFLOW_URL;
+        if (app === 'complyflow') targetUrl = COMPLYFLOW_URL;
+
         const url = `${targetUrl}?tenant=${currentTenant.id}`;
         window.open(url, '_blank');
     };

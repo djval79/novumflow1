@@ -30,7 +30,8 @@ export default function TenantManagementPage() {
         subscription_price: '',
         currency: 'GBP',
         subscription_interval: 'monthly' as 'monthly' | 'yearly',
-        max_users: '10'
+        max_users: '10',
+        region: 'eu-west-1'
     });
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [onboardingData, setOnboardingData] = useState<Map<string, TenantOnboarding>>(new Map());
@@ -70,7 +71,8 @@ export default function TenantManagementPage() {
                 subscription_price: selectedTenant.subscription_price?.toString() || '',
                 currency: selectedTenant.currency || 'GBP',
                 subscription_interval: selectedTenant.subscription_interval || 'monthly',
-                max_users: selectedTenant.max_users?.toString() || '10'
+                max_users: selectedTenant.max_users?.toString() || '10',
+                region: selectedTenant.region || 'eu-west-1'
             });
         }
     }, [selectedTenant]);
@@ -158,6 +160,7 @@ export default function TenantManagementPage() {
             currency: formData.currency,
             subscription_interval: formData.subscription_interval,
             max_users: parseInt(formData.max_users) || 10,
+            region: formData.region,
             is_active: true
         });
 
@@ -197,7 +200,8 @@ export default function TenantManagementPage() {
                     subscription_price: parseFloat(formData.subscription_price) || undefined,
                     currency: formData.currency,
                     subscription_interval: formData.subscription_interval,
-                    max_users: parseInt(formData.max_users) || 10
+                    max_users: parseInt(formData.max_users) || 10,
+                    region: formData.region
                 }
             }
         });
@@ -211,7 +215,8 @@ export default function TenantManagementPage() {
                 subscription_price: parseFloat(formData.subscription_price) || undefined,
                 currency: formData.currency,
                 subscription_interval: formData.subscription_interval,
-                max_users: parseInt(formData.max_users) || 10
+                max_users: parseInt(formData.max_users) || 10,
+                region: formData.region
             });
 
             if (updatedTenant) {
@@ -549,6 +554,20 @@ export default function TenantManagementPage() {
                                     />
                                 </div>
                             </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Region (Data residency) *</label>
+                                    <select
+                                        value={formData.region}
+                                        onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500"
+                                    >
+                                        <option value="eu-west-1">EU (Ireland)</option>
+                                        <option value="us-east-1">US (N. Virginia)</option>
+                                        <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div className="border-t border-gray-200 pt-4 mt-4">
                                 <h3 className="text-sm font-medium text-gray-900 mb-3">Subscription Pricing</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -626,64 +645,71 @@ export default function TenantManagementPage() {
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                </div >
+            )
+            }
 
             {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
-                        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                            <Shield className="h-6 w-6 text-red-600" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Tenant?</h3>
-                        <p className="text-sm text-gray-500 mb-6">
-                            Are you sure you want to delete <strong>{selectedTenant?.name}</strong>? This action cannot be undone and will remove all associated data.
-                        </p>
-                        <div className="flex justify-center space-x-3">
-                            <button
-                                onClick={() => setShowDeleteConfirm(false)}
-                                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleDeleteTenant}
-                                disabled={saving}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-                            >
-                                {saving ? 'Deleting...' : 'Delete'}
-                            </button>
+            {
+                showDeleteConfirm && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                                <Shield className="h-6 w-6 text-red-600" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Tenant?</h3>
+                            <p className="text-sm text-gray-500 mb-6">
+                                Are you sure you want to delete <strong>{selectedTenant?.name}</strong>? This action cannot be undone and will remove all associated data.
+                            </p>
+                            <div className="flex justify-center space-x-3">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteTenant}
+                                    disabled={saving}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                                >
+                                    {saving ? 'Deleting...' : 'Delete'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Onboarding Wizard Modal */}
-            {showOnboarding && selectedTenant && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="max-w-3xl w-full">
-                        <TenantOnboardingWizard
-                            tenantId={selectedTenant.id}
-                            tenantName={selectedTenant.name}
-                            onClose={() => setShowOnboarding(false)}
-                            onComplete={() => {
-                                setShowOnboarding(false);
-                                loadData(); // Reload to update onboarding status
-                                setToast({ message: 'Onboarding completed successfully!', type: 'success' });
-                            }}
-                        />
+            {
+                showOnboarding && selectedTenant && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="max-w-3xl w-full">
+                            <TenantOnboardingWizard
+                                tenantId={selectedTenant.id}
+                                tenantName={selectedTenant.name}
+                                onClose={() => setShowOnboarding(false)}
+                                onComplete={() => {
+                                    setShowOnboarding(false);
+                                    loadData(); // Reload to update onboarding status
+                                    setToast({ message: 'Onboarding completed successfully!', type: 'success' });
+                                }}
+                            />
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
-        </div>
+            {
+                toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                )
+            }
+        </div >
     );
 }

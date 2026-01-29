@@ -1,4 +1,77 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+// Define database schema types
+export interface Database {
+  public: {
+    Tables: {
+      users_profiles: {
+        Row: UserProfile;
+        Insert: Partial<UserProfile>;
+        Update: Partial<UserProfile>;
+      };
+      tenants: {
+        Row: Tenant;
+        Insert: Partial<Tenant>;
+        Update: Partial<Tenant>;
+      };
+      employees: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+      jobs: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+      applications: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+      interviews: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+      documents: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+      attendance: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+      leave_requests: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+      shifts: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+      security_audit_logs: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      user_role: UserRole;
+      subscription_tier: string;
+    };
+  };
+}
 import { log } from './logger';
 
 // Environment-based configuration
@@ -123,7 +196,7 @@ export interface Tenant {
 
 // Helper functions
 export const isValidSupabaseUrl = (url: string): boolean => {
-  return url && (url.includes('supabase.co') || url.includes('localhost') || url.includes('127.0.0.1'));
+  return Boolean(url && (url.includes('supabase.co') || url.includes('localhost') || url.includes('127.0.0.1')));
 };
 
 export const getCurrentUser = async () => {
@@ -165,7 +238,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     const supabase = getSupabaseClient();
     if (!supabase) return false;
 
-    const { data, error } = await supabase
+    const { data: _, error } = await supabase
       .from('users_profiles')
       .select('id')
       .limit(1);

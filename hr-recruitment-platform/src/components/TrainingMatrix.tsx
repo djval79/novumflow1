@@ -4,6 +4,8 @@ import { log } from '@/lib/logger';
 import { useTenant } from '@/contexts/TenantContext';
 import { CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, ChevronDown } from 'lucide-react';
 import TrainingRecordForm from './TrainingRecordForm';
+import { SkeletonList } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface StaffTrainingSummary {
     user_id: string;
@@ -109,13 +111,8 @@ export default function TrainingMatrix() {
         return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-gray-500">Loading training matrix...</div>
-            </div>
-        );
-    }
+    // Removed early return for loading to show skeleton state
+
 
     return (
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -124,97 +121,111 @@ export default function TrainingMatrix() {
                     <h2 className="text-lg font-semibold text-gray-900">Training Matrix</h2>
                     <p className="text-sm text-gray-600 mt-1">Overview of mandatory training status across all staff</p>
                 </div>
-                <button
-                    onClick={() => {
-                        setEditingRecord(null);
-                        setShowAddModal(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Training
-                </button>
+                <Tooltip content="Add new training record">
+                    <button
+                        onClick={() => {
+                            setEditingRecord(null);
+                            setShowAddModal(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Training
+                    </button>
+                </Tooltip>
             </div>
 
             <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10">
-                                Staff Member
-                            </th>
-                            {mandatoryTrainingTypes.map(type => (
-                                <th key={type} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase min-w-[100px]">
-                                    {getTrainingLabel(type)}
+                {loading ? (
+                    <div className="p-0">
+                        <SkeletonList count={10} />
+                    </div>
+                ) : (
+                    <table className="w-full">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10">
+                                    Staff Member
                                 </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {matrixData.map(staff => (
-                            [
-                                <tr key={`row-${staff.user_id}`} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10 border-r border-gray-100">
-                                        <button
-                                            onClick={() => setExpandedUser(expandedUser === staff.user_id ? null : staff.user_id)}
-                                            className="flex items-center gap-2 font-medium text-gray-900 hover:text-cyan-600"
-                                        >
-                                            {expandedUser === staff.user_id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                            {staff.staff_name}
-                                        </button>
-                                    </td>
-                                    {mandatoryTrainingTypes.map(type => (
-                                        <td key={type} className="px-4 py-4 text-center whitespace-nowrap">
-                                            <div className="flex justify-center" title={staff.training[type]?.expiry_date ? `Expires: ${staff.training[type]?.expiry_date}` : 'Missing'}>
-                                                {getStatusIcon(staff.training[type])}
-                                            </div>
+                                {mandatoryTrainingTypes.map(type => (
+                                    <th key={type} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase min-w-[100px]">
+                                        {getTrainingLabel(type)}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {matrixData.map(staff => (
+                                [
+                                    <tr key={`row-${staff.user_id}`} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10 border-r border-gray-100">
+                                            <Tooltip content={expandedUser === staff.user_id ? "Collapse details" : "Expand details"}>
+                                                <button
+                                                    onClick={() => setExpandedUser(expandedUser === staff.user_id ? null : staff.user_id)}
+                                                    className="flex items-center gap-2 font-medium text-gray-900 hover:text-cyan-600"
+                                                >
+                                                    {expandedUser === staff.user_id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                                    {staff.staff_name}
+                                                </button>
+                                            </Tooltip>
                                         </td>
-                                    ))}
-                                </tr>,
-                                expandedUser === staff.user_id && (
-                                    <tr key={`details-${staff.user_id}`} className="bg-gray-50">
-                                        <td colSpan={mandatoryTrainingTypes.length + 1} className="px-6 py-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                {Object.values(staff.training).map((record) => (
-                                                    record && (
-                                                        <div key={record.id} className="bg-white p-3 rounded border border-gray-200 text-sm relative group">
-                                                            <div className="font-medium text-gray-900">{record.training_name}</div>
-                                                            <div className="text-gray-500 mt-1">Completed: {record.completion_date}</div>
-                                                            <div className={`mt-1 ${!record.expiry_date ? 'text-gray-500' :
-                                                                new Date(record.expiry_date) < new Date() ? 'text-red-600 font-medium' :
-                                                                    'text-gray-500'
-                                                                }`}>
-                                                                Expires: {record.expiry_date || 'N/A'}
-                                                            </div>
+                                        {mandatoryTrainingTypes.map(type => (
+                                            <td key={type} className="px-4 py-4 text-center whitespace-nowrap">
+                                                <div className="flex justify-center" title={staff.training[type]?.expiry_date ? `Expires: ${staff.training[type]?.expiry_date}` : 'Missing'}>
+                                                    {getStatusIcon(staff.training[type])}
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>,
+                                    expandedUser === staff.user_id && (
+                                        <tr key={`details-${staff.user_id}`} className="bg-gray-50">
+                                            <td colSpan={mandatoryTrainingTypes.length + 1} className="px-6 py-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    {Object.values(staff.training).map((record) => (
+                                                        record && (
+                                                            <div key={record.id} className="bg-white p-3 rounded border border-gray-200 text-sm relative group">
+                                                                <div className="font-medium text-gray-900">{record.training_name}</div>
+                                                                <div className="text-gray-500 mt-1">Completed: {record.completion_date}</div>
+                                                                <div className={`mt-1 ${!record.expiry_date ? 'text-gray-500' :
+                                                                    new Date(record.expiry_date) < new Date() ? 'text-red-600 font-medium' :
+                                                                        'text-gray-500'
+                                                                    }`}>
+                                                                    Expires: {record.expiry_date || 'N/A'}
+                                                                </div>
 
-                                                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setEditingRecord(record);
-                                                                        setShowAddModal(true);
-                                                                    }}
-                                                                    className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                                                                >
-                                                                    Edit
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDelete(record.id)}
-                                                                    className="text-red-600 hover:text-red-800 text-xs font-medium"
-                                                                >
-                                                                    Delete
-                                                                </button>
+                                                                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <Tooltip content="Edit Record">
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setEditingRecord(record);
+                                                                                setShowAddModal(true);
+                                                                            }}
+                                                                            className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                                                                        >
+                                                                            Edit
+                                                                        </button>
+                                                                    </Tooltip>
+                                                                    <Tooltip content="Delete Record">
+                                                                        <button
+                                                                            onClick={() => handleDelete(record.id)}
+                                                                            className="text-red-600 hover:text-red-800 text-xs font-medium"
+                                                                        >
+                                                                            Delete
+                                                                        </button>
+                                                                    </Tooltip>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )
-                                                ))}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )
-                            ]
-                        ))}
-                    </tbody>
-                </table>
+                                                        )
+                                                    ))}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                ]
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             <div className="p-4 border-t border-gray-200 bg-gray-50 flex gap-6 text-sm text-gray-600">

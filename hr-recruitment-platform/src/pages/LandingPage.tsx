@@ -377,6 +377,97 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* The Suite Ecosystem Section */}
+            <section className="py-24 bg-slate-900 overflow-hidden relative">
+                {/* Background decorative elements */}
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"></div>
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div className="text-center mb-16">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold uppercase mb-4 border border-cyan-500/20">
+                            <BrainCircuit className="w-4 h-4" /> One Unified Platform
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-6">
+                            The Power of the <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">NovumFlow Suite</span>
+                        </h2>
+                        <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+                            Stop toggling between disconnected apps. Our three core modules communicate in real-time to create an impenetrable compliance shield.
+                        </p>
+                    </div>
+
+                    <div className="grid lg:grid-cols-3 gap-8">
+                        {/* Module 1: HR */}
+                        <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-700/50 hover:border-cyan-500/50 transition-all group">
+                            <div className="h-14 w-14 bg-blue-900/50 rounded-xl flex items-center justify-center mb-6 border border-blue-500/20 group-hover:scale-110 transition-transform">
+                                <Users className="w-8 h-8 text-blue-400" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-2">NovumFlow HR</h3>
+                            <p className="text-xs text-slate-500 mb-6 uppercase font-bold tracking-widestAlpha">Foundation Layer</p>
+                            <ul className="space-y-3 text-slate-400 mb-8">
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-cyan-500" /> Automated Onboarding</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-cyan-500" /> Right-to-Work Checks</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-cyan-500" /> Training Matrix</li>
+                            </ul>
+                            <div className="text-sm font-mono text-cyan-400 bg-cyan-950/30 p-3 rounded-lg border border-cyan-900/50 flex items-center gap-2">
+                                <Activity className="w-4 h-4" /> Syncs data to CareFlow
+                            </div>
+                        </div>
+
+                        {/* Module 2: CareFlow */}
+                        <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-700/50 hover:border-green-500/50 transition-all group">
+                            <div className="h-14 w-14 bg-green-900/50 rounded-xl flex items-center justify-center mb-6 border border-green-500/20 group-hover:scale-110 transition-transform">
+                                <Stethoscope className="w-8 h-8 text-green-400" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-2">CareFlow AI</h3>
+                            <p className="text-xs text-slate-500 mb-6 uppercase font-bold tracking-widestAlpha">Operational Layer</p>
+                            <ul className="space-y-3 text-slate-400 mb-8">
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> Smart AI Rostering</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> eMAR & Care Plans</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> GPS Visit Verification</li>
+                            </ul>
+                            <div className="text-sm font-mono text-green-400 bg-green-950/30 p-3 rounded-lg border border-green-900/50 flex items-center gap-2">
+                                <Lock className="w-4 h-4" /> Blocks non-compliant staff
+                            </div>
+                        </div>
+
+                        {/* Module 3: ComplyFlow */}
+                        <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-700/50 hover:border-purple-500/50 transition-all group">
+                            <div className="h-14 w-14 bg-purple-900/50 rounded-xl flex items-center justify-center mb-6 border border-purple-500/20 group-hover:scale-110 transition-transform">
+                                <Gavel className="w-8 h-8 text-purple-400" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-2">ComplyFlow</h3>
+                            <p className="text-xs text-slate-500 mb-6 uppercase font-bold tracking-widestAlpha">Regulatory Layer</p>
+                            <ul className="space-y-3 text-slate-400 mb-8">
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-purple-500" /> CQC AI Gap Analyzer</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-purple-500" /> Live CQC API Sync</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-purple-500" /> Sponsor Audit Ready</li>
+                            </ul>
+                            <div className="text-sm font-mono text-purple-400 bg-purple-950/30 p-3 rounded-lg border border-purple-900/50 flex items-center gap-2">
+                                <Shield className="w-4 h-4" /> SECRO Dashboard Score
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-12 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-1 border border-slate-700">
+                        <div className="bg-slate-900/90 rounded-xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-sm">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                                    <Server className="w-6 h-6 text-cyan-400" />
+                                </div>
+                                <div>
+                                    <h4 className="text-lg font-bold text-white">Unified Identity & Data</h4>
+                                    <p className="text-slate-400 text-sm">One login for all apps. Data flows instantly between HR and Care.</p>
+                                </div>
+                            </div>
+                            <Link to="/signup" className="px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition-colors">
+                                Get Full Access
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* ROI Calculator for HR */}
             <section className="py-24 bg-slate-50 border-y border-slate-200">
                 <div className="max-w-4xl mx-auto px-4">
@@ -480,7 +571,6 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </div>
-
             </section>
 
             {/* Features Grid (Expanded) */}
@@ -611,7 +701,7 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: stri
     return (
         <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/80 transition-all group">
             <div className="h-12 w-12 bg-slate-900 rounded-xl flex items-center justify-center mb-6 border border-slate-700 group-hover:scale-110 transition-transform">
-                {React.cloneElement(icon as React.ReactElement, { className: `w - 6 h - 6 ${(icon as React.ReactElement).props.className} ` })}
+                {React.cloneElement(icon as React.ReactElement, { className: `w-6 h-6 ${(icon as React.ReactElement).props.className}` })}
             </div>
             <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
             <p className="text-slate-400 leading-relaxed">

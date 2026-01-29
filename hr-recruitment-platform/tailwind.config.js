@@ -10,9 +10,20 @@ module.exports = {
 	theme: {
 		container: {
 			center: true,
-			padding: '2rem',
+			padding: {
+				DEFAULT: '1rem',
+				sm: '1.5rem',
+				lg: '2rem',
+				xl: '3rem',
+			},
 			screens: {
-				'2xl': '1400px',
+				xs: '320px',
+				sm: '640px',
+				md: '768px',
+				lg: '1024px',
+				xl: '1280px',
+				'2xl': '1536px',
+				'3xl': '1920px',
 			},
 		},
 		extend: {
@@ -23,10 +34,32 @@ module.exports = {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
+					50: '#f0fdfa',
+					100: '#ccfbf1',
+					200: '#99f6e4',
+					300: '#5eead4',
+					400: '#2dd4bf',
+					500: '#14b8a6',
+					600: '#0d9488',
+					700: '#0f766e',
+					800: '#115e59',
+					900: '#134e4a',
+					950: '#042f2e',
 					DEFAULT: '#2B5D3A',
 					foreground: 'hsl(var(--primary-foreground))',
 				},
 				secondary: {
+					50: '#f8fafc',
+					100: '#f1f5f9',
+					200: '#e2e8f0',
+					300: '#cbd5e1',
+					400: '#94a3b8',
+					500: '#64748b',
+					600: '#475569',
+					700: '#334155',
+					800: '#1e293b',
+					900: '#0f172a',
+					950: '#020617',
 					DEFAULT: '#4A90E2',
 					foreground: 'hsl(var(--secondary-foreground))',
 				},
@@ -35,8 +68,26 @@ module.exports = {
 					foreground: 'hsl(var(--accent-foreground))',
 				},
 				destructive: {
+					light: '#fee2e2',
+					main: '#dc2626',
+					dark: '#b91c1c',
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))',
+				},
+				warning: {
+					light: '#fef3c7',
+					main: '#f59e0b',
+					dark: '#d97706',
+				},
+				success: {
+					light: '#dcfce7',
+					main: '#16a34a',
+					dark: '#15803d',
+				},
+				info: {
+					light: '#dbeafe',
+					main: '#2563eb',
+					dark: '#1d4ed8',
 				},
 				muted: {
 					DEFAULT: 'hsl(var(--muted))',
@@ -55,6 +106,90 @@ module.exports = {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)',
+			},
+			fontSize: {
+				'responsive-h1': [
+					'1.875rem',
+					{
+						lineHeight: '2.25rem',
+						'@screen sm': {
+							fontSize: '2.25rem',
+							lineHeight: '2.5rem',
+						},
+						'@screen md': {
+							fontSize: '2.5rem',
+							lineHeight: '2.75rem',
+						},
+						'@screen lg': {
+							fontSize: '3rem',
+							lineHeight: '3.25rem',
+						},
+						'@screen xl': {
+							fontSize: '3.75rem',
+							lineHeight: '4rem',
+						},
+					},
+				],
+				'responsive-h2': [
+					'1.5rem',
+					{
+						lineHeight: '2rem',
+						'@screen sm': {
+							fontSize: '1.75rem',
+							lineHeight: '2.25rem',
+						},
+						'@screen md': {
+							fontSize: '2rem',
+							lineHeight: '2.5rem',
+						},
+						'@screen lg': {
+							fontSize: '2.25rem',
+							lineHeight: '2.75rem',
+						},
+						'@screen xl': {
+							fontSize: '2.5rem',
+							lineHeight: '3rem',
+						},
+					},
+				],
+				'responsive-body': [
+					'0.875rem',
+					{
+						lineHeight: '1.25rem',
+						'@screen sm': {
+							fontSize: '0.9375rem',
+							lineHeight: '1.375rem',
+						},
+						'@screen md': {
+							fontSize: '1rem',
+							lineHeight: '1.5rem',
+						},
+						'@screen lg': {
+							fontSize: '1.125rem',
+							lineHeight: '1.75rem',
+						},
+					},
+				],
+			},
+			spacing: {
+				'responsive-container': [
+					'1rem',
+					{
+						'@screen sm': '1.5rem',
+						'@screen md': '2rem',
+						'@screen lg': '2rem',
+						'@screen xl': '3rem',
+					},
+				],
+				'responsive-section': [
+					'3rem',
+					{
+						'@screen sm': '4rem',
+						'@screen md': '5rem',
+						'@screen lg': '6rem',
+						'@screen xl': '8rem',
+					},
+				],
 			},
 			keyframes: {
 				'accordion-down': {

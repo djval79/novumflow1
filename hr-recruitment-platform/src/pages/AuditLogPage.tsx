@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auditService, AuditLog, AuditSearchFilters } from '@/lib/services/AuditService';
 import { useTenant } from '@/contexts/TenantContext';
 import { log } from '@/lib/logger';
+import { SkeletonList } from '@/components/ui/Skeleton';
 import {
     History,
     Search,
@@ -194,8 +195,8 @@ export default function AuditLogPage() {
             {/* Audit Logs Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
                 {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <div className="text-gray-500">Loading audit logs...</div>
+                    <div className="p-0">
+                        <SkeletonList count={10} />
                     </div>
                 ) : logs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-500">

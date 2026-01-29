@@ -84,12 +84,18 @@ export const generateCarePlanAI = async (
     const response = await withRetry(
       () => ai!.models.generateContent({
         model: DEFAULT_MODEL,
-        contents: `Create a detailed care plan and risk assessment for a care home or home help client.
+        contents: `Act as a Clinical Lead for a CQC-regulated healthcare provider. Create a high-quality, person-centered care plan and forensic risk assessment.
       
         Client Details: ${clientDetails}
         Medical History/Condition: ${medicalHistory}
       
-        Return a structured JSON response suitable for a care management system.`,
+        Guidelines:
+        1. Align recommendations with NICE clinical guidelines where applicable.
+        2. Ensure risk mitigations are practical, measurable, and specific (not generic).
+        3. Identify potential "hidden" risks based on medical history (e.g., if Diabetic, mention foot care or hypo risk).
+        4. Focus on independence and reablement.
+      
+        Return a structured JSON response.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {

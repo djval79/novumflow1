@@ -1,4 +1,4 @@
-import { test, expect, login, waitForPageLoad } from './fixtures/auth';
+import { test, expect, login, waitForPageLoad, createTestUser } from './fixtures/auth';
 
 /**
  * E2E Tests: Dashboard & Navigation
@@ -6,17 +6,33 @@ import { test, expect, login, waitForPageLoad } from './fixtures/auth';
  */
 
 test.describe('Dashboard', () => {
+    let testUser = { email: '', password: '' };
+
+    test.beforeAll(async ({ browser }) => {
+        // Create a new context and page to seed the user
+        const context = await browser.newContext();
+        const page = await context.newPage();
+
+        // Create the user via Quick Admin Setup
+        console.log('Seeding test user for dashboard tests...');
+        testUser = await createTestUser(page);
+
+        await context.close();
+    });
+
     test.beforeEach(async ({ page }) => {
-        await login(page);
+        await login(page, testUser.email, testUser.password);
     });
 
     test('should display all stat cards', async ({ page }) => {
         await waitForPageLoad(page);
 
-        // Check for main stat cards
+        // Check for main headers in DashboardAnalytics
+        await expect(page.locator('text=Performance Analytics')).toBeVisible();
+        await expect(page.locator('text=Hiring Pipeline')).toBeVisible();
+
+        // "Total Employees" is in the Department Distribution card
         await expect(page.locator('text=Total Employees')).toBeVisible();
-        await expect(page.locator('text=Active Job Postings')).toBeVisible();
-        await expect(page.locator('text=Pending Applications')).toBeVisible();
 
         await page.screenshot({ path: 'test-results/dashboard-stats.png', fullPage: true });
     });
@@ -24,25 +40,34 @@ test.describe('Dashboard', () => {
     test('should display compliance widget', async ({ page }) => {
         await waitForPageLoad(page);
 
-        // Look for compliance-related content
-        const complianceSection = page.locator('text=Compliance, text=CQC').first();
+        // Look for compliance-related content (UKComplianceDashboardWidget)
+        // Assuming it has text "Compliance" or "CQC"
+        const complianceSection = page.locator('text=Compliance').first();
         await expect(complianceSection).toBeVisible({ timeout: 10000 });
     });
 
     test('should display analytics section', async ({ page }) => {
         await waitForPageLoad(page);
 
-        // Dashboard analytics should be present
-        const analyticsSection = page.locator('[class*="analytics"], [class*="chart"]').first();
-        if (await analyticsSection.isVisible()) {
-            await expect(analyticsSection).toBeVisible();
-        }
+        // "Department Distribution" is a key analytics chart
+        await expect(page.locator('text=Department Distribution')).toBeVisible();
     });
 });
 
 test.describe('Navigation', () => {
+    let testUser = { email: '', password: '' };
+
+    test.beforeAll(async ({ browser }) => {
+        // Create a NEW user for navigation tests to avoid state pollution? 
+        // Or reuse? Reusing is fine but safe to create new.
+        const context = await browser.newContext();
+        const page = await context.newPage();
+        testUser = await createTestUser(page);
+        await context.close();
+    });
+
     test.beforeEach(async ({ page }) => {
-        await login(page);
+        await login(page, testUser.email, testUser.password);
     });
 
     test('should navigate to HR module', async ({ page }) => {

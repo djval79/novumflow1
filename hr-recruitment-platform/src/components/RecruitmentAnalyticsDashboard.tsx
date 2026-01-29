@@ -13,6 +13,7 @@ import {
     Briefcase
 } from 'lucide-react';
 import { format, subDays, differenceInDays } from 'date-fns';
+import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
 
 interface FunnelStage {
     name: string;
@@ -206,8 +207,77 @@ export default function RecruitmentAnalyticsDashboard() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="space-y-8 p-6 animate-pulse">
+                {/* Header Skeleton */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-14 h-14 bg-gray-200 rounded-2xl shadow-sm"></div>
+                        <div className="space-y-2">
+                            <Skeleton className="h-8 w-64" />
+                            <Skeleton className="h-4 w-48" />
+                        </div>
+                    </div>
+                    <Skeleton className="h-12 w-48 rounded-xl hidden sm:block" />
+                </div>
+
+                {/* Key Metrics Skeleton */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-2 flex-col">
+                                    <Skeleton className="h-4 w-20" />
+                                    <Skeleton className="h-8 w-16" />
+                                </div>
+                                <div className="w-10 h-10 bg-gray-100 rounded-xl"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Main Charts Skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
+                        <Skeleton className="h-6 w-48" />
+                        <div className="flex items-end justify-between h-64 px-4">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="w-12 bg-gray-100 rounded-t-lg" style={{ height: `${20 + i * 15}%` }}></div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
+                        <Skeleton className="h-6 w-48" />
+                        <div className="space-y-4">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="flex items-center space-x-4">
+                                    <Skeleton className="h-4 w-12" />
+                                    <div className="flex-1 h-6 bg-gray-100 rounded-lg"></div>
+                                    <Skeleton className="h-4 w-8" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Secondary Charts Skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {[...Array(2)].map((_, i) => (
+                        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
+                            <Skeleton className="h-6 w-48" />
+                            <div className="space-y-4">
+                                {[...Array(3)].map((_, j) => (
+                                    <div key={j} className="space-y-2">
+                                        <div className="flex justify-between">
+                                            <Skeleton className="h-4 w-32" />
+                                            <Skeleton className="h-4 w-8" />
+                                        </div>
+                                        <div className="h-2 bg-gray-100 rounded-full"></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -233,8 +303,8 @@ export default function RecruitmentAnalyticsDashboard() {
                             key={range}
                             onClick={() => setDateRange(range)}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition ${dateRange === range
-                                    ? 'bg-white text-indigo-600 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                ? 'bg-white text-indigo-600 shadow-sm'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                         >
                             {range === 'all' ? 'All Time' : range.toUpperCase()}

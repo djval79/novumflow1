@@ -14,11 +14,14 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { format, isValid } from 'date-fns';
+import { OnboardingTour } from '../components/OnboardingTour';
+import { Zap } from 'lucide-react';
 import AdminPrivilegeSetup from '../components/AdminPrivilegeSetup';
 import DashboardAnalytics from '../components/DashboardAnalytics';
 import UKComplianceDashboardWidget from '../components/UKComplianceDashboardWidget';
 import WelcomeDashboard from '../components/WelcomeDashboard';
 import { log } from '@/lib/logger';
+import { Skeleton, SkeletonCard, SkeletonList } from '@/components/ui/Skeleton';
 
 interface DashboardStats {
   totalEmployees: number;
@@ -42,6 +45,14 @@ export default function DashboardPage() {
   });
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('nv_onboarding_seen');
+    if (!hasSeenTour) {
+      setShowTour(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (currentTenant) {
@@ -103,23 +114,59 @@ export default function DashboardPage() {
     }
   }
 
+
+
   if (loading) {
     return (
-      <div className="p-8 animate-pulse">
-        <div className="h-40 bg-gray-100 rounded-3xl mb-8"></div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-gray-50 rounded-2xl"></div>)}
+      <div className="p-4 sm:p-8 space-y-8 pb-20">
+        {/* Welcome Widget Skeleton */}
+        <Skeleton className="h-64 w-full rounded-3xl" />
+
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
         </div>
+
+        {/* Main Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 h-96 bg-gray-50 rounded-3xl"></div>
-          <div className="h-96 bg-gray-50 rounded-3xl"></div>
+          <div className="lg:col-span-2 space-y-8">
+            {/* Analytics Chart Skeleton */}
+            <Skeleton className="h-96 w-full rounded-3xl" />
+            <Skeleton className="h-64 w-full rounded-3xl" />
+          </div>
+          <div className="space-y-8">
+            {/* Activity Feed Skeleton */}
+            <div className="p-6 bg-white border border-gray-100 rounded-3xl space-y-4">
+              <Skeleton className="h-8 w-1/2 mb-4" />
+              <SkeletonList count={5} />
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 pb-20">
+    <div className="p-4 sm:p-8 space-y-8 pb-20 relative">
+      {showTour && <OnboardingTour onComplete={() => {
+        localStorage.setItem('nv_onboarding_seen', 'true');
+        setShowTour(false);
+      }} />}
+
+      {/* Header with Tour Trigger */}
+      <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+        <div>
+          <h1 className="text-22xl font-black text-gray-900 tracking-tight uppercase">Mission Control</h1>
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-widestAlpha">NovumFlow Integrated Suite</p>
+        </div>
+        <button
+          onClick={() => setShowTour(true)}
+          className="px-6 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 transition-all flex items-center gap-3 active:scale-95"
+        >
+          <Zap size={14} className="text-cyan-500" /> System Tour
+        </button>
+      </div>
+
       {/* Dynamic Welcome Widget */}
       <WelcomeDashboard />
 

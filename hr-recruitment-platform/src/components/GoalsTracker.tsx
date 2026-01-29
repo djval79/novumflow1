@@ -46,9 +46,9 @@ export default function GoalsTracker() {
         try {
             const { data, error } = await supabase
                 .from('goals')
-                .select('*, key_results(*)')
+                .select('*')
                 .eq('tenant_id', currentTenant?.id)
-                .order('target_date');
+                .order('target_date', { ascending: true });
 
             if (error) throw error;
             setGoals(data || []);

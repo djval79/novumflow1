@@ -1,39 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --radius: 0.5rem;
-    /* NovumSolvo Brand Colors */
-    --brand-cyan: 189 100% 50%;        /* #00D9FF */
-    --brand-navy: 215 75% 9%;          /* #0A1628 */
-    --brand-light-blue: 199 95% 74%;   /* #7DD3FC */
-    --brand-dark-blue: 217 33% 17%;    /* #1E293B */
-    
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 189 100% 50%;    /* Brand cyan */
+    --radius: 0.625rem;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+    /* NovumSolvo Redefined Premium Palette */
+    --brand-cyan: 190 100% 45%;
+    /* More professional, less neon */
+    --brand-navy: 222 47% 11%;
+    /* Slate 950 feel */
+    --brand-light-blue: 200 95% 85%;
+    --brand-dark-blue: 215 25% 20%;
+
+    --sidebar-background: 210 40% 98%;
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-primary: 222 47% 11%;
+    /* Dark navy for authority */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 189 100% 50%        /* Brand cyan */
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 190 100% 45%;
   }
 
   .dark {
-    --sidebar-background: 215 75% 9%;   /* Brand navy */
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 189 100% 50%;    /* Brand cyan */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;      /* Brand dark blue */
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 190 100% 45%;
+    /* Cyan for contrast in dark */
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 189 100% 50%        /* Brand cyan */
+    --sidebar-ring: 190 100% 45%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    @apply antialiased selection:bg-cyan-100 selection:text-cyan-900;
   }
 }
-
-
 
 img {
   object-position: top;
@@ -43,11 +54,17 @@ img {
   position: fixed;
 }
 
+/* Micro-interactions */
+.btn-hover {
+  @apply transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0;
+}
+
 @keyframes slide-in {
   from {
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -55,5 +72,5 @@ img {
 }
 
 .animate-slide-in {
-  animation: slide-in 0.3s ease-out;
+  animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }

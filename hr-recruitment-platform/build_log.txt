@@ -1,0 +1,46 @@
+
+> react_repo@0.0.0 build
+> npx vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 239 modules transformed.
+
+PWA v0.19.8
+mode      generateSW
+precache  128 entries (6061.03 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-9601f29b.js
+x Build failed in 6m 43s
+error during build:
+[vite-plugin-pwa:build] [plugin vite-plugin-pwa:build] src/pages/TenantManagementPage.tsx (612:29): There was an error during the build:
+  Transform failed with 1 error:
+/Users/apple/Library/Mobile Documents/com~apple~CloudDocs/Projects/NovumFlow/novumflow1/hr-recruitment-platform/src/pages/TenantManagementPage.tsx:612:29: ERROR: Expected ")" but found "className"
+Additionally, handling the error in the 'buildEnd' hook caused the following error:
+  Transform failed with 1 error:
+/Users/apple/Library/Mobile Documents/com~apple~CloudDocs/Projects/NovumFlow/novumflow1/hr-recruitment-platform/src/pages/TenantManagementPage.tsx:612:29: ERROR: Expected ")" but found "className"
+file: /Users/apple/Library/Mobile Documents/com~apple~CloudDocs/Projects/NovumFlow/novumflow1/hr-recruitment-platform/src/pages/TenantManagementPage.tsx:612:29
+
+Expected ")" but found "className"
+610|                              </div>
+611|                          </div>
+612|                          <div className="p-6 border-t border-gray-200 flex justify-between items-center">
+   |                               ^
+613|                              <div>
+614|                                  {!showCreateModal && (
+
+    at getRollupError (file:///Users/apple/Library/Mobile%20Documents/com%7Eapple%7ECloudDocs/Projects/NovumFlow/novumflow1/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at file:///Users/apple/Library/Mobile%20Documents/com%7Eapple%7ECloudDocs/Projects/NovumFlow/novumflow1/node_modules/rollup/dist/es/shared/node-entry.js:23390:39
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async catchUnfinishedHookActions (file:///Users/apple/Library/Mobile%20Documents/com%7Eapple%7ECloudDocs/Projects/NovumFlow/novumflow1/node_modules/rollup/dist/es/shared/node-entry.js:22848:16)
+    at async rollupInternal (file:///Users/apple/Library/Mobile%20Documents/com%7Eapple%7ECloudDocs/Projects/NovumFlow/novumflow1/node_modules/rollup/dist/es/shared/node-entry.js:23373:5)
+    at async build (file:///Users/apple/Library/Mobile%20Documents/com%7Eapple%7ECloudDocs/Projects/NovumFlow/novumflow1/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:65709:14)
+    at async CAC.<anonymous> (file:///Users/apple/Library/Mobile%20Documents/com%7Eapple%7ECloudDocs/Projects/NovumFlow/novumflow1/node_modules/vite/dist/node/cli.js:829:5)
+npm error Lifecycle script `build` failed with error:
+npm error code 1
+npm error path /Users/apple/Library/Mobile Documents/com~apple~CloudDocs/Projects/NovumFlow/novumflow1/hr-recruitment-platform
+npm error workspace react_repo@0.0.0
+npm error location /Users/apple/Library/Mobile Documents/com~apple~CloudDocs/Projects/NovumFlow/novumflow1/hr-recruitment-platform
+npm error command failed
+npm error command sh -c npx vite build

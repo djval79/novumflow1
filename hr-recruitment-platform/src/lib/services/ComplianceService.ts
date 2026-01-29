@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import { auditService } from './AuditService';
+import { cachingService } from './CachingService';
 
 // ============================================
 // TYPES
@@ -393,35 +394,37 @@ class ComplianceService {
         cqc_ready: number;
         average_score: number;
     }> {
-        const { data, error } = await supabase
-            .from('staff_compliance_status')
-            .select('*')
-            .eq('tenant_id', tenantId);
+        return cachingService.useCache(`compliance_report_${tenantId}`, async () => {
+            const { data, error } = await supabase
+                .from('staff_compliance_status')
+                .select('*')
+                .eq('tenant_id', tenantId);
 
-        if (error) {
-            log.error('Error fetching tenant compliance report:', error, { component: 'ComplianceService' });
+            if (error) {
+                log.error('Error fetching tenant compliance report:', error, { component: 'ComplianceService' });
+                return {
+                    total_staff: 0,
+                    compliant: 0,
+                    non_compliant: 0,
+                    cqc_ready: 0,
+                    average_score: 0
+                };
+            }
+
+            const total_staff = data.length;
+            const compliant = data.filter(s => s.overall_compliance_score >= 90).length;
+            const non_compliant = total_staff - compliant;
+            const cqc_ready = data.filter(s => s.cqc_ready).length;
+            const average_score = data.reduce((sum, s) => sum + s.overall_compliance_score, 0) / total_staff || 0;
+
             return {
-                total_staff: 0,
-                compliant: 0,
-                non_compliant: 0,
-                cqc_ready: 0,
-                average_score: 0
+                total_staff,
+                compliant,
+                non_compliant,
+                cqc_ready,
+                average_score: Math.round(average_score)
             };
-        }
-
-        const total_staff = data.length;
-        const compliant = data.filter(s => s.overall_compliance_score >= 90).length;
-        const non_compliant = total_staff - compliant;
-        const cqc_ready = data.filter(s => s.cqc_ready).length;
-        const average_score = data.reduce((sum, s) => sum + s.overall_compliance_score, 0) / total_staff || 0;
-
-        return {
-            total_staff,
-            compliant,
-            non_compliant,
-            cqc_ready,
-            average_score: Math.round(average_score)
-        };
+        }, 300000); // 5 minute cache
     }
 
     async getNonCompliantStaff(tenantId: string): Promise<ComplianceStatus[]> {
@@ -468,25 +471,27 @@ class ComplianceService {
         training_matrix: TrainingRecord[];
         compliance_summary: any;
     }> {
-        const { data: dbs_register } = await supabase
-            .from('dbs_checks')
-            .select('*')
-            .eq('tenant_id', tenantId)
-            .order('applicant_name');
+        return cachingService.useCache(`cqc_report_${tenantId}`, async () => {
+            const { data: dbs_register } = await supabase
+                .from('dbs_checks')
+                .select('*')
+                .eq('tenant_id', tenantId)
+                .order('applicant_name');
 
-        const { data: training_matrix } = await supabase
-            .from('training_records')
-            .select('*')
-            .eq('tenant_id', tenantId)
-            .order('staff_name');
+            const { data: training_matrix } = await supabase
+                .from('training_records')
+                .select('*')
+                .eq('tenant_id', tenantId)
+                .order('staff_name');
 
-        const compliance_summary = await this.getTenantComplianceReport(tenantId);
+            const compliance_summary = await this.getTenantComplianceReport(tenantId);
 
-        return {
-            dbs_register: dbs_register || [],
-            training_matrix: training_matrix || [],
-            compliance_summary
-        };
+            return {
+                dbs_register: dbs_register || [],
+                training_matrix: training_matrix || [],
+                compliance_summary
+            };
+        }, 120000); // 2 minute cache
     }
     // ============================================
     // COMPLIANCE SETTINGS

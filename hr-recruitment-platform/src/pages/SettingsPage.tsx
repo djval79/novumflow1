@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { Save, Upload, Building2, Mail, Shield } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import EmailTemplateEditor from '../components/EmailTemplateEditor';
 import { log } from '@/lib/logger';
+import { useTenant } from '@/contexts/TenantContext';
+import { tenantService } from '@/lib/services/TenantService';
+import { Palette, Download, Layout, ArrowRight, Building2, Shield, Save, Loader2, Check } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface CompanySettings {
   id: string;
@@ -28,6 +30,11 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const { user } = useAuth();
+  const { currentTenant, refreshTenants } = useTenant();
+  const [branding, setBranding] = useState<{ primaryColor: string; accentColor: string }>({
+    primaryColor: '#0891b2',
+    accentColor: '#4f46e5'
+  });
 
   useEffect(() => {
     loadSettings();
@@ -43,6 +50,13 @@ export default function SettingsPage() {
 
       if (data) {
         setCompanySettings(data);
+      }
+
+      if (currentTenant?.settings?.branding) {
+        setBranding({
+          primaryColor: currentTenant.settings.branding.primaryColor || '#0891b2',
+          accentColor: currentTenant.settings.branding.accentColor || '#4f46e5'
+        });
       }
     } catch (error) {
       log.error('Error loading settings', error, { component: 'SettingsPage' });
@@ -87,6 +101,39 @@ export default function SettingsPage() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setMessage('Error saving settings: ' + errorMessage);
       log.error('Error saving settings', error, { component: 'SettingsPage' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveBranding(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentTenant) return;
+    setSaving(true);
+    setMessage('');
+
+    try {
+      const newSettings = {
+        ...(currentTenant.settings || {}),
+        branding: {
+          ...branding,
+          last_updated: new Date().toISOString()
+        }
+      };
+
+      const success = await tenantService.updateTenant(currentTenant.id, {
+        settings: newSettings
+      });
+
+      if (success) {
+        await refreshTenants();
+        setMessage('Branding updated successfully!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        throw new Error('Failed to update branding');
+      }
+    } catch (error) {
+      setMessage('Error saving branding: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setSaving(false);
     }
@@ -228,13 +275,121 @@ export default function SettingsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-xl disabled:opacity-50 active:scale-95"
           >
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Settings'}
+            <Save className="w-5 h-5 mr-2" />
+            {saving ? 'Saving...' : 'Save Company Details'}
           </button>
         </div>
       </form>
+
+      {/* White-Label Branding Section - Enterprise Only */}
+      {currentTenant?.subscription_tier === 'enterprise' ? (
+        <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight uppercase">White-Label Branding</h2>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widestAlpha">Phase 7: Enterprise Personalization</p>
+            </div>
+            <div className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase tracking-widest">Enterprise Active</div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 bg-white rounded-[2rem] border border-gray-100 shadow-sm p-10">
+              <form onSubmit={handleSaveBranding} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Primary Theme Color</label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="color"
+                        value={branding.primaryColor}
+                        onChange={(e) => setBranding({ ...branding, primaryColor: e.target.value })}
+                        className="h-14 w-14 rounded-xl border-none p-0 cursor-pointer overflow-hidden shadow-lg"
+                      />
+                      <input
+                        type="text"
+                        value={branding.primaryColor}
+                        onChange={(e) => setBranding({ ...branding, primaryColor: e.target.value })}
+                        className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Accent / CTA Color</label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="color"
+                        value={branding.accentColor}
+                        onChange={(e) => setBranding({ ...branding, accentColor: e.target.value })}
+                        className="h-14 w-14 rounded-xl border-none p-0 cursor-pointer overflow-hidden shadow-lg"
+                      />
+                      <input
+                        type="text"
+                        value={branding.accentColor}
+                        onChange={(e) => setBranding({ ...branding, accentColor: e.target.value })}
+                        className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8 border-t border-slate-50 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex items-center gap-2 px-10 py-5 bg-cyan-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-cyan-600/20 hover:bg-cyan-700 active:scale-95 transition-all"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Palette className="w-4 h-4" />}
+                    Update Brand Colors
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="bg-slate-900 rounded-[2rem] p-10 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12"><Layout size={120} /></div>
+              <h3 className="text-lg font-black tracking-tight mb-4 uppercase">Live Preview</h3>
+              <div className="space-y-6 relative z-10">
+                <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-3">
+                  <div className="h-2 w-1/2 rounded-full opacity-20" style={{ backgroundColor: branding.primaryColor }}></div>
+                  <div className="h-2 w-full rounded-full opacity-10 bg-white"></div>
+                  <div className="flex gap-2 pt-2">
+                    <div className="h-8 flex-1 rounded-lg" style={{ backgroundColor: branding.primaryColor }}></div>
+                    <div className="h-8 flex-1 rounded-lg border border-white/20"></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: branding.accentColor }}>
+                    <Check size={20} />
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-widest">Accent Active</span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-relaxed italic">
+                  * colors are applied via dynamic CSS variables across the entire suite instantly.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-12 bg-gradient-to-br from-purple-900 to-indigo-900 rounded-[2.5rem] p-12 text-white shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-12 opacity-10"><Shield size={160} /></div>
+          <div className="relative z-10 max-w-xl">
+            <h2 className="text-3xl font-black tracking-tight mb-4 uppercase">Unlock White-Label Branding</h2>
+            <p className="text-indigo-100 font-medium mb-8 leading-relaxed">
+              Personalize NovumFlow with your organization's colors and logos. Enterprise tier customers enjoy complete control over the UI theme across all suite modules.
+            </p>
+            <Link
+              to="/billing"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-white text-indigo-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 shadow-xl"
+            >
+              Upgrade to Enterprise <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Email Templates Section */}
       <div className="mt-8">

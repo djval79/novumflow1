@@ -10,6 +10,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithSSO: (domain: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string, role: string, tenantId?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { identifyUser } = useAnalytics();
   const [isServiceUnavailable, setIsServiceUnavailable] = useState(false);
+  const [isSSOLoading, setIsSSOLoading] = useState(false);
 
   // Effect 1: Initialize Auth (Run once)
   useEffect(() => {
@@ -203,6 +205,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   }
 
+  async function signInWithSSO(domain: string) {
+    if (!supabase) return { error: new Error('Supabase client not initialized') };
+    setIsSSOLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithSSO({
+        domain
+      });
+      return { error };
+    } catch (err: any) {
+      log.error('SSO login failed', err, { component: 'AuthContext', metadata: { domain } });
+      return { error: err };
+    } finally {
+      setIsSSOLoading(false);
+    }
+  }
+
   async function signUp(email: string, password: string, fullName: string, role: string, tenantId?: string) {
     if (!supabase) return { error: new Error('Supabase client not initialized') };
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -248,7 +266,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signInWithSSO, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

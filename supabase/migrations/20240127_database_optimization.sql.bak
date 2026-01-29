@@ -1,0 +1,202 @@
+-- Database optimization and monitoring enhancements for CareFlow AI
+
+-- 1. Add database indexes for critical queries
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_clients_tenant_active 
+ON careflow_clients(tenant_id, status) 
+WHERE status = 'Active';
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_visits_date_status 
+ON careflow_visits(scheduled_date, status) WHERE status = 'Completed';
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_visits_staff_date 
+ON careflow_visits(staff_id, scheduled_date);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_visits_client_date 
+ON careflow_visits(client_id, scheduled_date);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_medications_client_active 
+ON careflow_medications(client_id, is_active) 
+WHERE is_active = true;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_med_administrations_client_date 
+ON careflow_medication_administrations(client_id, administered_at);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_staff_tenant_status 
+ON careflow_staff(tenant_id, status);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_incidents_date_severity 
+ON careflow_incidents(incident_date, severity);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_careflow_form_submissions_created 
+ON careflow_form_submissions(created_at DESC);
+
+-- 2. Create performance monitoring views
+CREATE OR REPLACE VIEW performance_overview AS
+SELECT 
+  'slow_queries' as metric_type,
+  COUNT(*) as total_count,
+  AVG(EXTRACT(EPOCH FROM (total_exec_time - interval '0 seconds')) * 1000) as avg_duration_ms,
+  MAX(EXTRACT(EPOCH FROM (total_exec_time - interval '0 seconds')) * 1000) as max_duration_ms
+FROM pg_stat_statements 
+WHERE query LIKE '%careflow_%' 
+  AND total_exec_time > interval '5 seconds'
+  AND calls > 10
+GROUP BY metric_type
+
+UNION ALL
+
+SELECT 
+  'connection_pool' as metric_type,
+  (SELECT COUNT(*) FROM pg_stat_activity WHERE state = 'active') as total_count,
+  0 as avg_duration_ms,
+  0 as max_duration_ms
+
+UNION ALL
+
+SELECT 
+  'table_sizes' as metric_type,
+  COUNT(*) as total_count,
+  0 as avg_duration_ms,
+  0 as max_duration_ms
+FROM (
+  SELECT schemaname, tablename 
+  FROM pg_tables 
+  WHERE schemaname = 'public' 
+    AND tablename LIKE 'careflow_%'
+) t;
+
+-- 3. Create materialized views for frequently accessed data
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_active_clients AS
+SELECT 
+  id,
+  name,
+  tenant_id,
+  status,
+  care_level,
+  created_at,
+  updated_at
+FROM careflow_clients 
+WHERE status = 'Active';
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mv_active_clients_tenant 
+ON mv_active_clients(tenant_id);
+
+-- Refresh materialized views periodically
+CREATE OR REPLACE FUNCTION refresh_careflow_materialized_views()
+RETURNS void AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW CONCURRENTLY mv_active_clients;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY mv_today_visits;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 4. Add triggers for automatic performance logging
+CREATE OR REPLACE FUNCTION log_slow_query()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.total_exec_time > interval '2 seconds' THEN
+    INSERT INTO performance_logs (
+      metric_name,
+      value,
+      threshold,
+      exceeded,
+      metadata
+    ) VALUES (
+      'slow_query_duration',
+      EXTRACT(EPOCH FROM NEW.total_exec_time) * 1000,
+      2000,
+      true,
+      jsonb_build_object(
+        'query', NEW.query,
+        'calls', NEW.calls,
+        'total_exec_time', NEW.total_exec_time
+      )
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 5. Database connection monitoring
+CREATE OR REPLACE FUNCTION get_connection_stats()
+RETURNS TABLE (
+  active_connections int,
+  max_connections int,
+  waiting_connections int,
+  idle_connections int
+) AS $$
+SELECT 
+  COUNT(*) FILTER (WHERE state = 'active') as active_connections,
+  MAX(backend_start) IS NOT NULL as max_connections,
+  COUNT(*) FILTER (WHERE wait_event_type IS NOT NULL) as waiting_connections,
+  COUNT(*) FILTER (WHERE state = 'idle') as idle_connections
+FROM pg_stat_activity
+WHERE datname = current_database()
+GROUP BY datname;
+$$ LANGUAGE sql;
+
+-- 6. Cache invalidation helpers
+CREATE OR REPLACE FUNCTION invalidate_careflow_cache(cache_key text)
+RETURNS void AS $$
+BEGIN
+  -- Notify application about cache invalidation
+  PERFORM pg_notify('cache_invalidation', cache_key);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 7. Query optimization helper functions
+CREATE OR REPLACE FUNCTION get_client_visit_stats(client_id_param uuid, start_date date, end_date date)
+RETURNS TABLE (
+  total_visits int,
+  completed_visits int,
+  cancelled_visits int,
+  avg_duration_hours numeric
+) AS $$
+SELECT 
+  COUNT(*) as total_visits,
+  COUNT(*) FILTER (WHERE status = 'Completed') as completed_visits,
+  COUNT(*) FILTER (WHERE status = 'Cancelled') as cancelled_visits,
+  AVG(EXTRACT(EPOCH FROM (actual_end - actual_start)) / 3600) as avg_duration_hours
+FROM careflow_visits 
+WHERE client_id = client_id_param 
+  AND scheduled_date BETWEEN start_date AND end_date;
+$$ LANGUAGE sql;
+
+-- 8. Set up automatic maintenance
+CREATE OR REPLACE FUNCTION auto_vacuum_analyze()
+RETURNS void AS $$
+DECLARE
+  table_record record;
+BEGIN
+  -- Analyze high-traffic tables
+  FOR table_record IN 
+    SELECT table_name 
+    FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+      AND table_name LIKE 'careflow_%'
+  LOOP
+    EXECUTE 'ANALYZE ' || quote_IDENT(table_record.table_name);
+  END LOOP;
+  
+  -- Auto-vacuum if needed
+  EXECUTE 'VACUUM ANALYZE careflow_visits';
+  EXECUTE 'VACUUM ANALYZE careflow_medication_administrations';
+  EXECUTE 'VACUUM ANALYZE careflow_form_submissions';
+END;
+$$ LANGUAGE plpgsql;
+
+-- 9. Monitoring schema for health checks
+CREATE SCHEMA IF NOT EXISTS monitoring;
+
+CREATE TABLE IF NOT EXISTS monitoring.health_checks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  check_name TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('healthy', 'degraded', 'unhealthy')),
+  response_time_ms INTEGER,
+  error_message TEXT,
+  checked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  metadata JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_health_checks_name_timestamp 
+ON monitoring.health_checks(check_name, checked_at DESC);

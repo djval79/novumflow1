@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { carePlanService, clientService } from '../services/supabaseService';
+import { offlineStorage } from '../services/OfflineStorage';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 
@@ -33,6 +34,7 @@ const CarePlanning: React.FC = () => {
   const [logs, setLogs] = useState<ProgressLog[]>([]);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [progressReview, setProgressReview] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   const isReadOnly = user?.role === UserRole.FAMILY || user?.role === UserRole.CLIENT;
 
@@ -40,12 +42,25 @@ const CarePlanning: React.FC = () => {
   useEffect(() => {
     async function loadClients() {
       if (currentTenant) {
+        setIsLoading(true);
+        // Try cache first
+        const cachedClients = offlineStorage.load<Client[]>(`clients_${currentTenant.id}`);
+        if (cachedClients) {
+          setClients(cachedClients);
+          if (cachedClients.length > 0) setSelectedClientId(cachedClients[0].id);
+          setIsOffline(true);
+        }
+
         try {
           const data = await clientService.getByTenant(currentTenant.id);
           setClients(data);
+          offlineStorage.save(`clients_${currentTenant.id}`, data);
           if (data.length > 0) setSelectedClientId(data[0].id);
+          setIsOffline(false);
         } catch (e) {
-          toast.error('Client synchronization failure');
+          if (!cachedClients) toast.error('Client synchronization failure');
+        } finally {
+          setIsLoading(false);
         }
       }
     }
@@ -240,8 +255,8 @@ const CarePlanning: React.FC = () => {
                       <div className="flex items-center gap-4 mb-2">
                         <span className="font-black text-2xl text-slate-900 tracking-tighter uppercase group-hover:text-primary-600 transition-colors">{goal.category}</span>
                         <span className={`text-[8px] font-black px-4 py-1.5 rounded-xl uppercase tracking-[0.2em] shadow-lg border-2 ${goal.status === 'In Progress' ? 'bg-primary-50 text-primary-600 border-primary-50' :
-                            goal.status === 'Achieved' ? 'bg-green-50 text-green-600 border-green-50 shadow-green-100' :
-                              'bg-amber-50 text-amber-600 border-amber-50'
+                          goal.status === 'Achieved' ? 'bg-green-50 text-green-600 border-green-50 shadow-green-100' :
+                            'bg-amber-50 text-amber-600 border-amber-50'
                           }`}>{goal.status}</span>
                       </div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-xl">{goal.description}</p>
@@ -367,8 +382,8 @@ const CarePlanning: React.FC = () => {
                 <p className="text-sm font-bold text-slate-900 mb-6 tracking-tight group-hover:text-primary-600 transition-colors uppercase leading-tight">{log.note}</p>
                 <div className="flex items-center gap-4">
                   <span className={`text-[8px] px-3 py-1.5 rounded-xl font-black uppercase tracking-widest border shadow-sm ${log.mood === 'Happy' ? 'bg-green-50 text-green-600 border-green-50' :
-                      log.mood === 'Sad' ? 'bg-indigo-50 text-indigo-600 border-indigo-50' :
-                        'bg-slate-50 text-slate-500 border-slate-100'
+                    log.mood === 'Sad' ? 'bg-indigo-50 text-indigo-600 border-indigo-50' :
+                      'bg-slate-50 text-slate-500 border-slate-100'
                     }`}>{log.mood} Target</span>
                   <div className="flex-1 h-1.5 bg-slate-50 rounded-full overflow-hidden shadow-inner p-0.5 border border-slate-100">
                     <div className="h-full bg-slate-900 rounded-full opacity-30" style={{ width: `${log.progressScore * 10}%` }}></div>
@@ -407,6 +422,13 @@ const CarePlanning: React.FC = () => {
             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
+
+        {isOffline && (
+          <div className="flex items-center gap-2 px-6 py-2 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Offline Cache Mode</span>
+          </div>
+        )}
       </div>
 
       {/* Futuristic Navigation Console */}

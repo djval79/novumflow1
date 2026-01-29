@@ -68,7 +68,7 @@ EXCEPTION WHEN undefined_table THEN
     CREATE TABLE form_submissions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-        form_template_id UUID NOT NULL REFERENCES form_templates(id),
+        form_template_id UUID NOT NULL REFERENCES careflow_form_templates(id),
         submitted_by UUID NOT NULL REFERENCES auth.users(id),
         employee_id UUID REFERENCES employees(id) ON DELETE SET NULL,
         responses JSONB NOT NULL DEFAULT '{}',

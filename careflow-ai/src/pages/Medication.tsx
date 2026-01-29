@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { medicationService, clientService } from '../services/supabaseService';
 import { analyzeMedicationSafety } from '../services/geminiService';
+import { offlineStorage } from '../services/OfflineStorage';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { Medication, MarRecord, Client } from '../types';
@@ -44,6 +45,7 @@ const MedicationPage: React.FC = () => {
    const [safetyReport, setSafetyReport] = useState<string | null>(null);
    const [isChecking, setIsChecking] = useState(false);
    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+   const [isOffline, setIsOffline] = useState(false);
 
    useEffect(() => {
       if (currentTenant) {
@@ -59,12 +61,24 @@ const MedicationPage: React.FC = () => {
 
    const loadClients = async () => {
       if (!currentTenant) return;
+      setLoading(true);
+
+      // Cache check
+      const cached = offlineStorage.load<Client[]>(`clients_${currentTenant.id}`);
+      if (cached) {
+         setClients(cached);
+         if (cached.length > 0) setSelectedClientId(cached[0].id);
+         setIsOffline(true);
+      }
+
       try {
          const data = await clientService.getByTenant(currentTenant.id);
          setClients(data);
+         offlineStorage.save(`clients_${currentTenant.id}`, data);
          if (data.length > 0) setSelectedClientId(data[0].id);
+         setIsOffline(false);
       } catch (error) {
-         toast.error('Bridge failure: Client spectrum data retrieval interrupted');
+         if (!cached) toast.error('Bridge failure: Client spectrum data retrieval interrupted');
       } finally {
          setLoading(false);
       }
@@ -406,6 +420,12 @@ const MedicationPage: React.FC = () => {
                   Medication Intelligence • Pharmacy Polypharmacy Matrix • eMAR Continuity Hub
                </p>
             </div>
+            {isOffline && (
+               <div className="flex items-center gap-2 px-6 py-2 bg-amber-500/10 border border-amber-500/20 rounded-3xl">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Offline Cache Active</span>
+               </div>
+            )}
             <div className="flex p-2 bg-white border border-slate-100 rounded-[3rem] w-fit shadow-2xl relative z-50">
                {[
                   { id: 'emar', label: 'eMAR System', icon: History },

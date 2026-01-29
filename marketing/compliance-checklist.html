@@ -175,12 +175,129 @@
                     <h4 class="font-bold text-indigo-900 mb-1">Tired of manual tracking?</h4>
                     <p class="text-sm text-indigo-700">NovumFlow automates every check on this list.</p>
                 </div>
-                <a href="#"
+                <button onclick="openModal()"
                     class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition">
                     Book a Free Compliance Audit
-                </a>
+                </button>
             </div>
         </div>
+
+        <!-- Lead Capture Modal -->
+        <div id="leadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+            <div class="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
+
+                <div class="text-center mb-8">
+                    <h3 class="text-2xl font-bold text-slate-900">Secure Your Audit</h3>
+                    <p class="text-slate-500 mt-2">Get a 15-minute consultation with a compliance specialist.</p>
+                </div>
+
+                <form id="demoForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
+                        <input type="text" id="fullName" required placeholder="John Doe"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Work Email</label>
+                        <input type="email" id="email" required placeholder="john@carehome.co.uk"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Company Name</label>
+                        <input type="text" id="companyName" required placeholder="SafeCare Ltd"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition">
+                    </div>
+
+                    <div id="formStatus" class="hidden p-4 rounded-xl text-sm font-medium"></div>
+
+                    <button type="submit" id="submitBtn"
+                        class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition flex items-center justify-center gap-2">
+                        <span>Send Request</span>
+                        <svg id="loadingIcon" class="hidden animate-spin h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                    </button>
+                </form>
+
+                <button onclick="closeModal()"
+                    class="mt-6 w-full text-slate-400 text-sm font-medium hover:text-slate-600 transition">Maybe
+                    later</button>
+            </div>
+        </div>
+
+        <script>
+            const SUPABASE_URL = 'https://niikshfocitimepiifo.supabase.co'; // Updated to correct projectId
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paWtzaGZvZWNpdGltZXBpaWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNTIyMTUsImV4cCI6MjA3ODYyODIxNX0.4KzLoUez4xQ1_h-vpx1dOa1PrzvAbi65UC4Mf7JQAfc';
+
+            function openModal() {
+                document.getElementById('leadModal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeModal() {
+                document.getElementById('leadModal').classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+
+            document.getElementById('demoForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById('submitBtn');
+                const loadingIcon = document.getElementById('loadingIcon');
+                const statusDiv = document.getElementById('formStatus');
+
+                // Reset status
+                statusDiv.classList.add('hidden');
+                submitBtn.disabled = true;
+                loadingIcon.classList.remove('hidden');
+
+                const data = {
+                    full_name: document.getElementById('fullName').value,
+                    email: document.getElementById('email').value,
+                    company_name: document.getElementById('companyName').value,
+                    product_interest: 'both',
+                    metadata: { source: 'compliance_checklist_v1' }
+                };
+
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/demo_requests`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Prefer': 'return=minimal'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (!response.ok) throw new Error('Network response was not ok');
+
+                    statusDiv.textContent = 'Success! Our team will contact you shortly.';
+                    statusDiv.className = 'p-4 rounded-xl text-sm font-medium bg-emerald-50 text-emerald-700';
+                    statusDiv.classList.remove('hidden');
+
+                    document.getElementById('demoForm').reset();
+                    setTimeout(closeModal, 3000);
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    statusDiv.textContent = 'Something went wrong. Please try again.';
+                    statusDiv.className = 'p-4 rounded-xl text-sm font-medium bg-rose-50 text-rose-700';
+                    statusDiv.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                } finally {
+                    loadingIcon.classList.add('hidden');
+                }
+            });
+        </script>
 
         <!-- Bottom info -->
         <div class="p-8 bg-slate-100 text-gray-500 text-xs flex justify-between items-center">

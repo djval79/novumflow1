@@ -3,10 +3,15 @@ import { useTenant } from '@/context/TenantContext';
 import { ExternalLink, Heart, Users, ArrowRight, Activity, Command } from 'lucide-react';
 
 // Configuration - use localhost in development
-const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isDev = window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname.endsWith('.local');
+
 const CAREFLOW_URL = isDev
-    ? 'http://localhost:5174'
+    ? `http://${window.location.host}` // Use current host for CareFlow
     : (import.meta.env.VITE_CAREFLOW_URL || 'https://careflow-ai.vercel.app');
+
 const NOVUMFLOW_URL = isDev
     ? 'http://localhost:5173'
     : (import.meta.env.VITE_NOVUMFLOW_URL || 'https://hr-recruitment-platform.vercel.app');
@@ -88,8 +93,8 @@ export function QuickAppSwitcher() {
                 className="group relative flex items-center gap-3 pr-2 overflow-hidden rounded-2xl transition-all hover:shadow-lg active:scale-95"
             >
                 <div className={`absolute inset-0 bg-gradient-to-r ${isNovumFlow
-                        ? 'from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500'
-                        : 'from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500'
+                    ? 'from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500'
+                    : 'from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500'
                     } transition-colors`} />
 
                 <div className="relative px-5 py-3 flex items-center gap-3">
@@ -143,8 +148,8 @@ export function CompactAppSwitcher() {
         <button
             onClick={handleNavigate}
             className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br shadow-lg hover:shadow-xl transition-all active:scale-90 ${isNovumFlow
-                    ? 'from-rose-500 to-pink-600 text-white shadow-rose-200'
-                    : 'from-blue-600 to-indigo-600 text-white shadow-blue-200'
+                ? 'from-rose-500 to-pink-600 text-white shadow-rose-200'
+                : 'from-blue-600 to-indigo-600 text-white shadow-blue-200'
                 }`}
             title={isNovumFlow ? 'Launch CareFlow AI' : 'Launch NovumFlow HR'}
         >

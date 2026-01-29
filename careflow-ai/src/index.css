@@ -1,12 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-sans: 'Noto Sans', system-ui, -apple-system, sans-serif;
+    --font-heading: 'Figtree', sans-serif;
+
+    /* Accessibility Tokens */
+    --focus-ring-width: 4px;
+    --touch-target-min: 44px;
 }
 
 body {
     font-family: var(--font-sans);
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    @apply font-bold tracking-tight;
+}
+
+/* Accessibility Utilities */
+.focus-ring {
+    @apply focus:outline-none focus:ring-4 focus:ring-sky-500/50;
+}
+
+.touch-target {
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
 }

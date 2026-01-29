@@ -1,0 +1,1361 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { Plus, Search, Edit, Trash2, Eye, CheckCircle, XCircle, Calendar, LayoutList, Kanban, Filter, BarChart3 } from 'lucide-react';
+import { format } from 'date-fns';
+import AddJobModal from '@/components/AddJobModal';
+import AddApplicationModal from '@/components/AddApplicationModal';
+import AddInterviewModal from '@/components/AddInterviewModal';
+import ConvertToEmployeeModal from '@/components/ConvertToEmployeeModal';
+import JobDetailsModal from '@/components/JobDetailsModal';
+import RecruitmentAnalyticsDashboard from '@/components/RecruitmentAnalyticsDashboard';
+import RecruitmentSettings from '@/components/RecruitmentSettings';
+import Toast from '@/components/Toast';
+import { X, MessageSquare, Clock, Zap } from 'lucide-react';
+import { log } from '@/lib/logger';
+
+type TabType = 'jobs' | 'applications' | 'interviews' | 'analytics' | 'settings';
+type ViewType = 'list' | 'board';
+
+interface ApplicationDetailsModalProps {
+  application: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: () => void;
+  onAiScreen: (app: any) => void;
+  onConvertToEmployee: (app: any) => void;
+  onGenerateDocument: (app: any, templateId: string) => void;
+}
+
+function ApplicationDetailsModal({ application, isOpen, onClose, onUpdate, onAiScreen, onConvertToEmployee, onGenerateDocument }: ApplicationDetailsModalProps) {
+  const [notes, setNotes] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+  const { user } = useAuth();
+
+  if (!isOpen || !application) return null;
+
+  async function handleAddNote() {
+    if (!notes.trim()) return;
+    setAddingNote(true);
+
+    // In a real app, we'd have a separate notes table. For now, we'll append to the notes field
+    // or assume there's a notes table. Let's append with timestamp for this MVP.
+    const timestamp = new Date().toLocaleString();
+    const newNote = `[${timestamp} - ${user?.email}] ${notes}\n\n`;
+    const updatedNotes = (application.notes || '') + newNote;
+
+    const { error } = await supabase
+      .from('applications')
+      .update({ notes: updatedNotes })
+      .eq('id', application.id);
+
+    if (!error) {
+      setNotes('');
+      onUpdate();
+    }
+    setAddingNote(false);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Application Details</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Header Info */}
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">{application.applicant_first_name} {application.applicant_last_name}</h3>
+              <p className="text-gray-500">{application.applicant_email}</p>
+              <p className="text-gray-500">{application.applicant_phone || 'No phone provided'}</p>
+            </div>
+            <div className="text-right">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                {application.status}
+              </span>
+              <p className="text-sm text-gray-500 mt-1">Applied: {format(new Date(application.applied_at), 'MMM dd, yyyy')}</p>
+            </div>
+          </div>
+
+          {/* Job Info */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Applied For</h4>
+            <p className="text-gray-900 font-medium">{application.job_postings?.job_title}</p>
+            <p className="text-sm text-gray-500">{application.job_postings?.department} • {application.job_postings?.employment_type?.replace('_', ' ')}</p>
+          </div>
+
+          {/* AI Screening Results */}
+          {(application.ai_score || application.ai_summary) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-blue-800 mb-2">AI Screening Results</h4>
+              {application.ai_score && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-bold text-blue-900">{application.ai_score}/100</span>
+                  <div className="w-full bg-blue-200 rounded-full h-2.5">
+                    <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${application.ai_score}%` }}></div>
+                  </div>
+                </div>
+              )}
+              {application.ai_summary && (
+                <p className="text-sm text-blue-700">{application.ai_summary}</p>
+              )}
+            </div>
+          )}
+
+          {/* Links & Actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {application.cv_url && (
+              <a href={application.cv_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700">
+                View CV
+              </a>
+            )}
+            <button
+              onClick={() => onAiScreen(application)}
+              className="flex items-center justify-center p-3 border border-transparent rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+            >
+              AI Screen
+            </button>
+            {application.status === 'Hired' && (
+              <>
+                <button
+                  onClick={() => onConvertToEmployee(application)}
+                  className="flex items-center justify-center p-3 border border-transparent rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-medium"
+                >
+                  Convert to Employee
+                </button>
+                <button
+                  onClick={() => onGenerateDocument(application, '1')} // Using hardcoded template ID '1' for offer letter
+                  className="flex items-center justify-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
+                >
+                  Generate Offer Letter
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Notes Section */}
+          <div>
+            <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <MessageSquare className="w-5 h-5 mr-2" />
+              Notes & Activity
+            </h4>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-48 overflow-y-auto whitespace-pre-wrap text-sm text-gray-700">
+              {application.notes || 'No notes yet.'}
+            </div>
+
+            <div className="flex gap-2">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add a note..."
+                className="flex-1 p-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                rows={2}
+              />
+              <button
+                onClick={handleAddNote}
+                disabled={addingNote || !notes.trim()}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+export default function RecruitmentPage() {
+  const [activeTab, setActiveTab] = useState<TabType>('jobs');
+  const [viewType, setViewType] = useState<ViewType>('list');
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [interviews, setInterviews] = useState<any[]>([]);
+  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [workflowStages, setWorkflowStages] = useState<any[]>([]);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>('all');
+  const [selectedJobId, setSelectedJobId] = useState<string>('all');
+  const [selectedStageId, setSelectedStageId] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
+  const [showAddApplicationModal, setShowAddApplicationModal] = useState(false);
+  const [showAddInterviewModal, setShowAddInterviewModal] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [convertingApplication, setConvertingApplication] = useState<any>(null);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
+  const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
+  const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
+  const [isScreeningBulk, setIsScreeningBulk] = useState(false);
+  const [screeningProgress, setScreeningProgress] = useState({ current: 0, total: 0 });
+  const { user } = useAuth();
+
+  const [selectedJob, setSelectedJob] = useState<any>(null);
+
+  const [selectedInterview, setSelectedInterview] = useState<any>(null);
+  const [showJobDetailsModal, setShowJobDetailsModal] = useState(false);
+  const [selectedJobDetails, setSelectedJobDetails] = useState<any>(null);
+
+  // New Loading States for CTAs
+  const [isAiScreening, setIsAiScreening] = useState<string | null>(null);
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState<string | null>(null);
+  const [isUpdatingStage, setIsUpdatingStage] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadData();
+    loadWorkflowsAndStages();
+    triggerAutomationPulse();
+  }, [activeTab]);
+
+  async function triggerAutomationPulse() {
+    // Only trigger once per session or periodically
+    try {
+      // 1. Check for upcoming interview reminders
+      await supabase.functions.invoke('automation-engine', {
+        body: { action: 'CHECK_REMINDERS' }
+      });
+
+      // 2. Process all pending tasks (emails, etc.)
+      await supabase.functions.invoke('automation-engine', {
+        body: { action: 'PROCESS_PENDING' }
+      });
+    } catch (err) {
+      console.error('Automation pulse failed:', err);
+    }
+  }
+
+  async function loadWorkflowsAndStages() {
+    const { data: wfData } = await supabase.from('recruitment_workflows').select('*');
+    if (wfData) setWorkflows(wfData);
+
+    const { data: stageData } = await supabase.from('workflow_stages').select('*').order('stage_order');
+    if (stageData) setWorkflowStages(stageData);
+  }
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      switch (activeTab) {
+        case 'jobs':
+          const { data: jobData } = await supabase
+            .from('job_postings')
+            .select('*, recruitment_workflows(name)')
+            .order('created_at', { ascending: false });
+          setJobs(jobData || []);
+          break;
+
+        case 'applications':
+          const { data: appData } = await supabase
+            .from('applications')
+            .select(`
+              *,
+              job_postings (
+                id,
+                job_title,
+                workflow_id
+              )
+            `)
+            .order('applied_at', { ascending: false });
+          setApplications(appData || []);
+          break;
+
+        case 'interviews':
+          const { data: intData } = await supabase
+            .from('interviews')
+            .select('*')
+            .order('scheduled_date', { ascending: false });
+          setInterviews(intData || []);
+          break;
+      }
+    } catch (error) {
+      log.error('Error loading data', error, { component: 'RecruitmentPage', action: 'loadData' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function updateJobStatus(jobId: string, newStatus: string) {
+    const { error } = await supabase
+      .from('job_postings')
+      .update({ status: newStatus })
+      .eq('id', jobId);
+
+    if (!error) {
+      loadData();
+      await supabase.from('audit_logs').insert({
+        user_id: user?.id,
+        action: `UPDATE_JOB_STATUS_${newStatus.toUpperCase()}`,
+        entity_type: 'job_postings',
+        entity_id: jobId,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  async function updateApplicationStage(appId: string, stageId: string) {
+    // Optimistic update
+    setApplications(prev => prev.map(app =>
+      app.id === appId ? { ...app, current_stage_id: stageId } : app
+    ));
+
+    setIsUpdatingStage(appId);
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          current_stage_id: stageId,
+          last_updated_by: user?.id
+        })
+        .eq('id', appId);
+
+      if (!error) {
+        setToast({ message: 'Application stage updated', type: 'success' });
+        // Refresh local state
+        setApplications(prev => prev.map(app =>
+          app.id === appId ? { ...app, current_stage_id: stageId } : app
+        ));
+
+        // Check for automations
+        try {
+          const { data: automations } = await supabase
+            .from('stage_automations')
+            .select('*')
+            .eq('stage_id', stageId)
+            .eq('is_active', true)
+            .eq('trigger_event', 'on_enter');
+
+          if (automations && automations.length > 0) {
+            // Log trigger events to automation service
+            const automationLogs = automations.map(auto => ({
+              rule_id: auto.id,
+              trigger_event: 'stage_change',
+              execution_status: 'pending',
+              created_by: user?.id,
+              trigger_data: {
+                action_type: auto.action_type,
+                action_config: auto.action_config,
+                application_id: appId,
+                stage_id: stageId,
+                automation_name: auto.name
+              }
+            }));
+
+            const { error: logError } = await supabase
+              .from('automation_execution_logs')
+              .insert(automationLogs);
+
+            if (logError) {
+              log.error('Failed to schedule automations', logError, { component: 'RecruitmentPage', action: 'updateApplicationStage', metadata: { stageId } });
+            } else {
+              const actionNames = automations.map(a => a.action_type.replace('_', ' ')).join(', ');
+              setToast({
+                message: `Stage updated. Scheduled actions: ${actionNames}`,
+                type: 'success'
+              });
+            }
+          }
+        } catch (err) {
+          log.error('Error executing automations', err, { component: 'RecruitmentPage', action: 'updateApplicationStage' });
+        }
+      } else {
+        throw error;
+      }
+    } catch (err: any) {
+      log.error('Failed to update stage', err, { component: 'RecruitmentPage', action: 'updateApplicationStage' });
+      setToast({ message: `Error: ${err.message || 'Failed to update stage'}`, type: 'error' });
+      loadData(); // Revert on error
+    } finally {
+      setIsUpdatingStage(null);
+    }
+  }
+
+  async function deleteJob(jobId: string) {
+    if (window.confirm('Are you sure you want to delete this job posting?')) {
+      const { error } = await supabase
+        .from('job_postings')
+        .delete()
+        .eq('id', jobId);
+
+      if (!error) {
+        setToast({ message: 'Job posting deleted successfully', type: 'success' });
+        loadData();
+      } else {
+        setToast({ message: 'Error deleting job posting', type: 'error' });
+      }
+    }
+  }
+
+  async function deleteApplication(appId: string) {
+    if (window.confirm('Are you sure you want to delete this application?')) {
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', appId);
+
+      if (!error) {
+        setToast({ message: 'Application deleted successfully', type: 'success' });
+        loadData();
+      } else {
+        setToast({ message: 'Error deleting application', type: 'error' });
+      }
+    }
+  }
+
+  function viewJobDetails(job: any) {
+    setSelectedJobDetails(job);
+    setShowJobDetailsModal(true);
+  }
+
+  function editJob(job: any) {
+    setSelectedJob(job);
+    setShowAddJobModal(true);
+  }
+
+  function viewApplicationDetails(app: any) {
+    setSelectedApplication(app);
+  }
+
+  function scheduleInterviewForApplication(app: any) {
+    setSelectedInterview(null); // Clear any selection
+    setShowAddInterviewModal(true);
+    // Pre-select application logic would go here if modal supported it via props, 
+    // but currently it loads all applications. 
+    // Ideally we'd pass the app ID to pre-select.
+    // For now, just opening the modal is fine.
+  }
+
+  function editInterview(interview: any) {
+    setSelectedInterview(interview);
+    setShowAddInterviewModal(true);
+  }
+
+  function rescheduleInterview(interview: any) {
+    setSelectedInterview(interview);
+    setShowAddInterviewModal(true);
+  }
+
+  async function handleAiScreen(application: any) {
+    if (isAiScreening) return;
+    setIsAiScreening(application.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-screen-resume', {
+        body: {
+          application_id: application.id,
+        },
+      });
+
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+
+      setToast({ message: 'AI screening completed successfully!', type: 'success' });
+      loadData(); // Refresh the application data to show the new score and summary
+    } catch (error: any) {
+      log.error('AI screening failed', error, { component: 'RecruitmentPage', action: 'handleAiScreen', metadata: { appId: application.id } });
+      setToast({ message: error.message || 'Failed to start AI screening', type: 'error' });
+    } finally {
+      setIsAiScreening(null);
+    }
+  }
+
+  async function handleBulkAiScreen() {
+    if (selectedApplications.length === 0) return;
+
+    setIsScreeningBulk(true);
+    setScreeningProgress({ current: 0, total: selectedApplications.length });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Process in small batches to avoid hitting rate limits too aggressively
+    const batchSize = 3;
+    for (let i = 0; i < selectedApplications.length; i += batchSize) {
+      const batch = selectedApplications.slice(i, i + batchSize);
+
+      await Promise.all(batch.map(async (appId) => {
+        try {
+          const { data, error } = await supabase.functions.invoke('ai-screen-resume', {
+            body: { application_id: appId },
+          });
+
+          if (!error && (!data || !data.error)) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          failCount++;
+        } finally {
+          setScreeningProgress(prev => ({ ...prev, current: prev.current + 1 }));
+        }
+      }));
+    }
+
+    setToast({
+      message: `Bulk screening complete. Success: ${successCount}, Failed: ${failCount}`,
+      type: successCount > 0 ? 'success' : 'error'
+    });
+
+    setIsScreeningBulk(false);
+    setSelectedApplications([]);
+    loadData();
+  }
+
+  function toggleApplicationSelection(appId: string) {
+    setSelectedApplications(prev =>
+      prev.includes(appId) ? prev.filter(id => id !== appId) : [...prev, appId]
+    );
+  }
+
+  function toggleSelectAll(apps: any[]) {
+    if (selectedApplications.length === apps.length) {
+      setSelectedApplications([]);
+    } else {
+      setSelectedApplications(apps.map(app => app.id));
+    }
+  }
+
+  async function handleGenerateDocument(application: any, templateId: string) {
+    if (isGeneratingDoc) return;
+    setIsGeneratingDoc(application.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-document', {
+        body: {
+          template_id: templateId,
+          application_id: application.id,
+        },
+      });
+
+      if (error) throw error;
+
+      setToast({ message: 'Document generated successfully!', type: 'success' });
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error: any) {
+      log.error('Document generation failed', error, { component: 'RecruitmentPage', action: 'handleGenerateDocument', metadata: { appId: application.id } });
+      setToast({ message: error.message || 'Failed to generate document', type: 'error' });
+    } finally {
+      setIsGeneratingDoc(null);
+    }
+  }
+
+  function handleConvertToEmployee(application: any) {
+    setConvertingApplication(application);
+    setShowConvertModal(true);
+    setSelectedApplication(null); // Close the details modal
+  }
+
+  function handleAddNew() {
+    if (activeTab === 'jobs') {
+      setSelectedJob(null); // Clear selection for new job
+      setShowAddJobModal(true);
+    } else if (activeTab === 'applications') {
+      setShowAddApplicationModal(true);
+    } else if (activeTab === 'interviews') {
+      setSelectedInterview(null); // Clear selection for new interview
+      setShowAddInterviewModal(true);
+    }
+  }
+
+  async function handleSuccess() {
+    setToast({ message: (selectedJob || selectedInterview) ? 'Item updated successfully!' : 'Item created successfully!', type: 'success' });
+    // Small delay to ensure database has committed the changes
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await loadData();
+  }
+
+  function handleError(message: string) {
+    setToast({ message, type: 'error' });
+  }
+
+  function getStagesForApp(app: any) {
+    const workflowId = app.job_postings?.workflow_id;
+    if (!workflowId) return [];
+    return workflowStages.filter(s => s.workflow_id === workflowId);
+  }
+
+  // Drag and Drop Handlers
+  const handleDragStart = (e: React.DragEvent, appId: string) => {
+    setDraggedAppId(appId);
+    e.dataTransfer.effectAllowed = 'move';
+    // Transparent drag image or default
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, stageId: string) => {
+    e.preventDefault();
+    if (draggedAppId) {
+      updateApplicationStage(draggedAppId, stageId);
+      setDraggedAppId(null);
+    }
+  };
+
+  const tabs = [
+    { id: 'jobs', label: 'Job Postings', icon: null },
+    { id: 'applications', label: 'Applications', icon: null },
+    { id: 'interviews', label: 'Interviews', icon: null },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'settings', label: 'Automation Settings', icon: null },
+  ];
+
+  const filteredJobs = jobs.filter(job =>
+    job.job_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.department.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = `${app.applicant_first_name} ${app.applicant_last_name} ${app.applicant_email}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    const matchesWorkflow = selectedWorkflowId === 'all' || app.job_postings?.workflow_id === selectedWorkflowId;
+    const matchesJob = selectedJobId === 'all' || app.job_id === selectedJobId;
+    const matchesStage = selectedStageId === 'all' || app.current_stage_id === selectedStageId;
+
+    return matchesSearch && matchesWorkflow && matchesJob && matchesStage;
+  });
+
+  // Get stages for the selected workflow (for Board View)
+  const currentWorkflowStages = selectedWorkflowId !== 'all'
+    ? workflowStages.filter(s => s.workflow_id === selectedWorkflowId)
+    : [];
+
+  return (
+    <div>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Recruitment Module</h1>
+          <p className="mt-1 text-sm text-gray-600">Manage job postings, applications, and interviews</p>
+        </div>
+
+        {activeTab !== 'analytics' && (
+          <button
+            onClick={handleAddNew}
+            className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {activeTab === 'jobs' ? 'New Job Posting' : activeTab === 'interviews' ? 'Schedule Interview' : 'Add Application'}
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <nav className="-mb-px flex space-x-8">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as TabType)}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition flex items-center ${activeTab === tab.id
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              {tab.icon && <tab.icon className="w-4 h-4 mr-2" />}
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        {activeTab === 'applications' && (
+          <div className="flex items-center space-x-4">
+            {/* Workflow Filter */}
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select
+                value={selectedWorkflowId}
+                onChange={(e) => setSelectedWorkflowId(e.target.value)}
+                className="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="all">All Workflows</option>
+                {workflows.map(wf => (
+                  <option key={wf.id} value={wf.id}>{wf.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Job Filter */}
+            <div className="flex items-center space-x-2">
+              <select
+                value={selectedJobId}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                className="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 max-w-[150px]"
+              >
+                <option value="all">All Jobs</option>
+                {jobs.map(job => (
+                  <option key={job.id} value={job.id}>{job.job_title}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Stage Filter */}
+            <div className="flex items-center space-x-2">
+              <select
+                value={selectedStageId}
+                onChange={(e) => setSelectedStageId(e.target.value)}
+                className="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 max-w-[150px]"
+              >
+                <option value="all">All Stages</option>
+                {workflowStages.map(stage => (
+                  <option key={stage.id} value={stage.id}>{stage.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewType('list')}
+                className={`p-2 rounded-md transition ${viewType === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                title="List View"
+              >
+                <LayoutList className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewType('board')}
+                className={`p-2 rounded-md transition ${viewType === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                title="Board View"
+              >
+                <Kanban className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Search Bar */}
+      {activeTab !== 'analytics' && (
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder={`Search ${activeTab}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className={`bg-white rounded-xl shadow-sm border border-gray-200 ${viewType === 'board' && activeTab === 'applications' ? 'bg-transparent border-none shadow-none' : ''}`}>
+        {loading ? (
+          <div className="flex items-center justify-center h-64 bg-white rounded-xl border border-gray-200">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : (
+          <div key={`${activeTab}-${viewType}`}>
+            {/* Job Postings Table */}
+            {activeTab === 'jobs' && (
+              <div className="overflow-x-auto">
+                {/* Desktop Table */}
+                <table className="min-w-full divide-y divide-gray-200 hidden md:table">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Workflow</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredJobs.length > 0 ? (
+                      filteredJobs.map((job) => (
+                        <tr key={job.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-medium text-gray-900">{job.job_title}</div>
+                            <div className="text-sm text-gray-500">{job.location || 'Remote'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {job.department}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                            {job.employment_type.replace('_', ' ')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <select
+                              value={job.status}
+                              onChange={(e) => updateJobStatus(job.id, e.target.value)}
+                              className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${job.status === 'active' ? 'bg-green-100 text-green-800' :
+                                job.status === 'closed' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                                }`}
+                            >
+                              <option value="draft">Draft</option>
+                              <option value="active">Published</option>
+                              <option value="closed">Closed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {job.recruitment_workflows?.name || 'Default'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => viewJobDetails(job)}
+                              className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => editJob(job)}
+                              className="text-gray-600 hover:text-gray-900 mr-3 p-1 rounded"
+                              title="Edit Job"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteJob(job.id)}
+                              className="text-red-600 hover:text-red-900 p-1 rounded"
+                              title="Delete Job"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
+                          No job postings found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+                {/* Mobile Job Cards */}
+                <div className="md:hidden divide-y divide-gray-200">
+                  {filteredJobs.length > 0 ? (
+                    filteredJobs.map((job) => (
+                      <div key={job.id} className="p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{job.job_title}</div>
+                            <div className="text-xs text-gray-500">{job.department} • {job.location || 'Remote'}</div>
+                          </div>
+                          <select
+                            value={job.status}
+                            onChange={(e) => updateJobStatus(job.id, e.target.value)}
+                            className={`text-[10px] font-semibold rounded-full px-2 py-0.5 border-0 outline-none ${job.status === 'active' ? 'bg-green-100 text-green-800' :
+                              job.status === 'closed' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}
+                          >
+                            <option value="draft">Draft</option>
+                            <option value="active">Active</option>
+                            <option value="closed">Closed</option>
+                          </select>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500 capitalize">{job.employment_type.replace('_', ' ')}</span>
+                          <span className="text-indigo-600 font-medium">{job.recruitment_workflows?.name || 'Default'}</span>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                          <button onClick={() => viewJobDetails(job)} className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"><Eye className="w-4 h-4" /></button>
+                          <button onClick={() => editJob(job)} className="p-2 text-gray-600 bg-gray-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                          <button onClick={() => deleteJob(job.id)} className="p-2 text-red-600 bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-sm text-gray-500">No job postings found</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Applications List View */}
+            {activeTab === 'applications' && viewType === 'list' && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 hidden md:table">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
+                          onChange={() => toggleSelectAll(filteredApplications)}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stage</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI Score</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredApplications.length > 0 ? (
+                      filteredApplications.map((app) => {
+                        const appStages = getStagesForApp(app);
+                        return (
+                          <tr key={app.id} className={`hover:bg-gray-50 ${selectedApplications.includes(app.id) ? 'bg-indigo-50' : ''}`}>
+                            <td className="px-6 py-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedApplications.includes(app.id)}
+                                onChange={() => toggleApplicationSelection(app.id)}
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {app.applicant_first_name} {app.applicant_last_name}
+                              </div>
+                              <div className="text-sm text-gray-500">{app.applicant_email}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {app.job_postings?.job_title || 'Unknown Job'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {format(new Date(app.applied_at), 'MMM dd, yyyy')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {appStages.length > 0 ? (
+                                <select
+                                  value={app.current_stage_id || ''}
+                                  disabled={isUpdatingStage === app.id}
+                                  onChange={(e) => updateApplicationStage(app.id, e.target.value)}
+                                  className="text-xs font-semibold rounded-full px-3 py-1 border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                                >
+                                  <option value="">Select Stage</option>
+                                  {appStages.map((stage: any) => (
+                                    <option key={stage.id} value={stage.id}>
+                                      {stage.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-sm text-gray-500 italic">No workflow</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {app.ai_score ? `${app.ai_score}/100` : 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <button
+                                onClick={() => viewApplicationDetails(app)}
+                                disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                                className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded disabled:opacity-50"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => scheduleInterviewForApplication(app)}
+                                disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                                className="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded disabled:opacity-50"
+                                title="Schedule Interview"
+                              >
+                                <Calendar className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteApplication(app.id)}
+                                disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                                className="text-gray-600 hover:text-gray-900 p-1 rounded disabled:opacity-50"
+                                title="Delete Application"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              {(isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id) && (
+                                <Clock className="w-4 h-4 ml-2 animate-spin text-indigo-600 inline-block align-text-bottom" />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
+                          No applications found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+                {/* Mobile Application Cards */}
+                <div className="md:hidden divide-y divide-gray-200">
+                  {filteredApplications.length > 0 ? (
+                    filteredApplications.map((app) => {
+                      const appStages = getStagesForApp(app);
+                      return (
+                        <div key={app.id} className="p-4 space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedApplications.includes(app.id)}
+                                onChange={() => toggleApplicationSelection(app.id)}
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{app.applicant_first_name} {app.applicant_last_name}</div>
+                                <div className="text-xs text-gray-500">{app.job_postings?.job_title}</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-400">{format(new Date(app.applied_at), 'MMM dd, yyyy')}</span>
+                            <div className="flex bg-gray-50 rounded-lg p-1">
+                              {appStages.length > 0 ? (
+                                <select
+                                  value={app.current_stage_id || ''}
+                                  disabled={isUpdatingStage === app.id}
+                                  onChange={(e) => updateApplicationStage(app.id, e.target.value)}
+                                  className="text-[10px] font-semibold rounded px-2 py-0.5 border-none bg-transparent outline-none focus:ring-0"
+                                >
+                                  <option value="">Stage</option>
+                                  {appStages.map((stage: any) => (
+                                    <option key={stage.id} value={stage.id}>
+                                      {stage.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-[10px] text-gray-400 px-2">No workflow</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {app.ai_score && (
+                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full flex items-center">
+                                  <Zap className="w-2 h-2 mr-0.5" />
+                                  {app.ai_score}%
+                                </span>
+                              )}
+                              {(isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id) && (
+                                <Clock className="w-3 h-3 animate-spin text-indigo-600" />
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                            <button
+                              onClick={() => viewApplicationDetails(app)}
+                              disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                              className="p-2 text-indigo-600 bg-indigo-50 rounded-lg disabled:opacity-50"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => scheduleInterviewForApplication(app)}
+                              disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                              className="p-2 text-blue-600 bg-blue-50 rounded-lg disabled:opacity-50"
+                            >
+                              <Calendar className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteApplication(app.id)}
+                              disabled={isUpdatingStage === app.id || isAiScreening === app.id || isGeneratingDoc === app.id}
+                              className="p-2 text-red-600 bg-red-50 rounded-lg disabled:opacity-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-8 text-center text-sm text-gray-500">No applications found</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Applications Kanban Board View */}
+            {activeTab === 'applications' && viewType === 'board' && (
+              <div className="h-full overflow-x-auto pb-4">
+                {selectedWorkflowId === 'all' ? (
+                  <div className="flex flex-col items-center justify-center h-64 bg-white rounded-xl border border-gray-200">
+                    <Kanban className="w-12 h-12 text-gray-300 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900">Select a Workflow</h3>
+                    <p className="text-gray-500 mt-1">Please select a specific workflow to view the Kanban board.</p>
+                  </div>
+                ) : (
+                  <div className="flex space-x-4 min-w-max p-1">
+                    {currentWorkflowStages.map((stage) => (
+                      <div
+                        key={stage.id}
+                        className="w-80 bg-gray-50 rounded-lg flex flex-col max-h-[calc(100vh-250px)]"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, stage.id)}
+                      >
+                        {/* Column Header */}
+                        <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-white rounded-t-lg">
+                          <h3 className="font-medium text-gray-900">{stage.name}</h3>
+                          <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                            {filteredApplications.filter(app => app.current_stage_id === stage.id).length}
+                          </span>
+                        </div>
+
+                        {/* Cards Container */}
+                        <div className="p-3 flex-1 overflow-y-auto space-y-3">
+                          {filteredApplications
+                            .filter(app => app.current_stage_id === stage.id)
+                            .map((app) => (
+                              <div
+                                key={app.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, app.id)}
+                                className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 cursor-move hover:shadow-md transition"
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <h4 className="font-medium text-gray-900">{app.applicant_first_name} {app.applicant_last_name}</h4>
+                                  <div className="flex flex-col items-end gap-1">
+                                    {app.ai_score !== undefined && app.ai_score !== null && (
+                                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center ${app.ai_score >= 80 ? 'bg-green-100 text-green-700 border border-green-200' :
+                                        app.ai_score >= 50 ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                          'bg-gray-100 text-gray-600 border border-gray-200'
+                                        }`}>
+                                        <Zap className="w-2 h-2 mr-0.5" />
+                                        {app.ai_score}%
+                                      </span>
+                                    )}
+                                    {app.score && !app.ai_score && (
+                                      <span className="text-[10px] font-semibold bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded border border-gray-100">
+                                        {app.score}%
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-2">{app.job_postings?.job_title}</p>
+                                <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-50">
+                                  <span className="text-xs text-gray-400">{format(new Date(app.applied_at), 'MMM d')}</span>
+                                  <div className="flex space-x-1">
+                                    <button
+                                      onClick={() => viewApplicationDetails(app)}
+                                      className="p-1 text-gray-400 hover:text-indigo-600 rounded"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => scheduleInterviewForApplication(app)}
+                                      className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                    >
+                                      <Calendar className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Interviews Table */}
+            {activeTab === 'interviews' && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Application ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interview Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheduled Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {interviews.length > 0 ? (
+                      interviews.map((interview) => (
+                        <tr key={interview.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {interview.application_id.substring(0, 8)}...
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                            {interview.interview_type.replace('_', ' ')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {format(new Date(interview.scheduled_date), 'MMM dd, yyyy HH:mm')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${interview.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              interview.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                'bg-blue-100 text-blue-800'
+                              }`}>
+                              {interview.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {interview.rating ? `${interview.rating}/5` : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => rescheduleInterview(interview)}
+                              className="text-indigo-600 hover:text-indigo-900 mr-3 p-1 rounded"
+                              title="Reschedule Interview"
+                            >
+                              <Calendar className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => editInterview(interview)}
+                              className="text-gray-600 hover:text-gray-900 mr-3 p-1 rounded"
+                              title="Edit Interview"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Mark this interview as completed?')) {
+                                  setToast({ message: 'Interview marked as completed', type: 'success' });
+                                }
+                              }}
+                              className="text-green-600 hover:text-green-900 p-1 rounded"
+                              title="Mark Complete"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
+                          No interviews scheduled
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <RecruitmentAnalyticsDashboard />
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <RecruitmentSettings />
+        )}
+      </div>
+
+      {/* Modals & Overlays */}
+      <div key="modals-and-overlays">
+        <AddJobModal
+          isOpen={showAddJobModal}
+          onClose={() => setShowAddJobModal(false)}
+          onSuccess={handleSuccess}
+          onError={handleError}
+          job={selectedJob}
+        />
+        <AddApplicationModal
+          isOpen={showAddApplicationModal}
+          onClose={() => setShowAddApplicationModal(false)}
+          onSuccess={handleSuccess}
+          onError={handleError}
+        />
+        <AddInterviewModal
+          isOpen={showAddInterviewModal}
+          onClose={() => setShowAddInterviewModal(false)}
+          onSuccess={handleSuccess}
+          onError={handleError}
+          interview={selectedInterview}
+        />
+        <ApplicationDetailsModal
+          application={selectedApplication}
+          isOpen={!!selectedApplication}
+          onClose={() => setSelectedApplication(null)}
+          onUpdate={() => {
+            loadData();
+          }}
+          onAiScreen={handleAiScreen}
+          onConvertToEmployee={handleConvertToEmployee}
+          onGenerateDocument={handleGenerateDocument}
+        />
+
+        {/* Bulk Action Bar */}
+        {selectedApplications.length > 0 && (
+          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 bg-white shadow-2xl rounded-full px-6 py-4 border border-indigo-100 flex items-center space-x-6 animate-in slide-in-from-bottom-8">
+            <div className="flex items-center space-x-2">
+              <span className="bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                {selectedApplications.length}
+              </span>
+              <span className="text-sm font-medium text-gray-700">Selected</span>
+            </div>
+            <div className="h-6 w-px bg-gray-200"></div>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleBulkAiScreen}
+                disabled={isScreeningBulk}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700 transition disabled:opacity-50"
+              >
+                {isScreeningBulk ? (
+                  <>
+                    <Clock className="w-4 h-4 mr-2 animate-spin" />
+                    Screening {screeningProgress.current}/{screeningProgress.total}...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    AI Screen Bulk
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setSelectedApplications([])}
+                className="text-sm text-gray-500 hover:text-gray-700 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Convert to Employee Modal */}
+        <ConvertToEmployeeModal
+          isOpen={showConvertModal}
+          onClose={() => {
+            setShowConvertModal(false);
+            setConvertingApplication(null);
+          }}
+          application={convertingApplication}
+          onSuccess={() => {
+            setToast({ message: 'Candidate converted to employee with onboarding checklist!', type: 'success' });
+            loadData();
+          }}
+          onError={(message) => setToast({ message, type: 'error' })}
+        />
+
+        {/* Toast Notification */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+

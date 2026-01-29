@@ -18,6 +18,8 @@ import TrainingMatrix from '../components/TrainingMatrix';
 import DBSCheckForm from '../components/DBSCheckForm';
 import ComplianceReportSettings from '../components/ComplianceReportSettings';
 import { log } from '@/lib/logger';
+import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface ComplianceReport {
     total_staff: number;
@@ -110,8 +112,25 @@ export default function ComplianceDashboardPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
+            <div className="p-6 space-y-6">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-64" />
+                        <Skeleton className="h-4 w-48" />
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-32 rounded-lg" />
+                        <Skeleton className="h-10 w-32 rounded-lg" />
+                    </div>
+                </div>
+                {/* Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
+                </div>
+                {/* Score Chart */}
+                <SkeletonCard />
+                {/* Table */}
+                <SkeletonCard />
             </div>
         );
     }
@@ -127,20 +146,26 @@ export default function ComplianceDashboardPage() {
                     <p className="text-gray-600 mt-1">Monitor organization-wide audit readiness</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <button
-                        onClick={() => navigate('/inspector-mode')}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 border-slate-700 text-white rounded-lg hover:opacity-90 border shadow-sm transition-all"
-                    >
-                        <Shield className="w-4 h-4 text-white" />
-                        Enter Inspector Mode
-                    </button>
-                    <button
-                        onClick={handleExport}
-                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-all shadow-sm"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export Audit Report
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                        <Tooltip content="Switch to auditor view">
+                            <button
+                                onClick={() => navigate('/inspector-mode')}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 border-slate-700 text-white rounded-lg hover:opacity-90 border shadow-sm transition-all"
+                            >
+                                <Shield className="w-4 h-4 text-white" />
+                                Enter Inspector Mode
+                            </button>
+                        </Tooltip>
+                        <Tooltip content="Download audit CSV">
+                            <button
+                                onClick={handleExport}
+                                className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-all shadow-sm"
+                            >
+                                <Download className="w-4 h-4" />
+                                Export Audit Report
+                            </button>
+                        </Tooltip>
+                    </div>
                 </div>
             </div>
 
@@ -324,9 +349,11 @@ export default function ComplianceDashboardPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <button className="text-cyan-600 hover:text-cyan-700 text-sm font-bold transition-colors">
-                                                        View Details
-                                                    </button>
+                                                    <Tooltip content="View staff compliance details">
+                                                        <button className="text-cyan-600 hover:text-cyan-700 text-sm font-bold transition-colors">
+                                                            View Details
+                                                        </button>
+                                                    </Tooltip>
                                                 </td>
                                             </tr>
                                         ))}
@@ -373,13 +400,15 @@ export default function ComplianceDashboardPage() {
                     )}
 
                     <div className="flex justify-end">
-                        <button
-                            onClick={() => setShowDBSModal(true)}
-                            className="flex items-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold shadow-md transition-all"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Record New Check
-                        </button>
+                        <Tooltip content="Start a new DBS or RTW check">
+                            <button
+                                onClick={() => setShowDBSModal(true)}
+                                className="flex items-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold shadow-md transition-all"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Record New Check
+                            </button>
+                        </Tooltip>
                     </div>
                 </div>
             ) : activeTab === 'training' ? (

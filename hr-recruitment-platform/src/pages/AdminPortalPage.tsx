@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import EditTenantModal from '@/components/admin/EditTenantModal';
 import { log } from '@/lib/logger';
 import LeadManagement from '@/components/admin/LeadManagement';
+import { SkeletonList } from '@/components/ui/Skeleton';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Tenant {
     id: string;
@@ -106,13 +108,8 @@ export default function AdminPortalPage() {
         tenant.subdomain.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
-            </div>
-        );
-    }
+    // Removed early return for loading to show skeleton state
+
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
@@ -204,81 +201,89 @@ export default function AdminPortalPage() {
                         </div>
 
                         <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredTenants.map((tenant) => (
-                                        <tr key={tenant.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div className="h-10 w-10 flex-shrink-0 bg-cyan-100 rounded-lg flex items-center justify-center text-cyan-700 font-bold text-lg">
-                                                        {tenant.name.charAt(0)}
-                                                    </div>
-                                                    <div className="ml-4">
-                                                        <div className="text-sm font-medium text-gray-900">{tenant.name}</div>
-                                                        <div className="text-sm text-gray-500">{tenant.subdomain}.novumflow.com</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                ${tenant.subscription_tier === 'enterprise' ? 'bg-purple-100 text-purple-800' :
-                                                        tenant.subscription_tier === 'professional' ? 'bg-blue-100 text-blue-800' :
-                                                            'bg-gray-100 text-gray-800'}`}>
-                                                    {tenant.subscription_tier.toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                ${tenant.subscription_status === 'active' ? 'bg-green-100 text-green-800' :
-                                                        tenant.subscription_status === 'trial' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-red-100 text-red-800'}`}>
-                                                    {tenant.subscription_status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="w-4 h-4" />
-                                                    {tenant.member_count}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {new Date(tenant.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedTenant(tenant);
-                                                            setIsEditModalOpen(true);
-                                                        }}
-                                                        className="text-cyan-600 hover:text-cyan-900 p-1 hover:bg-cyan-50 rounded"
-                                                        title="Edit Settings"
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleTenantStatus(tenant.id, tenant.is_active ?? true)}
-                                                        className={`${tenant.is_active !== false ? 'text-green-600 hover:text-green-900' : 'text-red-600 hover:text-red-900'} p-1 hover:bg-gray-50 rounded`}
-                                                        title={tenant.is_active !== false ? "Disable Tenant" : "Enable Tenant"}
-                                                    >
-                                                        {tenant.is_active !== false ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                                    </button>
-                                                </div>
-                                            </td>
+                            {loading ? (
+                                <div className="p-0">
+                                    <SkeletonList count={8} />
+                                </div>
+                            ) : (
+                                <table className="w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {filteredTenants.map((tenant) => (
+                                            <tr key={tenant.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="h-10 w-10 flex-shrink-0 bg-cyan-100 rounded-lg flex items-center justify-center text-cyan-700 font-bold text-lg">
+                                                            {tenant.name.charAt(0)}
+                                                        </div>
+                                                        <div className="ml-4">
+                                                            <div className="text-sm font-medium text-gray-900">{tenant.name}</div>
+                                                            <div className="text-sm text-gray-500">{tenant.subdomain}.novumflow.com</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                ${tenant.subscription_tier === 'enterprise' ? 'bg-purple-100 text-purple-800' :
+                                                            tenant.subscription_tier === 'professional' ? 'bg-blue-100 text-blue-800' :
+                                                                'bg-gray-100 text-gray-800'}`}>
+                                                        {tenant.subscription_tier.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                ${tenant.subscription_status === 'active' ? 'bg-green-100 text-green-800' :
+                                                            tenant.subscription_status === 'trial' ? 'bg-yellow-100 text-yellow-800' :
+                                                                'bg-red-100 text-red-800'}`}>
+                                                        {tenant.subscription_status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <div className="flex items-center gap-1">
+                                                        <Users className="w-4 h-4" />
+                                                        {tenant.member_count}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {new Date(tenant.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Tooltip content="Edit Tenant Settings">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedTenant(tenant);
+                                                                    setIsEditModalOpen(true);
+                                                                }}
+                                                                className="text-cyan-600 hover:text-cyan-900 p-1 hover:bg-cyan-50 rounded"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                        </Tooltip>
+                                                        <Tooltip content={tenant.is_active !== false ? "Disable Tenant" : "Enable Tenant"}>
+                                                            <button
+                                                                onClick={() => toggleTenantStatus(tenant.id, tenant.is_active ?? true)}
+                                                                className={`${tenant.is_active !== false ? 'text-green-600 hover:text-green-900' : 'text-red-600 hover:text-red-900'} p-1 hover:bg-gray-50 rounded`}
+                                                            >
+                                                                {tenant.is_active !== false ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                                                            </button>
+                                                        </Tooltip>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
                         </div>
                     </div>
                 )}

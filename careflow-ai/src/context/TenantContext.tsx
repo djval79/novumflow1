@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { withTimeout } from '../lib/timeoutUtils';
 
 // Tenant types
 export interface Tenant {
@@ -53,6 +54,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const [memberships, setMemberships] = useState<TenantMembership[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Concurrency guard to prevent multiple simultaneous loads
+    const isLoadingRef = React.useRef(false);
+
     // Load user's tenants and memberships
     const loadTenants = useCallback(async () => {
         if (!user) {
@@ -64,22 +68,46 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        if (isLoadingRef.current) {
+            console.log('TenantContext: loadTenants already in progress, skipping');
+            return;
+        }
+
         try {
+            isLoadingRef.current = true;
             setLoading(true);
             console.log('TenantContext: Loading memberships for user:', user.id);
 
-            // Load memberships
-            const { data: membershipData, error: membershipError } = await supabase
-                .from('user_tenant_memberships')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('is_active', true)
-                .order('joined_at', { ascending: true });
+            // Timeout helper for Supabase queries
+            const withTimeout = async (promise: Promise<any>, timeoutMs: number = 8000) => {
+                let timeoutHandle: any;
+                const timeoutPromise = new Promise((_, reject) => {
+                    timeoutHandle = setTimeout(() => reject(new Error('Query Timeout')), timeoutMs);
+                });
+                try {
+                    const result = await Promise.race([promise, timeoutPromise]);
+                    clearTimeout(timeoutHandle);
+                    return result;
+                } catch (err) {
+                    clearTimeout(timeoutHandle);
+                    throw err;
+                }
+            };
+
+            // Load memberships with timeout
+            console.log('TenantContext: Fetching memberships...');
+            const membershipQuery = supabase
+                    .from('user_tenant_memberships')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('is_active', true)
+                    .order('joined_at', { ascending: true });
+            
+            const { data: membershipData, error: membershipError } = await withTimeout(membershipQuery);
 
             console.log('TenantContext: Membership query result:', {
-                data: membershipData,
-                error: membershipError,
-                count: membershipData?.length
+                count: membershipData?.length,
+                error: membershipError
             });
 
             if (membershipError) {
@@ -90,25 +118,24 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             setMemberships(membershipData || []);
 
             // Load tenants using membership data directly
-            // The RPC approach using auth.uid() has issues, so we use memberships + direct tenant query
             if (membershipData && membershipData.length > 0) {
-                console.log('TenantContext: Found', membershipData.length, 'memberships. Loading tenants...');
-
                 const tenantIds = membershipData.map(m => m.tenant_id);
-                console.log('TenantContext: Tenant IDs to load:', tenantIds);
+                console.log('TenantContext: Loading tenants for IDs:', tenantIds);
 
-                const { data: tenantData, error: tenantError } = await supabase
-                    .from('tenants')
-                    .select('*')
-                    .in('id', tenantIds)
-                    .eq('is_active', true);
+                const { data: tenantData, error: tenantError } = await withTimeout(
+                    supabase
+                        .from('tenants')
+                        .select('*')
+                        .in('id', tenantIds)
+                        .eq('is_active', true)
+                );
 
                 if (tenantError) {
                     console.error('TenantContext: Error loading tenants:', tenantError);
                     throw tenantError;
                 }
 
-                console.log('TenantContext: Loaded tenants:', tenantData);
+                console.log('TenantContext: Loaded tenants count:', tenantData?.length);
                 setTenants(tenantData || []);
 
                 // Set current tenant (Priority: URL > LocalStorage > First available)
@@ -128,35 +155,34 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             } else {
                 console.log('TenantContext: No memberships found for user');
 
-                // Try RPC as fallback (though likely will also fail)
-                try {
-                    const { data: rpcData, error: rpcError } = await supabase.rpc('get_my_tenants');
+                // Fallback to simpler RPC check if memberships table is empty or failing
+                console.log('TenantContext: Triggering RPC fallback check...');
+                const rpcPromise = supabase.rpc('get_my_tenants');
+                const { data: rpcData, error: rpcError } = await withTimeout(rpcPromise, 5000);
 
-                    if (!rpcError && rpcData && rpcData.length > 0) {
-                        console.log('TenantContext: Loaded tenants via RPC fallback', rpcData);
-                        const mappedTenants = rpcData.map((t: any) => ({
-                            ...t,
-                            name: t.name || 'Unknown Organization',
-                            subdomain: t.subdomain || 'unknown',
-                            settings: t.settings || {},
-                            created_at: t.created_at || new Date().toISOString(),
-                            subscription_tier: t.subscription_tier || 'basic'
-                        })) as Tenant[];
+                if (!rpcError && rpcData && rpcData.length > 0) {
+                    console.log('TenantContext: Found tenants via RPC fallback:', rpcData.length);
+                    const mappedTenants = rpcData.map((t: any) => ({
+                        ...t,
+                        name: t.name || 'Unknown Organization',
+                        subdomain: t.subdomain || 'unknown',
+                        settings: t.settings || {},
+                        created_at: t.created_at || new Date().toISOString(),
+                        subscription_tier: t.subscription_tier || 'basic'
+                    })) as Tenant[];
 
-                        setTenants(mappedTenants);
-                        if (mappedTenants[0]) {
-                            setCurrentTenant(mappedTenants[0]);
-                            localStorage.setItem('currentTenantId', mappedTenants[0].id);
-                        }
+                    setTenants(mappedTenants);
+                    if (mappedTenants[0]) {
+                        setCurrentTenant(mappedTenants[0]);
+                        localStorage.setItem('currentTenantId', mappedTenants[0].id);
                     }
-                } catch (rpcErr) {
-                    console.warn('TenantContext: RPC fallback also failed', rpcErr);
                 }
             }
         } catch (error) {
-            console.error('Error loading tenants:', error);
+            console.error('TenantContext: loadTenants failed critical path:', error);
         } finally {
-            console.log('TenantContext: loadTenants finished. Tenants found:', tenants.length);
+            console.log('TenantContext: Finished loading sequence');
+            isLoadingRef.current = false;
             setLoading(false);
         }
     }, [user]);
@@ -176,15 +202,35 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         loadTenants();
     }, [loadTenants]);
 
+    // Ensure RLS context is set whenever tenant changes
     useEffect(() => {
         const setRlsContext = async () => {
             if (currentTenant) {
                 try {
-                    const { error } = await supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id });
+                    console.log('TenantContext: Setting RLS context for:', currentTenant.id);
+
+                    const withTimeout = async (promise: Promise<any>, timeoutMs: number = 5000) => {
+                        let timeoutHandle: any;
+                        const timeoutPromise = new Promise((_, reject) => {
+                            timeoutHandle = setTimeout(() => reject(new Error('RLS Timeout')), timeoutMs);
+                        });
+                        try {
+                            const result = await Promise.race([promise, timeoutPromise]);
+                            clearTimeout(timeoutHandle);
+                            return result;
+                        } catch (err) {
+                            clearTimeout(timeoutHandle);
+                            throw err;
+                        }
+                    };
+
+                    const rlsPromise = supabase.rpc('set_current_tenant', { p_tenant_id: currentTenant.id });
+                    const { error } = await withTimeout(rlsPromise, 5000);
+
                     if (error) console.error('Error enforcing RLS context:', JSON.stringify(error));
-                    else console.log('RLS Context set to:', currentTenant.id);
-                } catch (err) {
-                    console.error('Failed to set RLS context:', err);
+                    else console.log('RLS Context set successfully');
+                } catch (err: any) {
+                    console.warn('TenantContext: Failed to set RLS context (might be a hang):', err?.message || err);
                 }
             }
         };
@@ -228,32 +274,84 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         try {
             console.log('TenantContext: Calling create_tenant RPC with:', { name, subdomain, userId: user.id });
 
-            const { data, error } = await supabase.rpc('create_tenant', {
-                p_name: name,
-                p_subdomain: subdomain,
-                p_owner_user_id: user.id
-                // Note: subscription_tier is hardcoded to 'trial' inside the RPC function
-            });
+            // First check if subdomain already exists to avoid timeouts
+            const { data: existingTenant, error: checkError } = await supabase
+                .from('tenants')
+                .select('id, subdomain')
+                .eq('subdomain', subdomain)
+                .single();
+
+            if (existingTenant) {
+                console.error('TenantContext: Subdomain already exists:', subdomain);
+                throw new Error('Subdomain already exists');
+            }
+
+            // Wrap RPC with shorter timeout and better error handling
+            const executeRpc = async () => {
+                return await supabase.rpc('create_tenant', {
+                    p_name: name,
+                    p_subdomain: subdomain,
+                    p_owner_user_id: user.id
+                });
+            };
+
+            const withTimeout = async (promise: Promise<any>, timeoutMs: number = 8000) => {
+                let timeoutHandle: any;
+                const timeoutPromise = new Promise((_, reject) => {
+                    timeoutHandle = setTimeout(() => reject(new Error('RPC Timeout')), timeoutMs);
+                });
+                try {
+                    const result = await Promise.race([promise, timeoutPromise]);
+                    clearTimeout(timeoutHandle);
+                    return result;
+                } catch (err) {
+                    clearTimeout(timeoutHandle);
+                    throw err;
+                }
+            };
+
+            const { data, error } = await withTimeout(executeRpc());
 
             if (error) {
                 console.error('TenantContext: create_tenant RPC failed:', {
                     message: error.message,
                     details: error.details,
-                    hint: error.hint,
-                    code: error.code,
-                    fullError: JSON.stringify(error, null, 2)
+                    code: error.code
                 });
                 throw error;
             }
 
             console.log('TenantContext: Tenant created successfully:', data);
 
-            // Refresh tenants list
-            await loadTenants();
+            // Wait a bit for database consistency then refresh
+            setTimeout(() => {
+                loadTenants().catch(err => console.error('TenantContext: Post-creation refresh failed:', err));
+            }, 500);
 
             return data;
         } catch (error: any) {
-            console.error('Error creating tenant:', error?.message || error, error);
+            console.error('Error creating tenant:', error?.message || error);
+            
+            // For timeouts, check if tenant was actually created
+            if (error?.message === 'RPC Timeout') {
+                console.warn('TenantContext: creation timed out, checking if tenant exists...');
+                try {
+                    const { data: checkTenant } = await supabase
+                        .from('tenants')
+                        .select('*')
+                        .eq('subdomain', subdomain)
+                        .single();
+                    
+                    if (checkTenant) {
+                        console.log('TenantContext: Tenant was created despite timeout');
+                        setTimeout(() => loadTenants(), 500);
+                        return checkTenant;
+                    }
+                } catch (checkError) {
+                    console.error('TenantContext: Failed to verify tenant creation:', checkError);
+                }
+            }
+            
             return null;
         }
     }, [user, loadTenants]);

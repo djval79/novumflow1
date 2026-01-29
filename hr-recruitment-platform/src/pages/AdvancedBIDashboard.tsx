@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo, type FC, type ReactNode } from 'react';
 import {
     BarChart,
     Bar,
@@ -31,7 +31,7 @@ import { useTenant } from '@/contexts/TenantContext';
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
 
-const AdvancedBIDashboard: React.FC = () => {
+const AdvancedBIDashboard: FC = () => {
     const { currentTenant } = useTenant();
     const tenantId = currentTenant?.id || '';
 
@@ -205,7 +205,7 @@ const AdvancedBIDashboard: React.FC = () => {
     );
 };
 
-const StatBox: React.FC<{ title: string; value: string | number; icon: React.ReactNode; trend: string; positive: boolean }> = ({ title, value, icon, trend, positive }) => (
+const StatBox: FC<{ title: string; value: string | number; icon: ReactNode; trend: string; positive: boolean }> = ({ title, value, icon, trend, positive }) => (
     <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
         <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-slate-50 rounded-2xl">{icon}</div>
